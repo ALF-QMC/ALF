@@ -474,8 +474,6 @@
              Type (Fields),  INTENT(IN) :: nsigma_old
 
              Logical, save              :: first_call=.True.
-             integer                    :: field_id, tau, Nfields, Ntau
-             Complex (kind=kind(0.0d0)) :: Hs_old
 
              Get_Delta_S0_global_base = log(ham%Delta_S0_global(nsigma_old)) ! to avoid overflows we return the log of the ratio
 
@@ -947,78 +945,78 @@
       implicit none
 
       if (Ndim == HAM_VAR_UNSET_INT .or. Ndim <= 0) then
-         write(error_unit, *) 'Ham_set error: Ndim was not set or has invalid value: ', Ndim
-         write(error_unit, *) 'Ndim must be a positive integer (total number of orbitals).'
+         write(error_unit, '(A,I0)') 'Ham_set error: Ndim was not set or has invalid value: ', Ndim
+         write(error_unit, '(A)') 'Ndim must be a positive integer (total number of orbitals).'
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
 
       if (N_FL == HAM_VAR_UNSET_INT .or. N_FL <= 0) then
-         write(error_unit, *) 'Ham_set error: N_FL was not set or has invalid value: ', N_FL
-         write(error_unit, *) 'N_FL must be a positive integer (number of flavors).'
+         write(error_unit, '(A,I0)') 'Ham_set error: N_FL was not set or has invalid value: ', N_FL
+         write(error_unit, '(A)') 'N_FL must be a positive integer (number of flavors).'
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
 
       if (N_SUN == HAM_VAR_UNSET_INT .or. N_SUN <= 0) then
-         write(error_unit, *) 'Ham_set error: N_SUN was not set or has invalid value: ', N_SUN
-         write(error_unit, *) 'N_SUN must be a positive integer (number of colors).'
+         write(error_unit, '(A,I0)') 'Ham_set error: N_SUN was not set or has invalid value: ', N_SUN
+         write(error_unit, '(A)') 'N_SUN must be a positive integer (number of colors).'
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
 
       if (Ltrot == HAM_VAR_UNSET_INT .or. Ltrot <= 0) then
-         write(error_unit, *) 'Ham_set error: Ltrot was not set or has invalid value: ', Ltrot
-         write(error_unit, *) 'Ltrot must be a positive integer (number of time slices).'
+         write(error_unit, '(A,I0)') 'Ham_set error: Ltrot was not set or has invalid value: ', Ltrot
+         write(error_unit, '(A)') 'Ltrot must be a positive integer (number of time slices).'
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
 
       if (Thtrot == HAM_VAR_UNSET_INT .or. Thtrot < 0) then
-         write(error_unit, *) 'Ham_set error: Thtrot was not set or has invalid value: ', Thtrot
-         write(error_unit, *) 'Thtrot must be a non-negative integer (projection parameter).'
+         write(error_unit, '(A,I0)') 'Ham_set error: Thtrot was not set or has invalid value: ', Thtrot
+         write(error_unit, '(A)') 'Thtrot must be a non-negative integer (projection parameter).'
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
 
       if (Projector .and. Thtrot == 0) then
-         write(error_unit, *) 'Ham_set warning: Projector is .true. but Thtrot = 0.'
-         write(error_unit, *) 'This means no projection is actually applied. Check Theta and Dtau.'
+         write(error_unit, '(A)') 'Ham_set warning: Projector is .true. but Thtrot = 0.'
+         write(error_unit, '(A)') 'This means no projection is actually applied. Check Theta and Dtau.'
       endif
 
       ! --- Array allocation and dimension checks ---
 
       if (.not. allocated(Op_V)) then
-         write(error_unit, *) 'Ham_set error: Op_V was not allocated.'
-         write(error_unit, *) 'Op_V must be allocated with shape (:, N_FL) in Ham_Set.'
+         write(error_unit, '(A)') 'Ham_set error: Op_V was not allocated.'
+         write(error_unit, '(A)') 'Op_V must be allocated with shape (:, N_FL) in Ham_Set.'
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
       if (size(Op_V, 2) /= N_FL) then
-         write(error_unit, *) 'Ham_set error: Op_V has wrong second dimension: ', size(Op_V, 2)
-         write(error_unit, *) 'Expected size(Op_V, 2) = N_FL = ', N_FL
+         write(error_unit, '(A,I0)') 'Ham_set error: Op_V has wrong second dimension: ', size(Op_V, 2)
+         write(error_unit, '(A,I0)') 'Expected size(Op_V, 2) = N_FL = ', N_FL
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
 
       if (.not. allocated(Op_T)) then
-         write(error_unit, *) 'Ham_set error: Op_T was not allocated.'
-         write(error_unit, *) 'Op_T must be allocated with shape (:, N_FL) in Ham_Set.'
+         write(error_unit, '(A)') 'Ham_set error: Op_T was not allocated.'
+         write(error_unit, '(A)') 'Op_T must be allocated with shape (:, N_FL) in Ham_Set.'
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
       if (size(Op_T, 2) /= N_FL) then
-         write(error_unit, *) 'Ham_set error: Op_T has wrong second dimension: ', size(Op_T, 2)
-         write(error_unit, *) 'Expected size(Op_T, 2) = N_FL = ', N_FL
+         write(error_unit, '(A,I0)') 'Ham_set error: Op_T has wrong second dimension: ', size(Op_T, 2)
+         write(error_unit, '(A,I0)') 'Expected size(Op_T, 2) = N_FL = ', N_FL
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
 
       if (Projector) then
          if (.not. allocated(WF_L) .or. .not. allocated(WF_R)) then
-            write(error_unit, *) 'Ham_set error: Projector is .true. but WF_L and/or WF_R were not allocated.'
-            write(error_unit, *) 'Trial wave functions must be allocated with shape (N_FL) when Projector = .true.'
+            write(error_unit, '(A)') 'Ham_set error: Projector is .true. but WF_L and/or WF_R were not allocated.'
+            write(error_unit, '(A)') 'Trial wave functions must be allocated with shape (N_FL) when Projector = .true.'
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
          endif
          if (size(WF_L) /= N_FL) then
-            write(error_unit, *) 'Ham_set error: WF_L has wrong size: ', size(WF_L)
-            write(error_unit, *) 'Expected size(WF_L) = N_FL = ', N_FL
+            write(error_unit, '(A,I0)') 'Ham_set error: WF_L has wrong size: ', size(WF_L)
+            write(error_unit, '(A,I0)') 'Expected size(WF_L) = N_FL = ', N_FL
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
          endif
          if (size(WF_R) /= N_FL) then
-            write(error_unit, *) 'Ham_set error: WF_R has wrong size: ', size(WF_R)
-            write(error_unit, *) 'Expected size(WF_R) = N_FL = ', N_FL
+            write(error_unit, '(A,I0)') 'Ham_set error: WF_R has wrong size: ', size(WF_R)
+            write(error_unit, '(A,I0)') 'Expected size(WF_R) = N_FL = ', N_FL
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
          endif
       endif
