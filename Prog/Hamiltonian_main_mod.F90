@@ -981,6 +981,48 @@
          write(error_unit, *) 'This means no projection is actually applied. Check Theta and Dtau.'
       endif
 
+      ! --- Array allocation and dimension checks ---
+
+      if (.not. allocated(Op_V)) then
+         write(error_unit, *) 'Ham_set error: Op_V was not allocated.'
+         write(error_unit, *) 'Op_V must be allocated with shape (:, N_FL) in Ham_Set.'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+      if (size(Op_V, 2) /= N_FL) then
+         write(error_unit, *) 'Ham_set error: Op_V has wrong second dimension: ', size(Op_V, 2)
+         write(error_unit, *) 'Expected size(Op_V, 2) = N_FL = ', N_FL
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (.not. allocated(Op_T)) then
+         write(error_unit, *) 'Ham_set error: Op_T was not allocated.'
+         write(error_unit, *) 'Op_T must be allocated with shape (:, N_FL) in Ham_Set.'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+      if (size(Op_T, 2) /= N_FL) then
+         write(error_unit, *) 'Ham_set error: Op_T has wrong second dimension: ', size(Op_T, 2)
+         write(error_unit, *) 'Expected size(Op_T, 2) = N_FL = ', N_FL
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (Projector) then
+         if (.not. allocated(WF_L) .or. .not. allocated(WF_R)) then
+            write(error_unit, *) 'Ham_set error: Projector is .true. but WF_L and/or WF_R were not allocated.'
+            write(error_unit, *) 'Trial wave functions must be allocated with shape (N_FL) when Projector = .true.'
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+         endif
+         if (size(WF_L) /= N_FL) then
+            write(error_unit, *) 'Ham_set error: WF_L has wrong size: ', size(WF_L)
+            write(error_unit, *) 'Expected size(WF_L) = N_FL = ', N_FL
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+         endif
+         if (size(WF_R) /= N_FL) then
+            write(error_unit, *) 'Ham_set error: WF_R has wrong size: ', size(WF_R)
+            write(error_unit, *) 'Expected size(WF_R) = N_FL = ', N_FL
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+         endif
+      endif
+
     end subroutine Validate_Ham_Variables
 
 
