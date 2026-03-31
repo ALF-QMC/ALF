@@ -358,10 +358,6 @@ Program Main
         Enddo
 
         if(Projector) then
-           if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) then
-              write(error_unit,*) "Projector is selected but there are no trial wave functions!"
-              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-           endif
            do nf_eff=1,N_fl_eff
               nf=Calc_Fl_map(nf_eff)
               if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) then
