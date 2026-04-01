@@ -210,7 +210,8 @@ GNUDEVFLAGS="-Wconversion -Werror -Wno-error=cpp -fcheck=all -g -fbacktrace -fma
 GNUUSEFULFLAGS="-std=f2008"
 
 # default optimization flags for PGI compiler
-PGIOPTFLAGS="-Mpreprocess -O3 -Mfprelaxed -fast"
+# Note: avoid -fast (implies -tp=native) to keep binaries portable across x86_64 CPUs
+PGIOPTFLAGS="-Mpreprocess -O3 -Mfprelaxed -tp=px"
 # uncomment the next line if you want to use additional openmp parallelization
 PGIOPTFLAGS="${PGIOPTFLAGS} -mp"
 PGIDEVFLAGS="-Minform=inform -C -g -traceback"
