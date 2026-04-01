@@ -275,7 +275,7 @@ CONTAINS
        ! Check if myVariable is approaching the smallest representable value
        if ( dble(this%D(this%n_part)) < 10.0*tiny(real(0.0, kind=kind(this%D(1)))) .and. trigger_scale_warning) then
           write(error_unit,*) 
-          write(error_unit,*) "Warning: Smallest scale is approaching the smalles representable value."
+          write(error_unit,*) "Warning: Smallest scale is approaching the smallest representable value."
           write(error_unit,*) "         Consider switching to LOG."
           trigger_scale_warning = .false.
        end if
