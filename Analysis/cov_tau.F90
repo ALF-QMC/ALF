@@ -53,11 +53,11 @@
          Integer :: Nunit, Norb, N_auto
          Integer :: no, no1, n, nbins, n_skip, nb, NT, NT1, Lt, N_rebin, N_cov, ierr, N_Back
          Integer :: Lt_eff
-         real    (Kind=Kind(0.d0)):: X, Y,  dtau, X_diag
+         real    (Kind=Kind(0.d0)):: X, Y,  dtau
          Complex (Kind=Kind(0.d0)), allocatable :: Xmean(:), Xcov(:,:)
          Complex (Kind=Kind(0.d0)) :: Zmean, Zerr
          Complex (Kind=Kind(0.d0)) :: Z, Z_diag
-         Real    (Kind=Kind(0.d0)) :: Zero=1.D-8
+         Real    (Kind=Kind(0.d0)), parameter :: Zero=1.D-8
          Real    (Kind=Kind(0.d0)), allocatable :: Phase(:)
          Complex (Kind=Kind(0.d0)), allocatable :: PhaseI(:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins(:,:,:), Bins_chi(:,:), OneBin(:,:,:)

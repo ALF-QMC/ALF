@@ -1002,5 +1002,9 @@
            
         end Subroutine write_comment
          
-     end Module alf_hdf5
+    end Module alf_hdf5
+#else
+    module alf_hdf5_disabled_mod
+      implicit none
+    end module alf_hdf5_disabled_mod
 #endif

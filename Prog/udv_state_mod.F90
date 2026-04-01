@@ -256,8 +256,6 @@ CONTAINS
        CLASS(UDV_State), INTENT(IN) :: this
 
 #if !defined(STABLOG)
-       real (Kind=Kind(this%D(1))) :: dummy_dp
-
        ! Check if any scale is NaN
        if ( any(this%D /= this%D) )  then
           write(error_unit,*) 
@@ -268,14 +266,14 @@ CONTAINS
 
        ! ATTENTION, the test assumes a (mostly) sorted array D [real and positive numbers]!
        ! Check if largest scale is approaching the largest representable value
-       if ( dble(this%D(1)) > 0.1*huge(dummy_dp) .and. trigger_scale_warning) then
+       if ( dble(this%D(1)) > 0.1*huge(real(0.0, kind=kind(this%D(1)))) .and. trigger_scale_warning) then
           write(error_unit,*) 
           write(error_unit,*) "Warning: Largest scale is approaching the largest representable value."
           write(error_unit,*) "         Consider switching to LOG."
           trigger_scale_warning = .false.
        end if  
        ! Check if myVariable is approaching the smallest representable value
-       if ( dble(this%D(this%n_part)) < 10.0*tiny(dummy_dp) .and. trigger_scale_warning) then
+       if ( dble(this%D(this%n_part)) < 10.0*tiny(real(0.0, kind=kind(this%D(1)))) .and. trigger_scale_warning) then
           write(error_unit,*) 
           write(error_unit,*) "Warning: Smallest scale is approaching the smalles representable value."
           write(error_unit,*) "         Consider switching to LOG."

@@ -160,8 +160,8 @@
          type(Obser_Latt_local), Intent(INOUT)      :: Obs
          Integer,           Intent(IN)         :: Nt
          Character(len=64), Intent(IN)         :: Filename
-         Type(Lattice),     Intent(IN), target :: Latt
-         Type(Unit_cell),   Intent(IN), target :: Latt_unit
+         Type(Lattice),     Intent(INOUT), target :: Latt
+         Type(Unit_cell),   Intent(INOUT), target :: Latt_unit
          Character(len=*),  Intent(IN)         :: Channel
          Real(Kind=Kind(0.d0)),  Intent(IN)    :: dtau
          If (Nt > 1) then
@@ -233,8 +233,8 @@
            type(Obser_Latt), Intent(INOUT)      :: Obs
            Integer,           Intent(IN)         :: Nt
            Character(len=64), Intent(IN)         :: Filename
-           Type(Lattice),     Intent(IN), target :: Latt
-           Type(Unit_cell),   Intent(IN), target :: Latt_unit
+           Type(Lattice),     Intent(INOUT), target :: Latt
+           Type(Unit_cell),   Intent(INOUT), target :: Latt_unit
            Character(len=*),  Intent(IN)         :: Channel
            Real(Kind=Kind(0.d0)),  Intent(IN)    :: dtau
            Allocate (Obs%Obs_Latt(Latt%N, Nt, Latt_unit%Norb, Latt_unit%Norb))
@@ -362,7 +362,6 @@
            Integer :: Ns, Nt, no, no1, I, Ntau
            Complex (Kind=Kind(0.d0)), allocatable, target :: Tmp(:,:,:,:)
            Real    (Kind=Kind(0.d0))              :: x_p(2)
-           Complex (Kind=Kind(0.d0))              :: Sign_bin
            Character (len=64) :: File_pr,  File_suff, File_aux, tmp_str
            logical            :: File_exists
 #ifdef HDF5
@@ -582,9 +581,8 @@
             Integer,                   Intent(In)      :: Group_Comm
 
             ! Local
-            Integer :: Ns, Nt, no, no1, I, Ntau
+            Integer :: Ns, Nt, no, I, Ntau
             Real    (Kind=Kind(0.d0))              :: x_r(2)
-            Complex (Kind=Kind(0.d0))              :: Sign_bin
             Character (len=64) :: File_pr,  File_suff, File_aux, tmp_str
             logical            :: File_exists
 #ifdef HDF5
@@ -773,7 +771,7 @@
 
            ! Local
            Integer :: I
-           Character (len=64) :: File_pr, File_suff, File_aux
+           Character (len=64) :: File_pr, File_aux
            logical            :: File_exists
 
 #if defined HDF5

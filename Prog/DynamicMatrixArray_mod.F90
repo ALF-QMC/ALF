@@ -105,7 +105,7 @@ end subroutine
 !--------------------------------------------------------------------
 subroutine DynamicMatrixArray_pushback(this, itm)
     class(DynamicMatrixArray) :: this
-    class(ContainerElementBase), intent(in), target :: itm !Type(...) has to match exactly, class(...) allows for polymorphism
+    class(ContainerElementBase), intent(inout), target :: itm !Type(...) has to match exactly, class(...) allows for polymorphism
     type(OpTbasePtrWrapper), allocatable, dimension(:) :: temp
     integer :: i
 

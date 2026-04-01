@@ -343,11 +343,13 @@
         Complex (Kind=Kind(0.d0)), Dimension(:,:), Optional   :: Initial_field
 
         ! LOCAL
-        Integer                 :: I, I1, IERR, SEED_IN, K, NT
-        Real (Kind=Kind(0.d0) ) :: X
+        Integer                 :: IERR, SEED_IN
+#ifdef MPI
+        Integer                 :: I
+#endif
         Integer, DIMENSION(:), ALLOCATABLE :: SEED_VEC
         Logical ::   LCONF, LCONF_H5
-        Character (LEN=64) :: FILE_SR, FILE_TG, FILE_seeds, FILE_info, File1, FILE_TG_H5, File1_h5
+        Character (LEN=64) :: FILE_TG, FILE_seeds, FILE_info, File1, FILE_TG_H5, File1_h5
 
 #ifdef MPI
         INTEGER        :: STATUS(MPI_STATUS_SIZE), irank_g, isize_g, igroup, ISIZE, IRANK
@@ -524,7 +526,7 @@
 
          Class (Fields), INTENT(INOUT) :: this
 
-         Integer :: nt, I, I1
+         Integer :: nt, I
 
          !Write(6,*) "Fields_set", size(this%f,1), size(this%f,2)
          Do nt = 1,size(this%f,2)

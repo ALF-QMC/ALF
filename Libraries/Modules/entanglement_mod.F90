@@ -64,9 +64,8 @@ Module entanglement_mod
 #endif
           Implicit none
           Integer, INTENT(IN)               :: Group_Comm
-          
-          Integer                           :: ISIZE, IRANK, IERR
 #ifdef MPI
+          Integer                           :: ISIZE, IRANK, IERR
           ! Create subgroups of two replicas each
           CALL MPI_COMM_SIZE(Group_Comm,ISIZE,IERR)
           CALL MPI_COMM_RANK(Group_Comm,IRANK,IERR)
@@ -96,7 +95,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), INTENT(OUT)   :: Renyi_A, Renyi_B, Renyi_AB
 
           Integer, Dimension(:), Allocatable :: List_AB
-          Integer          :: I, J, IERR, INFO, Nsites_AB
+          Integer          :: I, Nsites_AB
 
           Nsites_AB=Nsites_A+Nsites_B
           
@@ -132,7 +131,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), INTENT(OUT)   :: Renyi_A, Renyi_B, Renyi_AB
 
           Integer, Allocatable :: List_AB(:,:), Nsites_AB(:)
-          Integer          :: I, J, IERR, INFO, N_FL, Nsites_AB_max
+          Integer          :: I, J, N_FL, Nsites_AB_max
 
           N_FL=size(GRC,3)
           Allocate(Nsites_AB(N_FL))
@@ -176,7 +175,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), INTENT(OUT)   :: Renyi_A, Renyi_B, Renyi_AB
 
           Integer, Allocatable :: List_AB(:,:,:), Nsites_AB(:,:)
-          Integer          :: I, J, IERR, INFO, N_FL, Nsites_AB_max, nc, num_nc
+          Integer          :: I, J, N_FL, Nsites_AB_max, nc, num_nc
 
           N_FL=size(GRC,3)
           num_nc=size(List_B,3)
@@ -248,17 +247,18 @@ Module entanglement_mod
           Integer, INTENT(IN)               :: List(:)
           Integer, INTENT(IN)               :: Nsites, N_SUN
 
+          Logical, save :: First_call = .True.
+#ifdef MPI
           Complex (kind=kind(0.d0)), Dimension(:,:), Allocatable :: GreenA, GreenA_tmp, IDA
           ! Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
           Integer          :: J, IERR, INFO, N_FL, nf, N_FL_half
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
-          Logical, save :: First_call = .True.
           
           EXTERNAL ZGEMM
           EXTERNAL ZGETRF
-          
+
           N_FL = size(GRC,3)
           N_FL_half = N_FL/2
             
@@ -271,7 +271,6 @@ Module entanglement_mod
             return
           endif
             
-#ifdef MPI
           ! Check if entanglement replica group is of size 2 such that the second renyi entropy can be calculated
           if(ENT_SIZE==2) then
           
@@ -361,6 +360,8 @@ Module entanglement_mod
           Integer, INTENT(IN) :: List(:,:)
           Integer, INTENT(IN)               :: Nsites(:), N_SUN(:) ! new
 
+          Logical, save :: First_call = .True.
+#ifdef MPI
           Complex (kind=kind(0.d0)), Dimension(:,:), Allocatable :: GreenA, GreenA_tmp, IDA
           ! Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
@@ -368,8 +369,6 @@ Module entanglement_mod
           Integer         , Dimension(:), Allocatable :: SortedFlavors ! new
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
-          Logical, save :: First_call = .True.
-          
           EXTERNAL ZGEMM
           EXTERNAL ZGETRF
           
@@ -401,8 +400,7 @@ Module entanglement_mod
           Calc_Renyi_Ent_gen_fl=CMPLX(1.d0,0.d0,kind(0.d0))
           alpha=CMPLX(2.d0,0.d0,kind(0.d0))
           beta =CMPLX(1.d0,0.d0,kind(0.d0))
-          
-#ifdef MPI
+
           ! Check if entanglement replica group is of size 2 such that the second reny entropy can be calculated
           if(ENT_SIZE==2) then
           
@@ -493,6 +491,8 @@ Module entanglement_mod
           Integer, Dimension(:,:,:), INTENT(IN) :: List
           Integer, INTENT(IN)               :: Nsites(:,:)
 
+          Logical, save :: First_call = .True.
+#ifdef MPI
           Complex (kind=kind(0.d0)), Dimension(:,:), Allocatable :: GreenA, GreenA_tmp, IDA
           ! Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
@@ -501,8 +501,6 @@ Module entanglement_mod
           Integer         , Dimension(:), Allocatable :: SortedFlavors,N_SUN_fl,df_list
           Integer         , Dimension(:,:), Allocatable :: List_tmp, eff_ind, eff_ind_inv
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
-          Logical, save :: First_call = .True.
-          
           EXTERNAL ZGEMM
           EXTERNAL ZGETRF
           
@@ -548,8 +546,7 @@ Module entanglement_mod
           Calc_Renyi_Ent_gen_all=CMPLX(1.d0,0.d0,kind(0.d0))
           alpha=CMPLX(2.d0,0.d0,kind(0.d0))
           beta =CMPLX(1.d0,0.d0,kind(0.d0))
-            
-#ifdef MPI
+
           ! Check if entanglement replica group is of size 2 such that the second reny entropy can be calculated
           if(ENT_SIZE==2) then
           

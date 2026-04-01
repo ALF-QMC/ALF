@@ -41,7 +41,7 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, pi, beta
 
-       pi = 3.1415927
+      pi = 3.141592653589793d0
 
        XKER_ph = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
 
@@ -52,7 +52,7 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, pi, beta
 
-       pi = 3.1415927
+      pi = 3.141592653589793d0
 
        XKER_ph_c = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
 
@@ -63,7 +63,7 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, pi, beta
 
-       pi = 3.1415927
+      pi = 3.141592653589793d0
 
        XKER_pp = exp(-tau*om) / ( pi*(1.d0 + exp( - beta * om ) ) )
 
@@ -74,7 +74,7 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, pi, beta
 
-       pi = 3.1415927
+      pi = 3.141592653589793d0
 
        XKER_p  = exp(-tau*om) / ( pi*(1.d0 + exp( - beta * om ) ) )
 
@@ -85,7 +85,7 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, pi, beta
 
-       pi = 3.1415927
+      pi = 3.141592653589793d0
 
        XKER_T0  = exp(-tau*om) / pi
 
@@ -101,7 +101,7 @@ contains
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
       real (Kind=Kind(0.d0)) :: pi
-      pi = 3.1415927
+      pi = 3.141592653589793d0
       F_QFI_ph = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
      end function F_QFI_ph
@@ -111,7 +111,7 @@ contains
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
       real (Kind=Kind(0.d0)) :: pi
-      pi = 3.1415927
+      pi = 3.141592653589793d0
       F_QFI_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
      end function F_QFI_ph_c
@@ -120,7 +120,7 @@ contains
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
       real (Kind=Kind(0.d0)) :: pi
-      pi = 3.1415927
+      pi = 3.141592653589793d0
       F_QFI_pp = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
      end function F_QFI_pp
@@ -133,14 +133,14 @@ contains
       Integer, Intent(In) :: N
 
       Real (Kind=Kind(0.d0)), allocatable :: Mat(:,:), U(:,:), W(:)
-      Real (Kind=Kind(0.d0)) :: X, Y
+      Real (Kind=Kind(0.d0)) :: X, y
       Integer ::   I, J , m ,  nc
-      Logical :: Test=.false.
+      Logical, parameter :: Test=.false.
 
       allocate(Mat(N,N), U(N,N), W(N))
       allocate(Ra(N/2),ba(N/2))
 
-      If (Test) Write(6,*) "Setting Ra and ba using the method of Karrasch of  Phys. Rev. B 82 (2010), 125114"
+      if (Test) Write(6,*) "Setting Ra and ba using Karrasch, Phys. Rev. B 82 (2010), 125114"
 
       Mat = 0.d0 
       do  i = 1,N-1 
@@ -172,7 +172,7 @@ contains
          enddo
       enddo
 
-      If (Test) then 
+      if (Test) then
          Open(Unit=10,File="Ra_ba.dat", status="Unknown")
          Do i = 1,size(ba,1)
             write(10,*) Ra(i),ba(i)
@@ -312,7 +312,7 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, pi, beta
 
-       pi = 3.1415927
+      pi = 3.141592653589793d0
        XKER_p_ph  =  (exp(-tau*om)  + exp(-(beta-tau)*om)) / (pi*(1.d0 + exp( -beta * om )) )
 
      end function XKER_p_ph
@@ -431,7 +431,8 @@ contains
        Character (Len=*), INTENT(IN)      :: Channel
        Logical,  INTENT(IN)               :: Default_model_exists, Stochastic
        Integer :: Ndis, Nw
-       Real (Kind = Kind(0.d0)) ::   Dom, X, Om,  Zero = 1.D-8
+       Real (Kind = Kind(0.d0)) ::   Dom, X, Om
+       Real (Kind = Kind(0.d0)), parameter :: Zero = 1.D-8
 
        Ndis = size(Default,1)
        Dom = (OM_en - Om_st)/dble(Ndis)
@@ -465,7 +466,7 @@ contains
             ! See Back_trans_ph_c/Back_trans_pp
             ! Default(om) = (1 - exp(-beta*om))/(1 + exp(-beta*om))*A(om)/om 
                Om = Om_st + dble(nw)*dom
-               if ( abs(om) < zero ) then
+               if ( abs(om) < Zero ) then
                   Default(nw) = Default(nw)*2.d0/ beta 
                else
                   Default(nw) = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 
@@ -490,7 +491,7 @@ contains
             X  = 0.d0
             Do nw = 1, Ndis
                Om = Om_st + dble(nw)*dom
-               if ( abs(om) < zero ) then
+               if ( abs(om) < Zero ) then
                   Default(nw) = Default(nw)*2.d0/ beta 
                else
                   Default(nw) = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 

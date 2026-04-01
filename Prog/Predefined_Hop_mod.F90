@@ -269,8 +269,9 @@
 
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1
-        Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max
+        Integer :: nf, nc, I
+        Real (Kind = Kind(0.d0) ), parameter :: Zero = 1.0E-8
+        Real (Kind = Kind(0.d0) ) :: Ham_T_max
         Real (Kind = Kind(0.d0) ), allocatable :: Ham_T_perp_vec(:)
 
         
@@ -385,8 +386,9 @@
 
 
       ! Local
-      Integer :: nf,N_Bonds, nc, I, I1
-      Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max, x_p(2)
+      Integer :: nf, nc, I
+      Real (Kind = Kind(0.d0) ), parameter :: Zero = 1.0E-8
+      Real (Kind = Kind(0.d0) ) :: Ham_T_max
 
          !Write(6,*)   Iscalar(Latt%L1_p,Latt%BZ1_p)/(2.d0*acos(-1.d0)),Iscalar(Latt%L2_p,Latt%BZ2_p)/(2.d0*acos(-1.d0)) 
       
@@ -520,8 +522,9 @@
 
 
    ! Local
-   Integer :: nf,N_Bonds, nc, I, I1
-   Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max, x_p(2)
+   Integer :: nf, nc, I
+   Real (Kind = Kind(0.d0) ), parameter :: Zero = 1.0E-8
+   Real (Kind = Kind(0.d0) ) :: Ham_T_max
 
       !Write(6,*)   Iscalar(Latt%L1_p,Latt%BZ1_p)/(2.d0*acos(-1.d0)),Iscalar(Latt%L2_p,Latt%BZ2_p)/(2.d0*acos(-1.d0)) 
 
@@ -642,8 +645,8 @@
 
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1, n, no
-        Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+        Integer :: nf, nc, I, n, no
+        Real (Kind=Kind(0.d0)), parameter :: Zero = 1.0E-8
 
         
         select case (Latt%N)
@@ -836,8 +839,9 @@
         Type(Unit_cell),Intent(in)            :: Latt_unit
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1, n, no
-        Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8, Ham_Lambda_Max
+        Integer :: nf, nc, I
+        Real (Kind=Kind(0.d0)), parameter :: Zero = 1.0E-8
+        Real (Kind=Kind(0.d0)) :: Ham_Lambda_Max
 
         !Write(6,*) Ham_T_vec, Ham_Chem_vec
         Ham_Lambda_Max = 0.d0
@@ -928,9 +932,9 @@
         
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1, No_Shift, n, nb
-        Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-        Logical :: Test=.false.
+        Integer :: nf,N_Bonds, nc, I, No_Shift, n, nb
+        Real (Kind=Kind(0.d0)), parameter :: Zero = 1.0E-8
+        Logical, parameter :: Test=.false.
         Real (Kind=Kind(0.d0))                :: Ham_T1_max, Ham_T2_max, Ham_Tperp_max
 
         Ham_T1_max    = 0.d0
@@ -1238,9 +1242,9 @@
         Real (Kind=Kind(0.d0))                :: Ham_T1_max, Ham_T2_max, Ham_Tperp_max
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1, No_Shift, n, nb, no
-        Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-        Logical :: Test=.false.
+        Integer :: nf,N_Bonds, nc, I, No_Shift, n, nb, no
+        Real (Kind=Kind(0.d0)), parameter :: Zero = 1.0E-8
+        Logical, parameter :: Test=.false.
 
         Ham_T1_max    = 0.d0
         Ham_T2_max    = 0.d0
@@ -1640,12 +1644,12 @@
         
         ! Local
         Integer                           :: Ndim, N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
-        Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc, orb
-        Real   (Kind=Kind(0.d0))          :: Ham_T, Ham_Chem,  Phi_X, Phi_Y
+        Integer                           :: n_1, n_2, Nb, n_f, l_f, N, nc, orb
+        Real   (Kind=Kind(0.d0))          :: Phi_X, Phi_Y
         Logical                           :: Bulk
         Complex(Kind=Kind(0.d0))          :: Z,  Z1, Z2
 
-        Integer                           :: N_pinned_vertices, i_pinned_vertex
+        Integer                           :: N_pinned_vertices
 
         
         N_FL =  size(this,1)
@@ -1862,12 +1866,12 @@
         
 
         !Local
-        Integer                           :: Ndim, N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
-        Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc
-        Real   (Kind=Kind(0.d0))          :: Ham_T, Ham_Chem,  Phi_X, Phi_Y
+        Integer                           :: N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
+        Integer                           :: n_1, n_2, Nb
+        Real   (Kind=Kind(0.d0))          :: Phi_X, Phi_Y
         Logical                           :: Bulk
         Complex(Kind=Kind(0.d0))          :: Z
-        Integer                           :: N_pinned_vertices, i_pinned_vertex
+        Integer                           :: N_pinned_vertices
 
         if( (present(pinned_vertices) .and. .not.(present(pinning_factor ).and. present(pinning_offset))) .or. &
           & (present(pinning_factor)  .and. .not.(present(pinned_vertices).and. present(pinning_offset))) .or. &
@@ -2067,7 +2071,7 @@
 
 
         !Local
-        Integer                   :: j, N1, N2,n
+        Integer                   :: N1, N2, n
         real (Kind=Kind(0.d0))    :: xj_p(2), xi_p(2), xjp_p(2), del_p(2), A_p(2), pi, XB_p(2), V, B, Zero, x_p(2), x1_p(2)
 
         Complex (Kind=Kind(0.d0)) :: Z_hop

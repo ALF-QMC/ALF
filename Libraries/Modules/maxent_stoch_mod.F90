@@ -91,8 +91,8 @@ Module MaxEnt_stoch_mod
 
            Pi        = acos(-1.d0)
            NDis      = Ndis_1
-           DeltaXMAX = 0.01
-           delta     = 0.001
+           DeltaXMAX = 1.d-2
+           delta     = 1.d-3
            delta2    = delta*delta
            Ngamma    = Ngamma_1
            Beta      = Beta_1 ! Physical temperature for calculation of the kernel.
@@ -465,7 +465,7 @@ Module MaxEnt_stoch_mod
 
             Integer :: nw, nw1, nw_d, nx
             Real (Kind= Kind(0.d0)) :: om,  dom, a, b, x, x1, f1,f2
-            Logical ::  Test=.false.
+            Logical, parameter :: Test=.false.
          
 
             dom = (Om_en_1 -  Om_st_1)/dble(Ndis)
@@ -512,7 +512,7 @@ Module MaxEnt_stoch_mod
                nx = Int(x1/Dx_table) + 1
                Phi_func(nw) = nx
             enddo
-            If (Test)   then 
+            If (Test)   then
                ! Check the Phim1   function
                do nx = 1,Size(Default_table,1)
                   x = dble(nx)*dx_table
@@ -567,7 +567,7 @@ Module MaxEnt_stoch_mod
             Implicit None
             ! Flat Default with sum xmom1. 
             ! D(om) = xmom1/(Om_en_1 - Om_st_1)
-            Real (Kind=Kind(0.d0)) :: x,  test
+            Real (Kind=Kind(0.d0)) :: x
             Integer ::  nx
 
             nx = int(x/Dx_table) + 1
@@ -610,7 +610,6 @@ Module MaxEnt_stoch_mod
            Implicit none
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: Xn
            Real (Kind=Kind(0.d0)), Dimension(:) :: Xn_m
-           Real (Kind=Kind(0.d0)) :: om  
            Integer :: nd, ng
 
            do ng = 1,Ngamma

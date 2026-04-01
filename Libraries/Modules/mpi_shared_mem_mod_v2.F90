@@ -592,9 +592,9 @@ module mpi_shared_memory
       
       subroutine deallocate_all_shared_memory()
         Implicit none
-        integer :: ierr, i, mpi_win_loc
         
 #ifdef MPI
+        integer :: ierr, i, mpi_win_loc
         external :: MPI_Win_free    ! This seems to be required by gfortran10 with OpenMPI on Fedora33 (should be part of MPI module)
 
         do i=1,num_chunks_real

@@ -195,7 +195,7 @@
         Integer, intent(in), Dimension(:,:) :: List, Invlist
 
         ! Local
-        Integer :: I,J, no_J, Ju, no_I, Iu, I0, imj, Latt_dim
+        Integer :: I,J, no_J, Ju, no_I, Iu, Latt_dim
         Real (Kind=Kind(0.d0)), allocatable :: X_p(:),  X0_p(:)
         Real (Kind=Kind(0.d0)), allocatable :: A1_p(:), A2_p(:), L1_p(:), L2_p(:)
 
@@ -222,7 +222,6 @@
               Do Ju = 1, Latt%N
                  do no_J = 1,Latt_unit%Norb
                     J    = invlist(Ju,no_J)
-                    ImJ  = Latt%imj(Iu,Ju)
                     X_p(:) = dble(Latt%list(Iu,1))*A1_p(:)  +  dble(Latt%list(Iu,2))*A2_p(:) + &
                          &   Latt_unit%Orb_pos_p(no_i,:)   - &
                          &   dble(Latt%list(Ju,1))*A1_p(:)  -  dble(Latt%list(Ju,2))*A2_p(:) - &
@@ -294,11 +293,11 @@
         Integer, intent(in), Dimension(:,:) :: List, Invlist
 
         !Local
-        Integer ::   I,J,no_i,no_j, n, m, no, imj, Latt_dim 
+        Integer ::   I,J,no_i,no_j, n, m, no, Latt_dim 
         Real (Kind=Kind(0.d0)) ::d1, X, X_min, Xmean,Xmax, Xmax1
         Real (Kind=Kind(0.d0)), allocatable :: M_Tmp(:,:), M_Tmp1(:,:), X_p(:), X0_p(:), X1_p(:) 
         Real (Kind=Kind(0.d0)), allocatable :: A1_p(:), A2_p(:), L1_p(:), L2_p(:)
-        Logical :: L_test=.true.
+        Logical, parameter :: L_test=.true.
 
         Latt_dim = Size(Latt_unit%Orb_pos_p,2)
         Allocate ( X_p(Latt_dim), X0_p(Latt_dim), X1_p(Latt_dim), &
@@ -506,8 +505,8 @@
         Real (Kind=Kind(0.d0)), Intent(IN) , dimension(:) :: A_old
         Real (Kind=Kind(0.d0)), Intent(OUT), dimension(:) :: A_new
 
-        Integer :: n, n1,  i, m
-        Real (Kind=Kind(0.d0)) :: X, Alpha, Beta
+        Integer :: n, n1, m
+        Real (Kind=Kind(0.d0)) :: Alpha, Beta
 
         M    =  Size(E_int,1)
         do n = 1,M

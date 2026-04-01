@@ -55,10 +55,10 @@ Program MaxEnt_Wrapper
        Real (Kind=Kind(0.d0)), Dimension(:)  , allocatable :: XQMC, XQMC_st, XTAU, Xtau_st, &
             &                                                 Alpha_tot, om_bf, alp_bf, xom, A
        Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: XCOV, XCOV_st
-       Real (Kind=Kind(0.d0))                              :: X_moments(2), Xerr_moments(2), ChiSq
+       Real (Kind=Kind(0.d0))                              :: ChiSq
        Character (Len=64)                                  :: command, File1, File2
        Complex (Kind=Kind(0.d0))                           :: Z
-       Logical                                             :: Test =.false.
+       Logical, parameter                                  :: Test =.false.
        
 
        Integer                :: Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, N_cov
@@ -72,7 +72,7 @@ Program MaxEnt_Wrapper
        Real (Kind=Kind(0.d0)), allocatable ::  Xker_classic(:,:),  A_classic(:),  Default(:)
 
        Integer                :: nt, nt1, io_error, n,nw, nwp, ntau, N_alpha_1, i,  nbin_qmc
-       Integer                :: ntau_st, ntau_en, ntau_new, Ntau_old
+       Integer                :: ntau_st, ntau_en, Ntau_old
        Real (Kind=Kind(0.d0)) :: dtau, pi, xmom1, x,x1,x2, tau, omp, om, Beta,err, delta, Dom
        Real (Kind=Kind(0.d0)) :: Zero, Alpha_classic_st=100000.d0
        Integer ::  N_BZ_Zones     =  1 

@@ -259,8 +259,11 @@ Contains
 
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
-    Real    (Kind=Kind(0.d0)) :: Zero = 1.D-9 !, Phi(-2:2)
-    Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3), ierr
+    Real    (Kind=Kind(0.d0)), parameter :: Zero = 1.D-9
+    Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3)
+#ifdef MPI
+    Integer :: ierr
+#endif
     Complex (Kind=Kind(0.d0)) :: Z
     Type  (Fields)   :: nsigma_single
     
