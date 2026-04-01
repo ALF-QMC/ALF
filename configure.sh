@@ -517,6 +517,10 @@ ALF_FLAGS_QRREF="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_MODULES="${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_ANA="${F90USEFULFLAGS} ${F90OPTFLAGS} ${ALF_INC} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_PROG="${F90USEFULFLAGS} ${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_INC} ${ALF_FLAGS_EXT}"
+# Link flags: pass the same target/optimization flags to the linker so that
+# PGI/NVHPC selects the correct (portable) variant of its runtime libraries
+# (e.g. libpgmath) instead of defaulting to the compiler's installed target.
+ALF_FLAGS_LINK="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
 # Control with flags -DHDF5 -DHDF5_ZLIB -DOBS_LEGACY, which observable format to use
 if [ "${HDF5_ENABLED}" = "1" ]; then
   ALF_FLAGS_MODULES="${ALF_FLAGS_MODULES} ${INC_HDF5} -DHDF5 -DHDF5_ZLIB"
@@ -527,6 +531,7 @@ export ALF_FLAGS_QRREF
 export ALF_FLAGS_MODULES
 export ALF_FLAGS_ANA
 export ALF_FLAGS_PROG
+export ALF_FLAGS_LINK
 
 rm -r "$tmpdir"
 printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
