@@ -284,8 +284,9 @@ Contains
        endif
     enddo
 
-    ! --- Validate Hermiticity of Op%O ---
+    ! --- Validate Hermiticity of Op%O and detect if diagonal (single pass) ---
     N = Op%N
+    Op%diag = .true.
     if (N > 1) then
        do I = 1, N
           do J = I+1, N
@@ -298,6 +299,12 @@ Contains
                      '   O(', J, ',', I, ') = (', real(Op%O(J,I)), aimag(Op%O(J,I)), ')'
                 Write(error_unit, '(A,ES15.7)') '   |O(i,j) - conjg(O(j,i))| = ', herm_dev
                 Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+             endif
+             ! Binary comparison is OK here as Op%O was initialized to zero during Op_make.
+             ! Checking only the upper-triangle element suffices: after the Hermiticity check above,
+             ! Op%O(I,J)==0 implies Op%O(J,I)==conjg(0)==0.
+             if (Op%diag) then
+                if (Op%O(I,J) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag = .false.
              endif
           enddo
        enddo
@@ -338,14 +345,6 @@ Contains
     Op%E = 0.d0
     
     If (Op%N > 1) then
-       N = Op%N
-       Op%diag = .true.
-       do I=1,N
-          do J=i+1,N
-             ! Binary comparison is OK here as Op%O was initialized to zero during Op_make.
-             if (Op%O(i,j) .ne. cmplx(0.d0,0.d0, kind(0.D0)) .or. Op%O(j,i) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag=.false.
-          enddo
-       enddo
        if (Op%diag) then
           do I=1,N
              Op%E(I)=DBLE(Op%O(I,I))
