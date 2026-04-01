@@ -143,11 +143,11 @@
 !> \verbatim
 !>  Name of file in which the bins will be written out.
 !> \endverbatim
-!> @param [IN] Latt, Type(Lattice)
+!> @param [INOUT] Latt, Type(Lattice)
 !> \verbatim
 !>  Bravais lattice. Only gets linked, needs attribute target or pointer.
 !> \endverbatim
-!> @param [IN] Latt_unit, Type(Unit_cell)
+!> @param [INOUT] Latt_unit, Type(Unit_cell)
 !> \verbatim
 !>  Unit cell. Only gets linked, needs attribute target or pointer.
 !> \endverbatim
@@ -160,7 +160,11 @@
          type(Obser_Latt_local), Intent(INOUT)      :: Obs
          Integer,           Intent(IN)         :: Nt
          Character(len=64), Intent(IN)         :: Filename
+         ! INTENT(INOUT) required: flang rejects INTENT(IN) when a pointer to the dummy
+         ! argument is stored (Obs%Latt => Latt). Latt is not modified in this routine.
          Type(Lattice),     Intent(INOUT), target :: Latt
+         ! INTENT(INOUT) required: flang rejects INTENT(IN) when a pointer to the dummy
+         ! argument is stored (Obs%Latt_unit => Latt_unit). Latt_unit is not modified in this routine.
          Type(Unit_cell),   Intent(INOUT), target :: Latt_unit
          Character(len=*),  Intent(IN)         :: Channel
          Real(Kind=Kind(0.d0)),  Intent(IN)    :: dtau
@@ -212,11 +216,11 @@
 !> \verbatim
 !>  Name of file in which the bins will be written out.
 !> \endverbatim
-!> @param [IN] Latt, Type(Lattice)
+!> @param [INOUT] Latt, Type(Lattice)
 !> \verbatim
 !>  Bravais lattice. Only gets linked, needs attribute target or pointer.
 !> \endverbatim
-!> @param [IN] Latt_unit, Type(Unit_cell)
+!> @param [INOUT] Latt_unit, Type(Unit_cell)
 !> \verbatim
 !>  Unit cell. Only gets linked, needs attribute target or pointer.
 !> \endverbatim
@@ -233,7 +237,11 @@
            type(Obser_Latt), Intent(INOUT)      :: Obs
            Integer,           Intent(IN)         :: Nt
            Character(len=64), Intent(IN)         :: Filename
+           ! INTENT(INOUT) required: flang rejects INTENT(IN) when a pointer to the dummy
+           ! argument is stored (Obs%Latt => Latt). Latt is not modified in this routine.
            Type(Lattice),     Intent(INOUT), target :: Latt
+           ! INTENT(INOUT) required: flang rejects INTENT(IN) when a pointer to the dummy
+           ! argument is stored (Obs%Latt_unit => Latt_unit). Latt_unit is not modified in this routine.
            Type(Unit_cell),   Intent(INOUT), target :: Latt_unit
            Character(len=*),  Intent(IN)         :: Channel
            Real(Kind=Kind(0.d0)),  Intent(IN)    :: dtau
