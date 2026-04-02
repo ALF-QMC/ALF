@@ -140,6 +140,9 @@ Program Main
         use cgr1_mod
         use set_random
         use iso8601_datetime_mod
+#ifdef _OPENMP
+        use check_omp_num_threads_mod
+#endif
          
 #ifdef HDF5
         use hdf5
@@ -233,6 +236,10 @@ Program Main
            end if
 #ifdef MPI
         endif
+#endif
+
+#ifdef _OPENMP
+        call check_omp_num_threads()
 #endif
 
 #if defined(TEMPERING) && defined(MPI)
