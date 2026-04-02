@@ -58,6 +58,19 @@ fi
 export CC FC CXX
 printf "\033[0;32m=== Build with the following compilers C: %s, Fortran: %s, C++: %s \e[0m\n" "$CC" "$FC" "$CXX" 1>&2
 
+# Detect PGI/NVHPC compilers and enforce a portable target.
+# Without explicit flags, NVHPC defaults to -tp=native (i.e. the target of the
+# build machine, e.g. znver3), which embeds hardware-specific instructions that
+# crash on other micro-architectures at runtime.  Pass -tp=px so HDF5 is built
+# for the portable SSE2 baseline instead.
+if "$FC" --version 2>&1 | grep -qi "nvfortran\|pgfortran"; then
+    : "${CFLAGS:=-O2 -tp=px}"
+    : "${CXXFLAGS:=-O2 -tp=px}"
+    : "${FCFLAGS:=-O2 -tp=px}"
+    export CFLAGS CXXFLAGS FCFLAGS
+    printf "\033[0;33m=== PGI/NVHPC detected: building HDF5 with CFLAGS='%s' FCFLAGS='%s' ===\e[0m\n" "$CFLAGS" "$FCFLAGS" 1>&2
+fi
+
 "$source_dir/configure" --prefix="$HDF5_DIR" --libdir="$HDF5_DIR/lib" --enable-fortran --enable-shared=no --enable-tests=no
 if ! make -j"$(nproc || sysctl -n hw.ncpu)"; then
   printf "\e[31m=== Compilation with compilers %s %s in directory %s failed ===\e[0m\n" "$CC" "$FC" "$PWD" 1>&2

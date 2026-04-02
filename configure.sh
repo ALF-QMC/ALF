@@ -214,7 +214,7 @@ GNUUSEFULFLAGS="-std=f2008"
 # Note: avoid -Mfprelaxed: it enables -Mfma (FMA3 instructions) and -Mfpapprox which
 #       can conflict with -tp=px (SSE2-only target) in NVHPC 24.x and generate
 #       non-portable code that crashes on non-AMD GitHub-hosted runners.
-PGIOPTFLAGS="-Mpreprocess -tp=x64 -O2"
+PGIOPTFLAGS="-Mpreprocess -O3 -tp=px"
 # uncomment the next line if you want to use additional openmp parallelization
 PGIOPTFLAGS="${PGIOPTFLAGS} -mp"
 PGIDEVFLAGS="-Minform=inform -C -g -traceback"
@@ -405,7 +405,7 @@ case $MACHINE in
     # etc.) instead of defaulting to the compiler's installed target (e.g. znver3).
     # Intentionally minimal: do NOT use F90OPTFLAGS here as that would pull in
     # compiler-option flags (e.g. -C/-g from Devel) that should not appear at link time.
-    ALF_FLAGS_LINK="-tp=x64 -mp"
+    ALF_FLAGS_LINK="-tp=px -mp"
     if [ "$MPICOMP" -eq "0" ]; then
       ALF_FC="pgfortran"
     else
