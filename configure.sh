@@ -210,8 +210,11 @@ GNUDEVFLAGS="-Wconversion -Werror -Wno-error=cpp -fcheck=all -g -fbacktrace -fma
 GNUUSEFULFLAGS="-std=f2008"
 
 # default optimization flags for PGI compiler
-# Note: avoid -fast (implies -tp=native) to keep binaries portable across x86_64 CPUs
-PGIOPTFLAGS="-Mpreprocess -O3 -Mfprelaxed -tp=px"
+# Note: avoid -fast (implies -tp=native) to keep binaries portable across x86_64 CPUs.
+# Note: avoid -Mfprelaxed: it enables -Mfma (FMA3 instructions) and -Mfpapprox which
+#       can conflict with -tp=px (SSE2-only target) in NVHPC 24.x and generate
+#       non-portable code that crashes on non-AMD GitHub-hosted runners.
+PGIOPTFLAGS="-Mpreprocess -O3 -tp=px"
 # uncomment the next line if you want to use additional openmp parallelization
 PGIOPTFLAGS="${PGIOPTFLAGS} -mp"
 PGIDEVFLAGS="-Minform=inform -C -g -traceback"
@@ -517,10 +520,6 @@ ALF_FLAGS_QRREF="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_MODULES="${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_ANA="${F90USEFULFLAGS} ${F90OPTFLAGS} ${ALF_INC} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_PROG="${F90USEFULFLAGS} ${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_INC} ${ALF_FLAGS_EXT}"
-# Link flags: pass the same target/optimization flags to the linker so that
-# PGI/NVHPC selects the correct (portable) variant of its runtime libraries
-# (e.g. libpgmath) instead of defaulting to the compiler's installed target.
-ALF_FLAGS_LINK="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
 # Control with flags -DHDF5 -DHDF5_ZLIB -DOBS_LEGACY, which observable format to use
 if [ "${HDF5_ENABLED}" = "1" ]; then
   ALF_FLAGS_MODULES="${ALF_FLAGS_MODULES} ${INC_HDF5} -DHDF5 -DHDF5_ZLIB"
@@ -531,7 +530,6 @@ export ALF_FLAGS_QRREF
 export ALF_FLAGS_MODULES
 export ALF_FLAGS_ANA
 export ALF_FLAGS_PROG
-export ALF_FLAGS_LINK
 
 rm -r "$tmpdir"
 printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
