@@ -23,7 +23,7 @@ program: ALF.out
 
 ALF.out: $(DEPSFILE) $(OBJS)
 	@echo "Link program"
-	$(ALF_FC) -o "ALF.out" $(OBJS) $(ALF_LIB)
+	$(ALF_FC) $(ALF_FLAGS_LINK) -o "ALF.out" $(OBJS) $(ALF_LIB)
 
 OHAM := $(shell ./parse_ham.py --print_obj_list 2>/dev/null)
 

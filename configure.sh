@@ -400,6 +400,12 @@ case $MACHINE in
   PGI)
     F90OPTFLAGS="$PGIOPTFLAGS"
     F90USEFULFLAGS="$PGIUSEFULFLAGS"
+    # ALF_FLAGS_LINK: minimal flags passed to the NVHPC link step so it selects the
+    # portable px (SSE2) variant of its runtime libraries (libpgmath, OpenMP runtime,
+    # etc.) instead of defaulting to the compiler's installed target (e.g. znver3).
+    # Intentionally minimal: do NOT use F90OPTFLAGS here as that would pull in
+    # compiler-option flags (e.g. -C/-g from Devel) that should not appear at link time.
+    ALF_FLAGS_LINK="-tp=px -mp"
     if [ "$MPICOMP" -eq "0" ]; then
       ALF_FC="pgfortran"
     else
@@ -530,6 +536,11 @@ export ALF_FLAGS_QRREF
 export ALF_FLAGS_MODULES
 export ALF_FLAGS_ANA
 export ALF_FLAGS_PROG
+# ALF_FLAGS_LINK is only set for PGI/NVHPC (see PGI section above).
+# For all other compilers it is intentionally left unset.
+if [ -n "$ALF_FLAGS_LINK" ]; then
+  export ALF_FLAGS_LINK
+fi
 
 rm -r "$tmpdir"
 printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"

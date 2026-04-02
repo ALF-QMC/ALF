@@ -38,7 +38,7 @@ Predefined_Latt_mod.o: ../Prog/Predefined_Latt_mod.F90
 	$(ALF_FC) -c -o $@ $(ALF_FLAGS_ANA) $<
 
 %.out: $(OBJS1) %.o
-	$(ALF_FC) -o $@ $^ $(ALF_LIB)
+	$(ALF_FC) $(ALF_FLAGS_LINK) -o $@ $^ $(ALF_LIB)
 
 $(DEPSFILE): $(SRCS) $(DEPSGEN)
 	python3 $(DEPSGEN) $(SRCS) > $(DEPSFILE)
