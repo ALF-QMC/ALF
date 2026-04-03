@@ -197,15 +197,14 @@
 #endif
           Implicit none
 
-          integer                :: ierr, nf, unit_info
+          integer                :: nf, unit_info
           Character (len=64)     :: file_info
           Logical                :: Half_filling
           
           
 
 #ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
+          Integer        :: ierr, Isize, Irank, irank_g, isize_g, igroup
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -597,10 +596,8 @@
 
           !Local
           Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
-          Complex (Kind=Kind(0.d0)) :: ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZDen
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZP,ZS, ZZ, ZXY, ZDen
           Integer :: I,J, imj, nf,  Ix, Iy
-          Real    (Kind=Kind(0.d0)) :: X
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -723,9 +720,8 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZDEN
-          Real    (Kind=Kind(0.d0)) :: X
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS, ZZ, ZXY, ZDEN
+          Integer :: IMJ, I, J
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -844,7 +840,7 @@
 
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
          Integer :: I,J,imj
-         real (kind=kind(0.d0)) :: X, ZZ
+         real (kind=kind(0.d0)) :: X
 
          If (Ham_U >= 0.d0)  then
             Do J = 1,Latt%N

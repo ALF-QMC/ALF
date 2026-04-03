@@ -218,13 +218,12 @@
 #endif
           Implicit none
 
-          integer                :: ierr, nf, unit_info
+          integer                :: unit_info
           Character (len=64)     :: file_info
 
 
 #ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
+          Integer        :: ierr, Isize, Irank, irank_g, isize_g, igroup
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -334,8 +333,6 @@
         Subroutine  Ham_Latt
           
           Implicit none
-          Real (Kind=Kind(0.d0)) ::  a1_p(2), a2_p(2), L1_p(2), L2_p(2) 
-          Integer :: nc, no, I 
 
           Call  Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit )
 
@@ -398,9 +395,9 @@
           Use Predefined_Int
           Implicit none 
           
-          Integer :: nf, I, I1, I2,  nc, nc1,  J, N_op,  Ix, Iy
-          Integer :: n, nst,nen, n_fam, no  
-          Real (Kind=Kind(0.d0)) :: X,  J_Heis, X_p(2) 
+          Integer :: nf, I, I1, I2,  nc, N_op,  Ix, Iy
+          Integer :: n, nst, n_fam, no  
+          Real (Kind=Kind(0.d0)) :: J_Heis, X_p(2) 
 
 
 
@@ -887,7 +884,7 @@
           Implicit none
 
           Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
-          Integer :: I,J,imj
+          Integer :: I,J
           real (kind=kind(0.d0)) :: XI,XJ, ZZ
           
           Do J = 1,Ndim
@@ -923,8 +920,8 @@
         Implicit none
 
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
-        Integer :: I,J,imj
-        real (kind=kind(0.d0)) :: XI,XJ, ZZ
+        Integer :: I,J
+        real (kind=kind(0.d0)) :: XI,XJ
         
         Do J = 1,NDIM
            XJ = 1.d0

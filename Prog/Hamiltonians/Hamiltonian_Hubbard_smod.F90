@@ -210,7 +210,7 @@
 #endif
           Implicit none
 
-          integer                :: ierr, nf, unit_info
+          integer                :: nf, unit_info
           Character (len=64)     :: file_info
           Logical                :: toggle 
 
@@ -221,8 +221,7 @@
           ! Simulation type                          -->  Finite  T or Projection  Symmetrize Trotter.
                   
 #ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
+          Integer        :: ierr, Isize, Irank, irank_g, isize_g, igroup
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -369,7 +368,7 @@
           Integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
-          Integer :: n,nth, i 
+          Integer :: i 
           ! Indices of pinned vertices. Shape [N_pinned_vertices, 2]
           Integer,  allocatable                    :: pinned_vertices(:,:)
           ! Factor, by which the vertex matrix elements will get multiplied. Shape [N_pinned_vertices, N_FL]
@@ -458,7 +457,7 @@
 
           Implicit none
 
-          Integer :: N_part, nf
+          Integer :: N_part
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = Ndim/2
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
@@ -478,8 +477,8 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: nf, I, I1, I2,  nc,  J, no,  N_ops
-          Real (Kind=Kind(0.d0)) :: X,  Zero = 1.D-10
+          Integer :: nf, I, I1, nc, no,  N_ops
+          Real (Kind=Kind(0.d0)) :: Zero = 1.D-10
           Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
 
 
@@ -704,10 +703,8 @@
 
           !Local
           Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
-          Complex (Kind=Kind(0.d0)) :: ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
-          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
-          Real    (Kind=Kind(0.d0)) :: X
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZP,ZS
+          Integer :: I,J, nf, dec, I1, no_I
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -836,9 +833,7 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
-          Real    (Kind=Kind(0.d0)) :: X
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -879,7 +874,6 @@
         !> New local field on time slice nt and operator index n
         Complex  (Kind=Kind(0.d0)), Intent(In) :: Hs_new
 
-        Integer :: nt1,I
 
         if (Continuous) then
            S0 = exp( (-real(Hs_new,kind(0.d0))**2  + real(nsigma%f(n,nt),Kind(0.d0))**2 ) /2.d0 ) 

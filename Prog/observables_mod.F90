@@ -369,9 +369,12 @@
            ! Local
            Integer :: Ns, Nt, no, no1, I, Ntau
            Complex (Kind=Kind(0.d0)), allocatable, target :: Tmp(:,:,:,:)
+           Character (len=64) :: File_pr,  File_suff
+#if defined OBS_LEGACY
            Real    (Kind=Kind(0.d0))              :: x_p(2)
-           Character (len=64) :: File_pr,  File_suff, File_aux, tmp_str
+           Character (len=64) :: File_aux, tmp_str
            logical            :: File_exists
+#endif
 #ifdef HDF5
            Character (len=7), parameter  :: File_h5 = "data.h5"
            Character (len=64)            :: filename, groupname, obs_dsetname, bak_dsetname, sgn_dsetname
@@ -384,7 +387,6 @@
 #endif
 #ifdef MPI
            Complex (Kind=Kind(0.D0)), allocatable :: Tmp1(:)
-           Complex (Kind=Kind(0.d0)) :: Z
            Real    (Kind=Kind(0.d0)) :: X
            Integer         :: Ierr, Isize, Irank
            INTEGER         :: irank_g, isize_g, igroup
@@ -589,10 +591,14 @@
             Integer,                   Intent(In)      :: Group_Comm
 
             ! Local
-            Integer :: Ns, Nt, no, I, Ntau
+            Integer :: Ns, I, Ntau
+            Character (len=64) :: File_pr,  File_suff
+#if defined OBS_LEGACY
+            Integer :: Nt, no
             Real    (Kind=Kind(0.d0))              :: x_r(2)
-            Character (len=64) :: File_pr,  File_suff, File_aux, tmp_str
+            Character (len=64) :: File_aux, tmp_str
             logical            :: File_exists
+#endif
 #ifdef HDF5
             Character (len=7), parameter  :: File_h5 = "data.h5"
             Character (len=64)            :: filename, groupname, obs_dsetname, sgn_dsetname
@@ -605,7 +611,6 @@
 #endif
 #ifdef MPI
             Complex (Kind=Kind(0.D0)), allocatable :: Tmp(:,:,:)
-            Complex (Kind=Kind(0.d0)) :: Z
             Real    (Kind=Kind(0.d0)) :: X
             Integer         :: Ierr, Isize, Irank
             INTEGER         :: irank_g, isize_g, igroup
@@ -779,8 +784,11 @@
 
            ! Local
            Integer :: I
-           Character (len=64) :: File_pr, File_aux
+           Character (len=64) :: File_pr
+#if defined OBS_LEGACY
+           Character (len=64) :: File_aux
            logical            :: File_exists
+#endif
 
 #if defined HDF5
            Character (len=7), parameter  :: File_h5 = "data.h5"

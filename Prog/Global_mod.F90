@@ -123,10 +123,10 @@ Module Global_mod
 
 
         !>  Local variables.
-        Integer :: NST, NSTM, NF, nf_eff, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step,  N_count, N_part
+        Integer :: NST, NSTM, NF, nf_eff, NT, NT1, NVAR,N, N1,N2, I, NC, n_step,  N_count
         Type    (Fields)           :: nsigma_old
-        Real    (Kind=Kind(0.d0)) :: log_T0_Proposal_ratio, Weight, Weight1, delta_S0_log, exp_delta_S0
-        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Ratiotot_p, Phase_old, Phase_new
+        Real    (Kind=Kind(0.d0)) :: log_T0_Proposal_ratio, Weight, delta_S0_log
+        Complex (Kind=Kind(0.d0)) :: Z, Ratiotot, Phase_old, Phase_new
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
         Complex (Kind=Kind(0.d0)) :: Ratio(2), Ratio_p(2),Phase_array(N_FL)

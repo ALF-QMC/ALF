@@ -64,7 +64,7 @@ module set_random
         
 #ifdef MPI
         Integer :: I
-        INTEGER        :: STATUS(MPI_STATUS_SIZE), irank_g, isize_g, igroup, ISIZE, IRANK
+        INTEGER        :: STATUS(MPI_STATUS_SIZE), ISIZE, IRANK
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif

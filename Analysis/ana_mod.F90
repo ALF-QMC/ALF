@@ -171,9 +171,8 @@
 
       Character (len=64) :: file, obs_dsetname, sgn_dsetname
       INTEGER                       :: rank, hdferr
-      INTEGER(HSIZE_T)              :: mem_dims(1)
       INTEGER(HSIZE_T), allocatable :: dims(:), maxdims(:)
-      INTEGER(HID_T)                :: file_id, dset_id, dataspace, memspace
+      INTEGER(HID_T)                :: file_id, dset_id, dataspace
       TYPE(C_PTR)                   :: dat_ptr
 
       file = 'data.h5'
@@ -1864,7 +1863,7 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
 
       Integer :: Nobs, Nbins
 
-      INTEGER :: i, ierr
+      INTEGER :: ierr
       Character (len=64) :: obs_dsetname, sgn_dsetname
       INTEGER(HID_T)     :: file_id, group_id
       logical            :: file_exists, link_exists
@@ -1980,7 +1979,7 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
 
       Integer :: Norb, Nunit, Ntau, Nbins
 
-      INTEGER :: i, ierr
+      INTEGER :: ierr
       Character (len=64) :: obs_dsetname, bak_dsetname, sgn_dsetname
       INTEGER(HID_T)     :: file_id, group_id
       logical            :: file_exists, link_exists
@@ -2106,8 +2105,8 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
 
       Integer :: Norb, Nunit, Ntau, Nbins
 
-      INTEGER :: i, ierr
-      Character (len=64) :: obs_dsetname, bak_dsetname, sgn_dsetname
+      INTEGER :: ierr
+      Character (len=64) :: obs_dsetname, sgn_dsetname
       INTEGER(HID_T)     :: file_id, group_id
       logical            :: file_exists, link_exists
       INTEGER(HSIZE_T), allocatable :: dims(:)
