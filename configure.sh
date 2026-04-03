@@ -58,7 +58,7 @@ set_hdf5_flags()
   
   H5_major=1
   H5_minor=14
-  H5_patch=5
+  H5_patch=6
   H5_suff=""
   if [ -n "${ALF_HDF5_DIR+x}" ]; then
     printf "\nUsing custom HDF5 directory '%s'\n" "${ALF_HDF5_DIR}"
