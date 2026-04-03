@@ -55,6 +55,8 @@
       Logical, private, save :: pinning_notice_issued = .false.
       Logical, private, save :: first_pinning_notice_issued = .true.
 
+      real (Kind=Kind(0.d0)), parameter, private :: pi = acos(-1.d0)
+
       Type Hopping_Matrix_type
          Integer                   :: N_bonds
          Complex (Kind=Kind(0.d0)), pointer :: T    (:)    !  This does not include  local terms.
@@ -2072,7 +2074,7 @@
 
         !Local
         Integer                   :: N1, N2, n
-        real (Kind=Kind(0.d0))    :: xj_p(2), xi_p(2), xjp_p(2), del_p(2), A_p(2), pi, XB_p(2), V, B, Zero, x_p(2), x1_p(2)
+        real (Kind=Kind(0.d0))    :: xj_p(2), xi_p(2), xjp_p(2), del_p(2), A_p(2), XB_p(2), V, B, Zero, x_p(2), x1_p(2)
 
         Complex (Kind=Kind(0.d0)) :: Z_hop
 
@@ -2102,7 +2104,6 @@
         del_p  =  xj_p - xi_p
 
         !Twist
-        pi = acos(-1.d0)
         A_p(:)  =   Flux_1 * Xnorm(Latt%a1_p) * latt%bZ1_p(:)  /  Xnorm(Latt%L1_p) + &
              &      Flux_2 * Xnorm(Latt%a2_p) * latt%bZ2_p(:)  /  Xnorm(Latt%L2_p)
 

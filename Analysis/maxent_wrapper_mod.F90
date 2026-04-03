@@ -34,14 +34,13 @@ module MaxEnt_Wrapper_mod
    Use MyMats
    implicit none
    Real (Kind=Kind(0.d0)), allocatable, private :: Ra(:), ba(:)
+   real (Kind=Kind(0.d0)), parameter, private :: pi = acos(-1.d0)
    
 contains
      Real (Kind=Kind(0.d0)) function XKER_ph(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-      pi = 3.141592653589793d0
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        XKER_ph = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
 
@@ -50,9 +49,7 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_ph_c(tau,om, beta)
         ! Kernal for A_c(om), same as XKER_ph
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-      pi = 3.141592653589793d0
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        XKER_ph_c = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
 
@@ -61,9 +58,7 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_pp(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-      pi = 3.141592653589793d0
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        XKER_pp = exp(-tau*om) / ( pi*(1.d0 + exp( - beta * om ) ) )
 
@@ -72,9 +67,7 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_p(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-      pi = 3.141592653589793d0
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        XKER_p  = exp(-tau*om) / ( pi*(1.d0 + exp( - beta * om ) ) )
 
@@ -83,9 +76,7 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_T0(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-      pi = 3.141592653589793d0
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        XKER_T0  = exp(-tau*om) / pi
 
@@ -100,8 +91,6 @@ contains
      Real (Kind=Kind(0.d0)) function F_QFI_ph(om, beta)
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
-      real (Kind=Kind(0.d0)) :: pi
-      pi = 3.141592653589793d0
       F_QFI_ph = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
      end function F_QFI_ph
@@ -110,8 +99,6 @@ contains
       ! will improve
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
-      real (Kind=Kind(0.d0)) :: pi
-      pi = 3.141592653589793d0
       F_QFI_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
      end function F_QFI_ph_c
@@ -119,8 +106,6 @@ contains
       Real (Kind=Kind(0.d0)) function F_QFI_pp(om, beta)
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
-      real (Kind=Kind(0.d0)) :: pi
-      pi = 3.141592653589793d0
       F_QFI_pp = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
      end function F_QFI_pp
@@ -310,9 +295,8 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_p_ph(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
-      pi = 3.141592653589793d0
        XKER_p_ph  =  (exp(-tau*om)  + exp(-(beta-tau)*om)) / (pi*(1.d0 + exp( -beta * om )) )
 
      end function XKER_p_ph

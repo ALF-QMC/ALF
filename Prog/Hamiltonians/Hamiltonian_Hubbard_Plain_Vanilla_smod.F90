@@ -391,7 +391,7 @@
 
           Integer                              :: nf, Ix, Iy, I, n
           Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
-          Real (Kind=Kind(0.d0))               :: Pi = acos(-1.d0), Delta = 0.01d0
+          Real (Kind=Kind(0.d0)), parameter    :: Pi = acos(-1.d0), Delta = 0.01d0
 
           Allocate(WF_L(N_FL),WF_R(N_FL))
           do nf=1,N_FL

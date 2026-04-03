@@ -63,7 +63,6 @@
          Real (Kind=Kind(0.d0)) :: Xm,Xe
          Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2)
          Complex (Kind=Kind(0.d0)), allocatable :: V_help(:)
-         Real (Kind=Kind(0.d0)) :: Pi
          Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
 
          Integer                :: L1, L2, I, N_auto, Ndim
@@ -73,6 +72,7 @@
          Type(Unit_cell)        :: Latt_Unit
          Character (len=64)     :: File_out
 
+         Real (Kind=Kind(0.d0)), parameter :: pi = acos(-1.d0)
 
          NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 
@@ -101,7 +101,6 @@
 
 
          ! Determine the number of bins.
-         Pi = acos(-1.d0)
          Open ( Unit=10, File="ineq", status="unknown" )
          nbins = 0
          do
@@ -294,7 +293,6 @@
 !!$         Integer :: m
 !!$
 !!$         Zero = 1.D-4
-!!$         pi = acos(-1.d0)
 !!$         X1_p(1)  =  Xk_p(2,n)
 !!$         X1_p(2)  = -Xk_p(1,n)
 !!$         if (X1_p(1) < -pi + Zero )  X1_p(1) = X1_p(1) + 2.0*pi

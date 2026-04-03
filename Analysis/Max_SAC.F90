@@ -73,8 +73,10 @@ Program MaxEnt_Wrapper
 
        Integer                :: nt, nt1, io_error, n,nw, nwp, ntau, N_alpha_1, i,  nbin_qmc
        Integer                :: ntau_st, ntau_en, Ntau_old
-       Real (Kind=Kind(0.d0)) :: dtau, pi, xmom1, x,x1,x2, tau, omp, om, Beta,err, delta, Dom
-       Real (Kind=Kind(0.d0)) :: Zero, Alpha_classic_st=100000.d0
+       Real (Kind=Kind(0.d0)) :: dtau, xmom1, x,x1,x2, tau, omp, om, Beta,err, delta, Dom
+       Real (Kind=Kind(0.d0)), parameter :: pi = acos(-1.d0)
+       Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-10
+       Real (Kind=Kind(0.d0)) :: Alpha_classic_st=100000.d0
        Integer ::  N_BZ_Zones     =  1 
        Logical ::  Extended_Zone = .false.
 
@@ -158,8 +160,6 @@ Program MaxEnt_Wrapper
          Write(50,13) "Alpha_st",alpha_st
          Write(50,13) "R", R
        endif
-       Zero= 1.D-10
-       pi = acos(-1.d0)
        Ntau_st = 1
        Ntau_en = Ntau
        Select Case (str_to_upper(Channel))
@@ -419,7 +419,6 @@ Program MaxEnt_Wrapper
 
        ! Compute the real frequency Green function.
        delta = Dom
-       pi = acos(-1.d0)
        x  = 0.d0
        x1 = 0.d0
        x2 = 0.d0

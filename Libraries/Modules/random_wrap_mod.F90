@@ -147,9 +147,9 @@ Module Random_Wrap
        Implicit none
      
        integer, optional :: iq
-       real (Kind=kind(0.D0)) ::  pi, ranmod, theta
+       real (Kind=kind(0.D0)) ::  ranmod, theta
+       real (Kind=kind(0.D0)), parameter ::  pi = acos(-1.d0)
        
-       PI = 3.1415926536D0
        RANMOD = SQRT(-2.D0 * log(RANF_Wrap(iq)))
        THETA  = 2.D0 * PI * RANF_wrap(iq)
        rang_wrap = RANMOD * COS(THETA)

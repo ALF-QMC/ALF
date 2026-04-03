@@ -309,11 +309,10 @@
 !!$         Real (Kind=Kind(0.d0)), INTENT(IN) :: Xk_p(2,Nunit)
 !!$
 !!$         !Local
-!!$         real (Kind=Kind(0.d0)) :: X1_p(2), Zero, pi, X
+!!$         real (Kind=Kind(0.d0)) :: X1_p(2), X
+!!$         real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-4, pi = acos(-1.d0)
 !!$         Integer :: m
 !!$
-!!$         Zero = 1.D-4
-!!$         pi = acos(-1.d0)
 !!$         X1_p(1)  =  Xk_p(2,n)
 !!$         X1_p(2)  = -Xk_p(1,n)
 !!$         if (X1_p(1) < -pi + Zero )  X1_p(1) = X1_p(1) + 2.0*pi

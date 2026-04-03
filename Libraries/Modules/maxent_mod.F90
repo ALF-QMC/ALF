@@ -685,7 +685,8 @@ Module MaxEnt_mod
             Implicit None
             Real (Kind=Kind(0.d0)), Dimension(:)   :: XQMC, A
             Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV, XKER
-            Real (Kind=Kind(0.d0)) :: ALPHA_ST, ALPHA_N, ALPHA_EN ! , PI
+            Real (Kind=Kind(0.d0)) :: ALPHA_ST, ALPHA_N, ALPHA_EN
+            ! Real (Kind=Kind(0.d0)), parameter :: PI = acos(-1.d0)
             Real (Kind=Kind(0.D0)), Intent(Out) :: CHISQ
 
             Integer       :: NT, NT1, NT2, NW, NCOUNT, NTH
@@ -700,7 +701,6 @@ Module MaxEnt_mod
             NOM  = SIZE(A, 1)
             ALLOCATE(A_ME(NOM))
             !WRITE(6,*) 'NTAU, Nom: ', NTAU,NOM
-!            PI   = ACOS(-1.d0)
             XMOM1= 1.0D0 !PI
             ZERO =  1.0D-8
             ALLOCATE ( XLAM(NTAU), SIG1(NTAU), COVM1(NTAU,NTAU), UC(NTAU,NTAU), DEF(NOM) )

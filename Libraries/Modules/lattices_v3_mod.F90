@@ -100,15 +100,16 @@
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p, x1_p, a_p,d_p
            Real (Kind=Kind(0.d0)), allocatable :: Mat(:,:), Mat_inv(:,:)
 
-           Integer :: ndim, L, L1, nc, i, i1,i2, L_f, LQ, n,m, nd1,nd2,nr, nnr1, nnr2, nnr, nr1, imj_1, imj_2
+           Integer :: L, L1, nc, i, i1,i2, L_f, LQ, n,m, nd1,nd2,nr, nnr1, nnr2, nnr, nr1, imj_1, imj_2
            Integer :: imj
-           Real    (Kind=Kind(0.d0)) :: Zero,pi, X
+           Real    (Kind=Kind(0.d0)) :: X
+           Real    (Kind=Kind(0.d0)), parameter :: pi = acos(-1.d0), Zero = 1.d-5
 
-           ndim = size(L1_p)
+           Integer, parameter :: ndim = 2
+           ! ndim = size(L1_p)  TODO: Generalize to 3D
            allocate (Latt%L2_p(ndim), Latt%L1_p(ndim), Latt%a1_p(ndim) , Latt%a2_p(ndim), &
                 &    Latt%b1_p(ndim), Latt%b2_p(ndim), Latt%BZ1_p(ndim), Latt%BZ2_p(ndim) )
            allocate (Latt%b1_perp_p(ndim), Latt%b2_perp_p(ndim) )
-           Zero = 1.D-5
            Latt%L1_p = L1_p
            Latt%L2_p = L2_p
            Latt%a1_p = a1_p
@@ -120,8 +121,6 @@
            Allocate ( BZ1_p(ndim), BZ2_p(ndim) )
            Allocate ( x_p(ndim),  x1_p(ndim), d_p(ndim),  a_p(ndim) )
 
-
-           pi   = acos(-1.d0)
 
            ! Setup the 2X2 matrix to determine  BZ1_p, BZ2_p
            Allocate ( Mat(2 , 2), Mat_inv( 2 , 2 ) )
@@ -356,10 +355,10 @@
            integer, dimension(:), intent(out) :: nr_p
 
            integer, dimension(:), allocatable :: x_p
-           Real (Kind=Kind(0.d0)) :: Zero, X
+           Real (Kind=Kind(0.d0)) :: X
+           Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-8
            Integer :: Ndim, i
 
-           Zero = 1.D-8
            nr_p = n_p
            ndim = size(n_p)
 
@@ -389,10 +388,10 @@
 
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p
 
-           Real (Kind=Kind(0.d0)) :: Zero, X
+           Real (Kind=Kind(0.d0)) :: X
+           Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-8
            Integer :: ndim, i
 
-           Zero = 1.D-8
            nr_p = n_p
            ndim = size(n_p)
            allocate(x_p(ndim))
@@ -422,10 +421,10 @@
 
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p
 
-           Real (Kind=Kind(0.d0)) :: Zero, X
+           Real (Kind=Kind(0.d0)) :: X
+           Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-8
            Integer :: ndim, i,  Del_N1, Del_N2
 
-           Zero = 1.D-8
            nr_p = n_p
            ndim = size(n_p)
            allocate(x_p(ndim))
@@ -467,7 +466,8 @@
            Type (Lattice) :: Latt
 
            Integer :: nkx, nky, nk
-           Real (Kind=Kind(0.d0)) :: XK1_P(2), XK2_P(2), Zero
+           Real (Kind=Kind(0.d0)) :: XK1_P(2), XK2_P(2)
+           Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-10
 
            call npbc(xk1_p, xk_p , Latt%BZ1_p, Latt%BZ2_p)
            call npbc(xk2_p, xk1_p, Latt%BZ1_p, Latt%BZ2_p)
@@ -477,7 +477,6 @@
            nk = Latt%Invlistk(nkx,nky)
 
            !Test
-           Zero  = 1.D-10
            XK1_P = Latt%listk(nk,1)*latt%b1_p + Latt%listk(nk,2)*latt%b2_p
            XK1_P = XK1_P - XK2_P
            if (Xnorm(XK1_P)  < Zero ) then
@@ -515,9 +514,8 @@
            Real (Kind=Kind(0.d0)) :: XR1_P(2), XR2_P(2)
 
            Integer :: n_1, n_2
-           Real (Kind=Kind(0.d0)) :: pi
+           Real (Kind=Kind(0.d0)), parameter :: pi = acos(-1.d0)
 
-           pi = acos(-1.d0)
            call npbc(xr1_p, xr_p , Latt%L1_p, Latt%L2_p)
            call npbc(xr2_p, xr1_p, Latt%L1_p, Latt%L2_p)
 
