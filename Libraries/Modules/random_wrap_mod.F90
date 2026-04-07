@@ -144,7 +144,7 @@ Module Random_Wrap
      real (kind=kind(0.D0))  function  rang_wrap(iq)
         
        ! Random variable according to the distribution:  exp(-x**2/2)/(sqrt(2*3.1415927))
-       Use Natural_Constants, only: pi, twopi
+       Use Natural_Constants, only: twopi
        Implicit none
      
        integer, optional :: iq

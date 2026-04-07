@@ -168,7 +168,7 @@
 
 !===================================================================================
         Subroutine Ham_hop
-          Use Natural_Constants, only: pi, twopi
+          Use Natural_Constants, only: twopi
           Implicit none
 
           !Setup the hopping

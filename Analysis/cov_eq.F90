@@ -45,7 +45,6 @@
          Use Matrix
          Use Lattices_v3
          Use Predefined_Lattices
-         Use Natural_Constants, only: pi
          use iso_fortran_env, only: output_unit, error_unit
 #ifdef _OPENMP
       use check_omp_num_threads_mod

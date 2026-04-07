@@ -480,7 +480,7 @@
 !--------------------------------------------------------------------
         Subroutine Ham_Hop
 
-          Use Natural_Constants, only: pi, twopi
+          Use Natural_Constants, only: twopi
           Implicit none
 
           Real (Kind=Kind(0.d0))  :: X_p(2), Delta_K

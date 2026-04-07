@@ -44,7 +44,6 @@ Module MaxEnt_stoch_mod
 !
 !--------------------------------------------------------------------
        Use runtime_error_mod
-       Use Natural_Constants, only: pi
        Use MyMats
        Use Random_Wrap
        Use Files_mod

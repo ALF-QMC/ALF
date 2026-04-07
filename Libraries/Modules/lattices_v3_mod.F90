@@ -42,7 +42,7 @@
 !--------------------------------------------------------------------
          Use Matrix
          Use runtime_error_mod
-         Use Natural_Constants, only: pi, twopi, Eps_small
+         Use Natural_Constants, only: twopi, Eps_small
          use iso_fortran_env, only: output_unit, error_unit
          implicit none
          private
