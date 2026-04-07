@@ -45,6 +45,7 @@
          Use Matrix
          Use Lattices_v3
          Use Predefined_Lattices
+         Use Natural_Constants, only: pi
          use iso_fortran_env, only: output_unit, error_unit
 #ifdef _OPENMP
       use check_omp_num_threads_mod
@@ -71,8 +72,6 @@
          Integer , Dimension(:,:), allocatable  :: List, Invlist
          Type(Unit_cell)        :: Latt_Unit
          Character (len=64)     :: File_out
-
-         Real (Kind=Kind(0.d0)), parameter :: pi = acos(-1.d0)
 
          NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 

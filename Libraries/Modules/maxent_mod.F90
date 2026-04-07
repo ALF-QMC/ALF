@@ -47,6 +47,7 @@ Module MaxEnt_mod
 !
 !--------------------------------------------------------------------
 
+        Use Natural_Constants, only: Eps_small, Eps_convergence
         Use MyMats
         Use Errors
         use iso_fortran_env, only: output_unit, error_unit
@@ -82,7 +83,7 @@ Module MaxEnt_mod
             !WRITE(6,*) 'NTAU, Nom: ', NTAU,NOM
             Xmom1 = Xqmc(1)
 
-            ZERO =  1.0D-8
+            ZERO =  Eps_small
             ALLOCATE ( XLAM(NTAU), SIG1(NTAU), COVM1(NTAU,NTAU), UC(NTAU,NTAU), DEF(NOM) )
             XLAM=0.D0;  SIG1=0.D0; UC = 0.D0
 
@@ -268,7 +269,7 @@ Module MaxEnt_mod
                ENDDO
                NITER = NITER + 1
                !WRITE(6,*) 'Maximize: ', XNORM, NITER
-               IF (XNORM.LT.1.0D-6 .OR. NITER.GE.500) EXIT
+               IF (XNORM.LT.Eps_convergence .OR. NITER.GE.500) EXIT
             ENDDO
             CALL   SETQ(A,XKER,XQMC, XQ,XENT,CHISQ)
 
@@ -336,7 +337,7 @@ Module MaxEnt_mod
                ENDDO
                NITER = NITER + 1
                !WRITE(6,*) 'Maximize_Self: ', XNORM, NITER
-               IF (XNORM.LT.1.0D-6 .OR. NITER.GE.1000) EXIT
+               IF (XNORM.LT.Eps_convergence .OR. NITER.GE.1000) EXIT
             ENDDO
             CALL  SETQ(A,XKER,XQMC, XQ,XENT,CHISQ)
 
@@ -702,7 +703,7 @@ Module MaxEnt_mod
             ALLOCATE(A_ME(NOM))
             !WRITE(6,*) 'NTAU, Nom: ', NTAU,NOM
             XMOM1= 1.0D0 !PI
-            ZERO =  1.0D-8
+            ZERO =  Eps_small
             ALLOCATE ( XLAM(NTAU), SIG1(NTAU), COVM1(NTAU,NTAU), UC(NTAU,NTAU), DEF(NOM) )
             XLAM=0.D0;  SIG1=0.D0; UC = 0.D0
 

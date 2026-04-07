@@ -42,6 +42,7 @@ Program MaxEnt_Wrapper
 !
 !--------------------------------------------------------------------
        Use runtime_error_mod
+       Use Natural_Constants, only: pi, Eps_small
        Use MaxEnt_stoch_mod
        Use MaxEnt_mod
        use MaxEnt_Wrapper_mod
@@ -74,8 +75,7 @@ Program MaxEnt_Wrapper
        Integer                :: nt, nt1, io_error, n,nw, nwp, ntau, N_alpha_1, i,  nbin_qmc
        Integer                :: ntau_st, ntau_en, Ntau_old
        Real (Kind=Kind(0.d0)) :: dtau, xmom1, x,x1,x2, tau, omp, om, Beta,err, delta, Dom
-       Real (Kind=Kind(0.d0)), parameter :: pi = acos(-1.d0)
-       Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-10
+       Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
        Real (Kind=Kind(0.d0)) :: Alpha_classic_st=100000.d0
        Integer ::  N_BZ_Zones     =  1 
        Logical ::  Extended_Zone = .false.

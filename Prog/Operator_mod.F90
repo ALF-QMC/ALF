@@ -45,6 +45,7 @@ Module Operator_mod
   Use mat_subroutines
   Use MyMats
   Use Fields_mod
+  Use Natural_Constants, only: Eps_machine, Eps_small
   
   Implicit none
   
@@ -259,7 +260,7 @@ Contains
 
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
-    Real    (Kind=Kind(0.d0)), parameter :: Zero = 1.D-9
+    Real    (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
     Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3)
 #ifdef MPI
     Integer :: ierr
@@ -514,7 +515,7 @@ Contains
 
     g_loc = OP%g
     if (op%g_t_alloc)  g_loc = Op%g_t(nt)
-    if ( abs(g_loc) < 1.D-12 ) return
+    if ( abs(g_loc) < Eps_machine ) return
 
     if ( op%type < 3 ) then
        sp = sign*nint(Real(HS_Field))
@@ -608,7 +609,7 @@ Contains
     ! quick return if possible
     g_loc = Op%g
     if (op%g_t_alloc) g_loc = Op%g_t(nt)
-    if ( abs(g_loc) < 1.D-12 ) return
+    if ( abs(g_loc) < Eps_machine ) return
 
     if ( op%type < 3 ) then
        sp = nint(Real(Hs_Field))

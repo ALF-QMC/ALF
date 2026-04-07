@@ -144,14 +144,14 @@ Module Random_Wrap
      real (kind=kind(0.D0))  function  rang_wrap(iq)
         
        ! Random variable according to the distribution:  exp(-x**2/2)/(sqrt(2*3.1415927))
+       Use Natural_Constants, only: pi, twopi
        Implicit none
      
        integer, optional :: iq
        real (Kind=kind(0.D0)) ::  ranmod, theta
-       real (Kind=kind(0.D0)), parameter ::  pi = acos(-1.d0)
        
        RANMOD = SQRT(-2.D0 * log(RANF_Wrap(iq)))
-       THETA  = 2.D0 * PI * RANF_wrap(iq)
+       THETA  = twopi * RANF_wrap(iq)
        rang_wrap = RANMOD * COS(THETA)
        
      end function rang_wrap

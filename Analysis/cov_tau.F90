@@ -42,6 +42,7 @@
          Use Errors
          Use MyMats
          Use Matrix
+         Use Natural_Constants, only: Eps_small
          use iso_fortran_env, only: output_unit, error_unit
 #ifdef _OPENMP
          use check_omp_num_threads_mod
@@ -57,7 +58,7 @@
          Complex (Kind=Kind(0.d0)), allocatable :: Xmean(:), Xcov(:,:)
          Complex (Kind=Kind(0.d0)) :: Zmean, Zerr
          Complex (Kind=Kind(0.d0)) :: Z, Z_diag
-         Real    (Kind=Kind(0.d0)), parameter :: Zero=1.D-8
+         Real    (Kind=Kind(0.d0)), parameter :: Zero=Eps_small
          Real    (Kind=Kind(0.d0)), allocatable :: Phase(:)
          Complex (Kind=Kind(0.d0)), allocatable :: PhaseI(:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins(:,:,:), Bins_chi(:,:), OneBin(:,:,:)

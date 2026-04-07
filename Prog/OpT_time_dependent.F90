@@ -34,6 +34,7 @@ module OpT_time_dependent_mod
     use ContainerElementBase_mod
     use Operator_mod
     use mat_subroutines
+    use Natural_Constants, only: Eps_machine
     implicit none
 
     private
@@ -74,7 +75,7 @@ contains
         Type(Operator), intent(in) :: Op_T
         logical, intent(in) :: symm
         
-        this%Zero = 1.E-12
+        this%Zero = Eps_machine
         this%Ndim_hop = Op_T%N
         this%P = Op_T%P ! copy all data locally to be consistent and less error prone
         this%U = Op_T%U

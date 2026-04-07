@@ -42,6 +42,7 @@
 !--------------------------------------------------------------------
          Use Matrix
          Use runtime_error_mod
+         Use Natural_Constants, only: pi, twopi, Eps_small
          use iso_fortran_env, only: output_unit, error_unit
          implicit none
          private
@@ -103,7 +104,7 @@
            Integer :: L, L1, nc, i, i1,i2, L_f, LQ, n,m, nd1,nd2,nr, nnr1, nnr2, nnr, nr1, imj_1, imj_2
            Integer :: imj
            Real    (Kind=Kind(0.d0)) :: X
-           Real    (Kind=Kind(0.d0)), parameter :: pi = acos(-1.d0), Zero = 1.d-5
+           Real    (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
 
            Integer, parameter :: ndim = 2
            ! ndim = size(L1_p)  TODO: Generalize to 3D
@@ -133,10 +134,10 @@
            Mat_inv(2,2) =  Mat(1,1)/X
            Mat_inv(1,2) = -Mat(1,2)/X
            Mat_inv(2,1) = -Mat(2,1)/X
-           BZ1_p(1)      = 2.d0*pi*Mat_inv(1,1)
-           BZ1_p(2)      = 2.d0*pi*Mat_inv(2,1)
-           BZ2_p(1)      = 2.d0*pi*Mat_inv(1,2)
-           BZ2_p(2)      = 2.d0*pi*Mat_inv(2,2)
+           BZ1_p(1)      = twopi*Mat_inv(1,1)
+           BZ1_p(2)      = twopi*Mat_inv(2,1)
+           BZ2_p(1)      = twopi*Mat_inv(1,2)
+           BZ2_p(2)      = twopi*Mat_inv(2,2)
            Latt%BZ1_p = BZ1_p
            Latt%BZ2_p = BZ2_p
 
@@ -144,7 +145,7 @@
 
 
            ! K-space Quantization  from periodicity in L1_p and L2_p
-           X =  2.d0*pi / ( Iscalar(BZ1_p,L1_p) * Iscalar(BZ2_p,L2_p) -   &
+           X =  twopi / ( Iscalar(BZ1_p,L1_p) * Iscalar(BZ2_p,L2_p) -   &
                 &           Iscalar(BZ2_p,L1_p) * Iscalar(BZ1_p,L2_p)   )
            X = abs(X)
            b1_p = X*( Iscalar(BZ2_p,L2_p) * BZ1_p - Iscalar(BZ1_p,L2_p) * BZ2_p )
@@ -173,12 +174,12 @@
 
 
            ! Count the number of lattice points.
-           L      =   abs(nint ( Iscalar(Latt%BZ1_p,L1_p) / (2.d0*pi) ))
-           L1     =   abs(nint ( Iscalar(Latt%BZ2_p,L1_p) / (2.d0*pi) ))
+           L      =   abs(nint ( Iscalar(Latt%BZ1_p,L1_p) / twopi ))
+           L1     =   abs(nint ( Iscalar(Latt%BZ2_p,L1_p) / twopi ))
            if (L1 .gt. L) L = L1
-           L1     =   abs(nint ( Iscalar(Latt%BZ1_p,L2_p) / (2.d0*pi) ))
+           L1     =   abs(nint ( Iscalar(Latt%BZ1_p,L2_p) / twopi ))
            if (L1 .gt. L) L = L1
-           L1     =   abs(nint ( Iscalar(Latt%BZ2_p,L2_p) / (2.d0*pi) ))
+           L1     =   abs(nint ( Iscalar(Latt%BZ2_p,L2_p) / twopi ))
            if (L1 .gt. L) L = L1
            nc = 0
            do i1 = -L,L
@@ -285,8 +286,8 @@
                     call npbc(x_p , x1_p, Latt%L1_p, Latt%L2_p)
                     call npbc(x1_p, x_p , Latt%L1_p, Latt%L2_p)
                     call npbc(x_p , x1_p, Latt%L1_p, Latt%L2_p)
-                    nnr1 =  nint ( Iscalar(Latt%BZ1_p,x_p) / (2.d0*pi) )
-                    nnr2 =  nint ( Iscalar(Latt%BZ2_p,x_p) / (2.d0*pi) )
+                    nnr1 =  nint ( Iscalar(Latt%BZ1_p,x_p) / twopi )
+                    nnr2 =  nint ( Iscalar(Latt%BZ2_p,x_p) / twopi )
                     nnr  = Latt%invlist(nnr1,nnr2)
                     Latt%nnlist(nr,nd1,nd2) = nnr
                     if ( nnr < 1  .or.  nnr > Latt%N ) then
@@ -321,8 +322,8 @@
                  d_p = x_p - x1_p
                  call npbc(x1_p  , d_p , Latt%L1_p, Latt%L2_p)
                  call npbc(d_p , x1_p, Latt%L1_p, Latt%L2_p)
-                 imj_1 =  nint ( Iscalar(Latt%BZ1_p,d_p) / (2.d0*pi) )
-                 imj_2 =  nint ( Iscalar(Latt%BZ2_p,d_p) / (2.d0*pi) )
+                 imj_1 =  nint ( Iscalar(Latt%BZ1_p,d_p) / twopi )
+                 imj_2 =  nint ( Iscalar(Latt%BZ2_p,d_p) / twopi )
                  imj   = Latt%invlist(imj_1,imj_2)
                  Latt%imj(nr,nr1) = imj
               enddo
@@ -356,7 +357,7 @@
 
            integer, dimension(:), allocatable :: x_p
            Real (Kind=Kind(0.d0)) :: X
-           Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-8
+           Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
            Integer :: Ndim, i
 
            nr_p = n_p
@@ -389,7 +390,7 @@
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p
 
            Real (Kind=Kind(0.d0)) :: X
-           Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-8
+           Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
            Integer :: ndim, i
 
            nr_p = n_p
@@ -422,7 +423,7 @@
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p
 
            Real (Kind=Kind(0.d0)) :: X
-           Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-8
+           Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
            Integer :: ndim, i,  Del_N1, Del_N2
 
            nr_p = n_p
@@ -467,7 +468,7 @@
 
            Integer :: nkx, nky, nk
            Real (Kind=Kind(0.d0)) :: XK1_P(2), XK2_P(2)
-           Real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-10
+           Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
 
            call npbc(xk1_p, xk_p , Latt%BZ1_p, Latt%BZ2_p)
            call npbc(xk2_p, xk1_p, Latt%BZ1_p, Latt%BZ2_p)
@@ -514,13 +515,11 @@
            Real (Kind=Kind(0.d0)) :: XR1_P(2), XR2_P(2)
 
            Integer :: n_1, n_2
-           Real (Kind=Kind(0.d0)), parameter :: pi = acos(-1.d0)
-
            call npbc(xr1_p, xr_p , Latt%L1_p, Latt%L2_p)
            call npbc(xr2_p, xr1_p, Latt%L1_p, Latt%L2_p)
 
-           n_1 =  nint ( Iscalar(Latt%BZ1_p,XR2_p) / (2.d0*pi) )
-           n_2 =  nint ( Iscalar(Latt%BZ2_p,XR2_p) / (2.d0*pi) )
+           n_1 =  nint ( Iscalar(Latt%BZ1_p,XR2_p) / twopi )
+           n_2 =  nint ( Iscalar(Latt%BZ2_p,XR2_p) / twopi )
            Inv_R  = Latt%invlist(n_1,n_2)
 
          end Function Inv_R

@@ -38,6 +38,7 @@
 !> Collection of routines for postprocessing the Monte Carlo bins
 !
 !--------------------------------------------------------------------
+      Use Natural_Constants, only: Eps_small, Eps_convergence
       use iso_fortran_env, only: output_unit, error_unit
       use Files_mod
       Use Errors
@@ -1050,7 +1051,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
 
       Logical :: PartHole, L_Back, Extended_Zone
       Character (len=64) :: File_out, command,  xk1_str,  xk2_str 
-      Real    (Kind=Kind(0.d0)), parameter :: Zero=1.D-8
+      Real    (Kind=Kind(0.d0)), parameter :: Zero=Eps_small
       Integer :: N_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones
       Integer :: Nbins, LT, Lt_eff,  n_mk
       Integer :: nb, no, no1, no2, n,i, nt, nt1, ierr, Norb,  NBZ_1,  NBZ_2
@@ -1155,8 +1156,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
                Xk_Extended_p(:)  =   Xk_p(:,n) +  NBZ_1 * Latt%BZ1_p +  NBZ_2 * Latt%BZ2_p
                if ( Xk_Extended_p(1) >= -zero .and. XK_Extended_p(2) >= -zero ) then
                   L_back  = .false. 
-                  if ( sqrt(Xk_extended_p(1)**2 + Xk_extended_p(2)**2) < 1.D-6 .and. N_Back == 1 )   L_back  = .true.
-                  ! Set   weights
+                  if ( sqrt(Xk_extended_p(1)**2 + Xk_extended_p(2)**2) < Eps_convergence .and. N_Back == 1 )   L_back  = .true.
                   If (Extended_Zone)  then
                      do  no  =  1,Norb
                         X =  0.d0
@@ -1262,7 +1262,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
          enddo
          if (PartHole)  V_help_suscep   =  V_help_suscep * cmplx(2.d0,0.d0,Kind(0.d0))
          L_back  = .false. 
-         if ( sqrt(Xk_p(1,n)**2 + Xk_p(2,n)**2) < 1.D-6 .and. N_Back == 1 )  L_back  = .true. 
+         if ( sqrt(Xk_p(1,n)**2 + Xk_p(2,n)**2) < Eps_convergence .and. N_Back == 1 )  L_back  = .true. 
          call COV(V_help_suscep, phase, Xcov, Xmean, background, L_back, N_rebin, Weights  )
          Xmean_st(n) = Xmean(1)*dtau
          Xerr_st(n)  =  Sqrt(Xcov(1,1))*dtau
@@ -1540,7 +1540,7 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
                do  n = 1,  Latt%N 
                   Xk_Extended_p(:)  =   Xk_p_s(:,n) +  NBZ_1 * Latt%BZ1_p +  NBZ_2 * Latt%BZ2_p
                   L_back  = .false. 
-                  if ( sqrt(Xk_Extended_p(1)**2 + Xk_Extended_p(2)**2) < 1.D-6 .and. N_Back == 1 )   L_back  = .true.
+                  if ( sqrt(Xk_Extended_p(1)**2 + Xk_Extended_p(2)**2) < Eps_convergence .and. N_Back == 1 )   L_back  = .true.
                   do no  =  1,Latt_unit%Norb
                      X =  0.d0
                      do i  =  1,size(Latt%BZ1_p,1)
@@ -1573,7 +1573,7 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
                   do nb = 1,Nbins
                      V_help(1,nb) = bins  (n,nb)%el(no,no1)
                   enddo
-                  if ( sqrt(Xk_p(1)**2 + Xk_p(2)**2) < 1.D-6 ) then
+                  if ( sqrt(Xk_p(1)**2 + Xk_p(2)**2) < Eps_convergence ) then
                      do nb = 1,Nbins
                         V_help(2,nb) = Bins0(nb,no)*Latt%N
                         V_help(3,nb) = Bins0(nb,no1)

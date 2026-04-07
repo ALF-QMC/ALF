@@ -129,6 +129,7 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
+      Use Natural_Constants, only: Eps_small
 
       Implicit none
       
@@ -254,7 +255,7 @@
             Write(error_unit,*) 'Ham_Set: If N_FL = 2, N_SUN has to be even'
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
-          If (abs(ham_h0) >= 1.D-10 .and. N_FL /= 2 ) then
+          If (abs(ham_h0) >= Eps_small .and. N_FL /= 2 ) then
             Write(error_unit,*) 'Ham_Set: Set N_fl=2 if you want to use the pinning field'
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
@@ -315,7 +316,7 @@
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
-             if (abs(ham_h0) >= 1.D-10 ) Write(unit_info,*) 'Pinning field : ', ham_h0
+             if (abs(ham_h0) >= Eps_small ) Write(unit_info,*) 'Pinning field : ', ham_h0
              if (Index(str_to_upper(Lattice_type),'BILAYER') > 0 )  then
                Write(unit_info,*) 't2            : ', Ham_T2
                Write(unit_info,*) 'Ham_U2        : ', Ham_U2
@@ -478,7 +479,7 @@
           Implicit none
 
           Integer :: nf, I, I1, nc, no,  N_ops
-          Real (Kind=Kind(0.d0)) :: Zero = 1.D-10
+          Real (Kind=Kind(0.d0)) :: Zero = Eps_small
           Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
 
 
@@ -576,7 +577,7 @@
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
           enddo
           ! Local quantities 
-          If (abs(ham_h0) >= 1.D-10 ) then
+          If (abs(ham_h0) >= Eps_small ) then
             Allocate ( Obs_local(1) )
             Filename = "SpinZ"
             Channel = "--"
@@ -769,7 +770,7 @@
 
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
 
-          If (abs(ham_h0) >= 1.D-10 ) then
+          If (abs(ham_h0) >= Eps_small ) then
             ! Compute local observables.
             Do I = 1,Size(Obs_local,1)
                Obs_local(I)%N         =  Obs_local(I)%N + 1

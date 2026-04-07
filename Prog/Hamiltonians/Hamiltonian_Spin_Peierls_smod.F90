@@ -130,6 +130,7 @@
       Use Predefined_Hoppings
       Use LRC_Mod
       Use Predefined_Lattices 
+      Use Natural_Constants, only: Eps_small
 
       Implicit none
       
@@ -293,7 +294,7 @@
              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__) 
           endif
           
-          If  ( Ham_h <=  1.D-8 )  SU2_Symm = .true.
+          If  ( Ham_h <=  Eps_small )  SU2_Symm = .true.
           If (SU2_Symm   .and. N_FL  .ne. 1 .and.  N_SUN .ne. 2 )  then  
              write(error_unit,*)   " SU(2)  symmetry is present    "
              write(error_unit,*)   " N_FL   has  to be  equal  to 1 "

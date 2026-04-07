@@ -114,6 +114,7 @@
 
 
 
+        Use Natural_Constants, only: pi, twopi
         Implicit none
         Character (len=64), Intent(IN)                :: Lattice_type
         Integer, Intent(IN)                           :: Ndim, N_FL, N_part
@@ -373,7 +374,7 @@
               Write(6,*) Op_tmp(1,1)%E(I)
            enddo
            Open(newunit=den_file, file="Den_H0", status="unknown")
-           delta = 2.d0 * Acos(-1.d0)/(Iscalar(Latt%L1_p,Latt%BZ1_p))
+           delta = twopi/(Iscalar(Latt%L1_p,Latt%BZ1_p))
            dom =(Op_tmp(1,1)%E(ndim) - Op_tmp(1,1)%E(1)) / dble(Nom)
            om = Op_tmp(1,1)%E(1)
            do nw = 1,Nom + 1
@@ -381,7 +382,7 @@
                Do I  = 1,NDim 
                   Z  =  Z  + 1.d0/cmplx(om - Op_tmp(1,1)%E(I),delta, kind=kind(0.d0))
                enddo
-               Write(den_file,"(F14.7,2x,F14.7)") om, - Aimag(Z)/(dble(Ndim)*acos(-1.d0))
+               Write(den_file,"(F14.7,2x,F14.7)") om, - Aimag(Z)/(dble(Ndim)*pi)
                om = om + dom
            enddo  
            close(den_file)

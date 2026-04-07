@@ -47,6 +47,7 @@
        Use hdf5
        use h5lt
        
+       Use Natural_Constants, only: Eps_small
        Use Lattices_v3
        
        implicit none
@@ -738,7 +739,7 @@
            INTEGER,   INTENT(OUT) :: ierr
            
            LOGICAL :: attr_exists
-           real(Kind=Kind(0.d0)), parameter :: ZERO = 10D-8
+           real(Kind=Kind(0.d0)), parameter :: ZERO = Eps_small
            real(Kind=Kind(0.d0)) :: test_double, diff
            
            call h5aexists_by_name_f(loc_id, obj_name, attr_name, attr_exists, ierr)

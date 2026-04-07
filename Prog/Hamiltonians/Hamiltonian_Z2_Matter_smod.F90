@@ -54,6 +54,7 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use Predefined_Obs
+      Use Natural_Constants, only: Eps_small
 
       Implicit none
       
@@ -102,7 +103,7 @@
       Type (Unit_cell),      target :: Latt_unit
       Logical                :: One_dimensional
       Integer, allocatable   :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
-      real (Kind=Kind(0.d0)) :: Zero = 1.D-10
+      real (Kind=Kind(0.d0)) :: Zero = Eps_small
 
       !>    Storage for the Ising action
       Real (Kind=Kind(0.d0)) :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1), DW_Ising_Flux(-1:1,-1:1)
@@ -379,12 +380,13 @@
         Subroutine Ham_Trial()
 
           Use Predefined_Trial
+          Use Natural_Constants, only: pi
 
           Implicit none
           
           Integer                              :: nf, Ix, Iy, I, n
           Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
-          Real (Kind=Kind(0.d0)), parameter    :: Pi = acos(-1.d0), Delta = 0.01d0
+          Real (Kind=Kind(0.d0)), parameter    :: Delta = 0.01d0
           
           Allocate(WF_L(N_FL),WF_R(N_FL))
           do nf=1,N_FL

@@ -32,9 +32,9 @@
 
 module MaxEnt_Wrapper_mod
    Use MyMats
+   Use Natural_Constants, only: pi, Eps_small
    implicit none
    Real (Kind=Kind(0.d0)), allocatable, private :: Ra(:), ba(:)
-   real (Kind=Kind(0.d0)), parameter, private :: pi = acos(-1.d0)
    
 contains
      Real (Kind=Kind(0.d0)) function XKER_ph(tau,om, beta)
@@ -149,7 +149,7 @@ contains
                X = X +  Mat(m,j)*U(j,i) 
             enddo
             X = X -W(i)*U(m,i) 
-            if (Abs(X) >= 1.d-10) then 
+            if (Abs(X) >= Eps_small) then 
                Write(6,*) ABS(X)
                write(error_unit,*) "Issue with eigenvalue in subroutine Set_Ra_ba of mod maxent_wrapper_mod"
                CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)  
@@ -258,7 +258,7 @@ contains
        real (Kind=Kind(0.d0)) :: Zero
        ! same as Back_trans_pp, since Back_trans_pp gives = chi(q,om)/omega
        !                                                  = A(q,om)*tanh(beta om/2)/om
-       Zero = 1.D-8
+       Zero = Eps_small
        if ( abs(om) < zero ) then
           Back_trans_ph_c = beta * Aom/2.d0
        else
@@ -278,7 +278,7 @@ contains
        real (Kind=Kind(0.d0)), intent(in) ::  Aom, beta, om
        real (Kind=Kind(0.d0)) :: Zero
 
-       Zero = 1.D-8
+       Zero = Eps_small
        if ( abs(om) < Zero ) then
           Back_trans_pp = beta * Aom/2.d0
        else
@@ -416,7 +416,7 @@ contains
        Logical,  INTENT(IN)               :: Default_model_exists, Stochastic
        Integer :: Ndis, Nw
        Real (Kind = Kind(0.d0)) ::   Dom, X, Om
-       Real (Kind = Kind(0.d0)), parameter :: Zero = 1.D-8
+       Real (Kind = Kind(0.d0)), parameter :: Zero = Eps_small
 
        Ndis = size(Default,1)
        Dom = (OM_en - Om_st)/dble(Ndis)

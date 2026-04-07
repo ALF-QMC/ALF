@@ -49,6 +49,7 @@
       Use Lattices_v3
       Use MyMats
       Use Random_wrap
+      Use Natural_Constants, only: Eps_small
       use iso_fortran_env, only: output_unit, error_unit
 
       Implicit none
@@ -86,7 +87,7 @@
 
         LRC_V_func = 0.d0
         X  = Xnorm(X_p) 
-        if (  abs(X) < 1.D-10 ) then
+        if (  abs(X) < Eps_small ) then
            LRC_V_func = Uhub
         else
            LRC_V_func = Uhub*alpha*d1/X
@@ -357,7 +358,7 @@
 
         Do I = 1,size(E_int,1)
            !Write(25,*) E_int(I)
-           if ( E_int(i) < 1.D-10 ) then
+           if ( E_int(i) < Eps_small ) then
               Write(error_unit,*) 'LRC_Set_VIJ: V_int(i,j) is not positive definite '
               CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
            endif

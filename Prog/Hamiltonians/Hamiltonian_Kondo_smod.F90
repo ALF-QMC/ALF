@@ -127,6 +127,7 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
+      Use Natural_Constants, only: Eps_small
 
       Implicit none
       
@@ -461,7 +462,7 @@
           Implicit none
 
           Integer :: I, I1, I2,  nc,  no, N_ops
-          Real (Kind=Kind(0.d0)), parameter :: Zero=1.D-10
+          Real (Kind=Kind(0.d0)), parameter :: Zero=Eps_small
 
 
           N_ops = 0

@@ -44,6 +44,7 @@ Module MaxEnt_stoch_mod
 !
 !--------------------------------------------------------------------
        Use runtime_error_mod
+       Use Natural_Constants, only: pi
        Use MyMats
        Use Random_Wrap
        Use Files_mod
@@ -53,7 +54,6 @@ Module MaxEnt_stoch_mod
        Integer, private, allocatable:: Iseed_vec(:)
        Real (Kind=Kind(0.d0)), private :: Delta, Delta2, OM_st_1, Om_en_1, DeltaXMAX, Beta, Dom_table, Dom_spectral, &
                                       &   Dx_spectral, Dx_table
-       Real (Kind=Kind(0.d0)), parameter, private :: Pi = acos(-1.d0)
        Real (Kind=Kind(0.d0)), allocatable, private :: XQMC1(:)
        Integer, allocatable,  private ::  Phim1_func(:), Phi_func(:)
        
