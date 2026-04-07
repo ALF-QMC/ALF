@@ -46,6 +46,7 @@ Module Operator_mod
   Use MyMats
   Use Fields_mod
   Use runtime_error_mod
+  Use iso_fortran_env, only: error_unit
   
   Implicit none
   
