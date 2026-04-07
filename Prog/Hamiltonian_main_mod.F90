@@ -944,6 +944,8 @@
     subroutine Validate_Ham_Variables()
       implicit none
 
+      Integer :: n, nf, i
+
       if (Ndim == HAM_VAR_UNSET_INT .or. Ndim <= 0) then
          write(error_unit, '(A,I0)') 'Ham_set error: Ndim was not set or has invalid value: ', Ndim
          write(error_unit, '(A)') 'Ndim must be a positive integer (total number of orbitals).'
@@ -1020,6 +1022,34 @@
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
          endif
       endif
+
+      ! --- Validate projector indices for Op_V and Op_T are in [1, Ndim] ---
+      do nf = 1, N_FL
+         do n = 1, size(Op_V, 1)
+            do i = 1, Op_V(n, nf)%N
+               if (Op_V(n, nf)%P(i) < 1 .or. Op_V(n, nf)%P(i) > Ndim) then
+                  write(error_unit, '(A,I0,A,I0,A,I0,A,I0)') &
+                       'Ham_set error: Op_V(', n, ',', nf, ')%P(', i, ') = ', Op_V(n, nf)%P(i)
+                  write(error_unit, '(A,I0,A)') &
+                       '   Valid projector index range is 1..Ndim = ', Ndim, '.'
+                  CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+               endif
+            enddo
+         enddo
+      enddo
+      do nf = 1, N_FL
+         do n = 1, size(Op_T, 1)
+            do i = 1, Op_T(n, nf)%N
+               if (Op_T(n, nf)%P(i) < 1 .or. Op_T(n, nf)%P(i) > Ndim) then
+                  write(error_unit, '(A,I0,A,I0,A,I0,A,I0)') &
+                       'Ham_set error: Op_T(', n, ',', nf, ')%P(', i, ') = ', Op_T(n, nf)%P(i)
+                  write(error_unit, '(A,I0,A)') &
+                       '   Valid projector index range is 1..Ndim = ', Ndim, '.'
+                  CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+               endif
+            enddo
+         enddo
+      enddo
 
       ! --- Check that Op_V operator sequence is symmetric when Symm = .true. ---
       ! The product (I + g_1*V_1)...(I + g_N*V_N) must equal (I + g_N*V_N)...(I + g_1*V_1).
