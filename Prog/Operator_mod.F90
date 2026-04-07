@@ -944,7 +944,157 @@ Contains
        endif
     endif
   end Subroutine Op_Wrapdo
-  
+
+!--------------------------------------------------------------------
+!> @brief
+!> Compare two Operator instances on their defining properties.
+!> Returns .true. if operators are equal (within tolerance for
+!> floating-point fields), .false. otherwise.
+!> Only compares N, type, P, O, g, alpha, and g_t.
+!> Derived fields (E, U, M_exp) are skipped.
+!--------------------------------------------------------------------
+  function Op_equal(Op_a, Op_b) result(equal)
+    Implicit None
+    Type (Operator), INTENT(IN) :: Op_a, Op_b
+    Logical :: equal
+    Real (Kind=Kind(0.d0)), parameter :: eq_tol = 1.D-10
+    Real (Kind=Kind(0.d0)) :: tol, scale
+    Integer :: i, j
+
+    equal = .false.
+
+    ! Integer fields: exact match
+    if (Op_a%N /= Op_b%N) return
+    if (Op_a%type /= Op_b%type) return
+
+    ! Projector indices: exact match
+    do i = 1, Op_a%N
+       if (Op_a%P(i) /= Op_b%P(i)) return
+    enddo
+
+    ! Operator matrix: tolerance-based
+    scale = max(1.d0, maxval(abs(Op_a%O(1:Op_a%N, 1:Op_a%N))), &
+                      maxval(abs(Op_b%O(1:Op_b%N, 1:Op_b%N))))
+    tol = eq_tol * scale
+    do j = 1, Op_a%N
+       do i = 1, Op_a%N
+          if (abs(Op_a%O(i,j) - Op_b%O(i,j)) > tol) return
+       enddo
+    enddo
+
+    ! Coupling constant g
+    scale = max(1.d0, abs(Op_a%g), abs(Op_b%g))
+    if (abs(Op_a%g - Op_b%g) > eq_tol * scale) return
+
+    ! Operator shift alpha
+    scale = max(1.d0, abs(Op_a%alpha), abs(Op_b%alpha))
+    if (abs(Op_a%alpha - Op_b%alpha) > eq_tol * scale) return
+
+    ! Time-dependent coupling g_t
+    if (allocated(Op_a%g_t) .neqv. allocated(Op_b%g_t)) return
+    if (allocated(Op_a%g_t)) then
+       if (size(Op_a%g_t) /= size(Op_b%g_t)) return
+       scale = max(1.d0, maxval(abs(Op_a%g_t)), maxval(abs(Op_b%g_t)))
+       tol = eq_tol * scale
+       do i = 1, size(Op_a%g_t)
+          if (abs(Op_a%g_t(i) - Op_b%g_t(i)) > tol) return
+       enddo
+    endif
+
+    equal = .true.
+  end function Op_equal
+
+!--------------------------------------------------------------------
+!> @brief
+!> Check if the Op_V operator sequence is symmetric, i.e., the product
+!> of (I + g_n * V_n) in forward order equals the product in reverse order,
+!> where V_n is operator O_n embedded in the Ndim space via projector P_n.
+!> This is satisfied when operators are arranged palindromically,
+!> or when all operators commute (e.g., on-site operators in the Hubbard model).
+!>
+!> @param[in] Op_V_arr  Operator array of shape (N_op, N_FL)
+!> @param[in] N_FL_in   Number of flavors
+!> @param[in] Ndim_in   Dimension of the full single-particle Hilbert space
+!> @return    .true. if symmetric, .false. otherwise
+!--------------------------------------------------------------------
+  logical function Op_V_is_symmetric(Op_V_arr, N_FL_in, Ndim_in)
+    Implicit None
+    Type(Operator), intent(in) :: Op_V_arr(:,:)
+    Integer, intent(in) :: N_FL_in, Ndim_in
+
+    Integer :: n_op, n, nf, i, j, NN
+    Complex(Kind=Kind(0.d0)), allocatable :: M_fwd(:,:), M_rev(:,:), M_tmp(:,:), M_op(:,:)
+    Real(Kind=Kind(0.d0)) :: diff, scale
+    Real(Kind=Kind(0.d0)), parameter :: sym_tol = 1.D-10
+
+    Op_V_is_symmetric = .true.
+    n_op = size(Op_V_arr, 1)
+    NN = Ndim_in
+
+    if (n_op <= 1) return
+
+    allocate(M_fwd(NN, NN), M_rev(NN, NN), M_tmp(NN, NN), M_op(NN, NN))
+
+    do nf = 1, N_FL_in
+       ! Initialize M_fwd = Identity
+       M_fwd = cmplx(0.d0, 0.d0, kind(0.d0))
+       do i = 1, NN
+          M_fwd(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+       enddo
+
+       ! Forward product: (I + g_1*V_1) * ... * (I + g_N*V_N)
+       do n = 1, n_op
+          M_op = cmplx(0.d0, 0.d0, kind(0.d0))
+          do i = 1, NN
+             M_op(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+          enddo
+          do j = 1, Op_V_arr(n, nf)%N
+             do i = 1, Op_V_arr(n, nf)%N
+                M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) = &
+                   M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) + &
+                   Op_V_arr(n, nf)%g * Op_V_arr(n, nf)%O(i, j)
+             enddo
+          enddo
+          M_tmp = matmul(M_fwd, M_op)
+          M_fwd = M_tmp
+       enddo
+
+       ! Initialize M_rev = Identity
+       M_rev = cmplx(0.d0, 0.d0, kind(0.d0))
+       do i = 1, NN
+          M_rev(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+       enddo
+
+       ! Reverse product: (I + g_N*V_N) * ... * (I + g_1*V_1)
+       do n = n_op, 1, -1
+          M_op = cmplx(0.d0, 0.d0, kind(0.d0))
+          do i = 1, NN
+             M_op(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+          enddo
+          do j = 1, Op_V_arr(n, nf)%N
+             do i = 1, Op_V_arr(n, nf)%N
+                M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) = &
+                   M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) + &
+                   Op_V_arr(n, nf)%g * Op_V_arr(n, nf)%O(i, j)
+             enddo
+          enddo
+          M_tmp = matmul(M_rev, M_op)
+          M_rev = M_tmp
+       enddo
+
+       ! Compare forward and reverse products
+       diff = maxval(abs(M_fwd - M_rev))
+       scale = max(1.d0, maxval(abs(M_fwd)), maxval(abs(M_rev)))
+       if (diff > sym_tol * scale) then
+          Op_V_is_symmetric = .false.
+          deallocate(M_fwd, M_rev, M_tmp, M_op)
+          return
+       endif
+    enddo
+
+    deallocate(M_fwd, M_rev, M_tmp, M_op)
+  end function Op_V_is_symmetric
+
   function Op_is_real(Op) result(retval)
     Implicit None
     

@@ -127,7 +127,7 @@
     Module Hamiltonian_main
       Use runtime_error_mod
       Use files_mod
-      Use Operator_mod, only: Operator
+      Use Operator_mod, only: Operator, Op_V_is_symmetric
       Use WaveFunction_mod, only: WaveFunction
       Use Observables
       Use Fields_mod, only: Fields
@@ -1017,6 +1017,21 @@
          if (size(WF_R) /= N_FL) then
             write(error_unit, '(A,I0)') 'Ham_set error: WF_R has wrong size: ', size(WF_R)
             write(error_unit, '(A,I0)') 'Expected size(WF_R) = N_FL = ', N_FL
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+         endif
+      endif
+
+      ! --- Check that Op_V operator sequence is symmetric when Symm = .true. ---
+      ! The product (I + g_1*V_1)...(I + g_N*V_N) must equal (I + g_N*V_N)...(I + g_1*V_1).
+      ! This is satisfied when operators are palindromically arranged OR when they commute.
+      if (Symm) then
+         if (.not. Op_V_is_symmetric(Op_V, N_FL, Ndim)) then
+            write(error_unit, '(A)') 'Ham_set error: Symm = .true. but Op_V operator sequence is not symmetric.'
+            write(error_unit, '(A)') '   The product of (I + g*V) in forward order differs from reverse order.'
+            write(error_unit, '(A)') '   A symmetric Trotter decomposition requires the operator sequence to be'
+            write(error_unit, '(A)') '   either palindromically arranged (Op_V(i) = Op_V(N+1-i) for all i),'
+            write(error_unit, '(A)') '   or composed of mutually commuting operators.'
+            write(error_unit, '(A)') '   Check the operator arrangement in Ham_V.'
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
          endif
       endif
