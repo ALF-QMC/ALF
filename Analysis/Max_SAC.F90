@@ -46,6 +46,7 @@ Program MaxEnt_Wrapper
        Use MaxEnt_mod
        use MaxEnt_Wrapper_mod
        use iso_fortran_env, only: output_unit, error_unit
+       use Files_mod, only: str_to_upper
 #ifdef _OPENMP
        use check_omp_num_threads_mod
 #endif
@@ -125,9 +126,9 @@ Program MaxEnt_Wrapper
        dtau = Xtau(2) - Xtau(1)
        11 format(A20, ': ', A)
        12 format(A20, ': ', I10)
-       13 format(A20, ': ', *(F14.7))
+       13 format(A20, ': ', *(E25.17E3))
        14 format(A20, ': ', (L1))
-       15 format((E26.17E3))
+       15 format((E25.17E3))
 
        If (Stochastic) then 
           Open(unit=50,File='Info_MaxEnt',Status="unknown")
@@ -353,12 +354,12 @@ Program MaxEnt_Wrapper
                    Write(error_unit,*) "Channel '" // Channel // "' not yet implemented"
                    CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
              end Select
-             Write(11,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)")  xtau_st(nt), xqmc_st(nt),  sqrt(xcov_st(nt,nt)), xmom1*X
+             Write(11,"(E25.17E3,2x,E25.17E3,2x,E25.17E3,2x,E25.17E3)")  xtau_st(nt), xqmc_st(nt),  sqrt(xcov_st(nt,nt)), xmom1*X
           enddo
           close(11)
           N_alpha_1 = N_alpha - 10
           File1 ="Aom_ps"
-          file2 =File_i(File1,N_alpha_1)
+          write(file2, '(A,"_",I0)') trim(File1), N_alpha_1
           Open(Unit=66,File=file2,status="unknown")
           do nw = 1,Ndis
              read(66,*) xom(nw), A(nw), x, x1, x2
@@ -378,7 +379,7 @@ Program MaxEnt_Wrapper
              Do nw = 1,Ndis
                 X = X  +  A_classic(nw)*Xker_classic(nt,nw)
              enddo
-             Write(11,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)")  xtau_st(nt), xqmc_st(nt),  sqrt(xcov_st(nt,nt)), X
+             Write(11,"(E25.17E3,2x,E25.17E3,2x,E25.17E3,2x,E25.17E3)")  xtau_st(nt), xqmc_st(nt),  sqrt(xcov_st(nt,nt)), X
           enddo
           close(11)
           Write(50,13) "Final value of  alpha ", 1.d0/Alpha_classic_st
@@ -446,10 +447,10 @@ Program MaxEnt_Wrapper
             x  = x  + Aimag(Z)
             x1 = x1 + om*Aimag(Z)
             x2 = x2 + om*om*Aimag(Z)
-            write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8,2x,F14.7,2x,F14.7,2x,F14.7)")  & 
+            write(43,"('X',2x,E25.17E3,2x,E25.17E3,2x,E25.17E3,2x,E25.17E3,2x,E25.17E3,2x,E25.17E3)")  & 
                & xom(nw), dble(Z), Aimag(Z),  X*dom, x1*dom, x2*dom
           else
-            write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8)")  & 
+            write(43,"('X',2x,E25.17E3,2x,E25.17E3,2x,E25.17E3)")  & 
                & xom(nw), dble(Z), Aimag(Z)
           endif   
        enddo
