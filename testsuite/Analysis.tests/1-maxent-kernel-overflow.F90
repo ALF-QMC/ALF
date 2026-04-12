@@ -266,10 +266,18 @@ Program Test_MaxEnt_Kernel_Overflow
 contains
 
   subroutine check(label, val, ref, tol, nerr)
+    use ieee_arithmetic, only: ieee_is_finite
     character(len=*), intent(in) :: label
     real(Kind=Kind(0.d0)), intent(in) :: val, ref, tol
     integer, intent(inout) :: nerr
     real(Kind=Kind(0.d0)) :: relerr, denom
+
+    ! Check finiteness before computing relerr to avoid NaN/Inf propagation
+    if (.not. ieee_is_finite(val)) then
+       write(*,'(A,A,A,ES14.6)') "  FAIL ", label, ": non-finite val=", val
+       nerr = nerr + 1
+       return
+    endif
 
     denom = max(abs(ref), abs(val), tiny(1.d0))
     relerr = abs(val - ref) / denom
@@ -277,12 +285,6 @@ contains
     if (relerr > tol) then
        write(*,'(A,A,A,ES14.6,A,ES14.6,A,ES10.2)') &
             "  FAIL ", label, ": val=", val, " ref=", ref, " relerr=", relerr
-       nerr = nerr + 1
-    endif
-
-    ! Also check finiteness
-    if (val /= val) then  ! NaN check
-       write(*,'(A,A,A)') "  FAIL ", label, ": NaN detected"
        nerr = nerr + 1
     endif
   end subroutine check
