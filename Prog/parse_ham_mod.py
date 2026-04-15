@@ -12,6 +12,7 @@ __copyright__ = "Copyright 2022, The ALF Project"
 __license__ = "GPL"
 
 import glob
+import os
 
 
 def get_ham_names_ham_files(ham_list_file):
@@ -20,8 +21,17 @@ def get_ham_names_ham_files(ham_list_file):
     Also parses files in directory `ham_list_file` + '.d',
     so usually ${ALF_DIR}/Prog/Hamiltonians.list and files in
     ${ALF_DIR}/Prog/Hamiltonians.list.d
+
+    If applicable, add any external Hamiltonians located at ${ALF_EXTRA_HAM_LIST}.
     """
     ham_list_files = [ham_list_file, *glob.glob(ham_list_file + '.d/*')]
+
+    extra = os.environ.get('ALF_EXTRA_HAM_LIST')
+    if extra:
+        if not os.path.isfile(extra):
+            raise FileNotFoundError(
+                'ALF_EXTRA_HAM_LIST is set but file not found: {}'.format(extra))
+        ham_list_files.append(extra)
 
     lines = []
     for file in ham_list_files:
