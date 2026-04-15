@@ -45,7 +45,7 @@ def get_ham_names_ham_files(ham_list_file):
     for line in lines:
         ham_names.append(line[0])
         try:
-            ham_files.append(line[1])
+            ham_files.append(os.path.expandvars(line[1]))
         except IndexError:
             ham_files.append(
                 'Hamiltonians/Hamiltonian_{}_smod.F90'.format(line[0]))
