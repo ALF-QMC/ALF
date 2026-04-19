@@ -14,7 +14,7 @@ As mentioned in the  introduction, the auxiliary field QMC algorithm scales line
 
 \begin{figure}[h]
 	\begin{center}
-		\includegraphics[scale=.8]{Size_scaling_ALF_2.pdf}
+		\includegraphics[scale=.8]{Figures/Size_scaling_ALF_2.pdf}
 	\end{center}
 	\caption{\label{fig_scaling_size}Volume scaling behavior of the auxiliary field QMC code of the ALF project on SuperMUC (phase 2/Haswell nodes) at the LRZ in Munich. The number of sites $N_{\text{dim}}$ corresponds to the system volume.
 	The plot confirms that the leading scaling order is due to matrix multiplications such that the runtime is dominated by calls to ZGEMM. }
@@ -43,8 +43,8 @@ We store the field configurations of the random walker as checkpoints, such that
 
 \begin{figure}[H]
 	\begin{center}
-		\includegraphics[scale=0.6]{MPI_scaling_ALF_2.pdf}
-		\includegraphics[scale=0.6]{OMP_scaling_ALF_2.pdf}
+		\includegraphics[scale=0.6]{Figures/MPI_scaling_ALF_2.pdf}
+		\includegraphics[scale=0.6]{Figures/OMP_scaling_ALF_2.pdf}
 	\end{center}
 	\caption{\label{fig_scaling} MPI (left) and OpenMP (right) scaling behavior of the auxiliary field QMC code of the ALF project on SuperMUC (phase 2/Haswell nodes) at the LRZ in Munich.
 		The MPI performance data was normalized to 28 cores and was obtained using a problem size of $N_{\text{dim}}=400$. This is a medium to small system size that is the least favorable in terms of MPI synchronization effects.
