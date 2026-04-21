@@ -11,27 +11,30 @@ __author__ = "Jonas Schwab"
 __copyright__ = "Copyright 2022, The ALF Project"
 __license__ = "GPL"
 
-import glob
 import os
+from pathlib import Path
 
 
 def get_ham_names_ham_files(ham_list_file):
     """Return list of Hamiltonian names and files.
-    
+
     Also parses files in directory `ham_list_file` + '.d',
     so usually ${ALF_DIR}/Prog/Hamiltonians.list and files in
     ${ALF_DIR}/Prog/Hamiltonians.list.d
 
     If applicable, add any external Hamiltonians located at ${ALF_EXTRA_HAM_LIST}.
     """
-    ham_list_files = [ham_list_file, *glob.glob(ham_list_file + '.d/*')]
+
+    d_dir = Path(ham_list_file + '.d')
+    ham_list_files = [ham_list_file, *(d_dir.glob('*') if d_dir.is_dir() else [])]
 
     extra = os.environ.get('ALF_EXTRA_HAM_LIST')
     if extra:
-        if not os.path.isfile(extra):
+        extra_path = Path(extra)
+        if not extra_path.is_file():
             raise FileNotFoundError(
                 'ALF_EXTRA_HAM_LIST is set but file not found: {}'.format(extra))
-        ham_list_files.append(extra)
+        ham_list_files.append(extra_path)
 
     lines = []
     for file in ham_list_files:
@@ -45,11 +48,12 @@ def get_ham_names_ham_files(ham_list_file):
     for line in lines:
         ham_names.append(line[0])
         try:
-            ham_files.append(os.path.expandvars(line[1]))
+            ham_files.append(Path(os.path.expandvars(line[1])).resolve())
         except IndexError:
             ham_files.append(
-                'Hamiltonians/Hamiltonian_{}_smod.F90'.format(line[0]))
+                Path('Hamiltonians/Hamiltonian_{}_smod.F90'.format(line[0])).resolve())
     return ham_names, ham_files
+
 
 def parse(filename):
     """Parse Fortran file for parameter lists.
