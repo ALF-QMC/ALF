@@ -26,10 +26,10 @@ Possible STABs are:
 Further optional arguments: 
   Devel: Compile with additional flags for development and debugging
   HDF5: Compile with HDF5
-  NO-INTERACTIVE: Do not ask for user confirmation during excution of this script
+  NO-INTERACTIVE: Do not ask for user confirmation during execution of this script
   NO-FALLBACK: Do not use a fallback option in case of an unknown/no machine,
                but instead return with value 1
-To hand an additional flag to the compiler, export it in the varible ALF_FLAGS_EXT prior to sourcing this script.
+To hand an additional flag to the compiler, export it in the variable ALF_FLAGS_EXT prior to sourcing this script.
 
 ALF usually self-compiles HDF5 and stores the library in subdirectories of ALF/HDF5.
 This behavior can be changed by setting the environment variable ALF_HDF5_DIR.
@@ -437,7 +437,7 @@ case $MACHINE in
     ALF_FC="mpiifort"
     find_mkl_flag || return 1
     LIB_BLAS_LAPACK="${INTELMKL}"
-    LIB_HDF5="–lh5df_fortran"
+    LIB_HDF5="-lh5df_fortran"
     INC_HDF5=""
   ;;
 
