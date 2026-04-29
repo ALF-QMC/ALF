@@ -8,7 +8,10 @@
 % For the licensing details of the documentation see license.CCBYSA.
 
 \documentclass[submission, PhysCodeb]{SciPost}
-\pdfoutput=1
+\usepackage{iftex}
+\ifpdftex
+  \pdfoutput=1
+\fi
 \usepackage{lineno}
 \usepackage{graphicx}
 \usepackage[T1]{fontenc}
@@ -47,7 +50,6 @@
 \usepackage{showexpl}
 \usepackage{etoolbox}
 \usepackage{calc}
-\usepackage{dirtree}
 \usepackage[bitstream-charter]{mathdesign}
 \urlstyle{sf}
 
@@ -207,17 +209,17 @@
 \input{titlepage}
 
 %\clearpage
-\section{Introduction}\label{sec:intro}
+%\section{Introduction}\label{sec:intro}
 \input{intro}
-\section{Auxiliary Field Quantum Monte Carlo: finite temperature}\label{sec:def}
+% \section{Auxiliary Field Quantum Monte Carlo: finite temperature}\label{sec:def}
 \input{model}
 \input{updating}
 \input{langevin}
 \input{hmc}
 \input{stabilization}
-\section{Auxiliary Field Quantum Monte Carlo: projective algorithm}\label{sec:defT0}
+% \section{Auxiliary Field Quantum Monte Carlo: projective algorithm}\label{sec:defT0}
 \input{pqmc}
-\section{Monte Carlo sampling}\label{sec:sampling}
+% \section{Monte Carlo sampling}\label{sec:sampling}
 \input{sampling}
 \section{Data Structures and Input/Output}\label{sec:imp}
 \input{implementation}
