@@ -57,7 +57,7 @@ lattices_armv8.4-a.so: runtime_error_mod.F90 lattices_interface_mod.F90 matrix_m
 	$(ALF_FC) -c $(ALF_FLAGS_MODULES) $<
 
 entanglement_mod.o: entanglement_mod.F90
-	$(ALF_FC) -c $(ALF_FLAGS_MODULES) -Wno-pedantic $<
+	$(ALF_FC) -c $(shell echo $(ALF_FLAGS_MODULES) | sed 's| -pedantic||') $<
 
 $(DEPSFILE): $(SRCS) $(DEPSGEN)
 	python3 $(DEPSGEN) $(SRCS) > $(DEPSFILE)
