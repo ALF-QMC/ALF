@@ -208,10 +208,8 @@ GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
 # GNUDEVFLAGS="-Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
 GNUDEVFLAGS="-Wconversion -fcheck=all -g -fbacktrace -fmax-errors=10"
 GNUDEVFLAGS="${GNUDEVFLAGS} -pedantic"
-# GNUDEVFLAGS="${GNUDEVFLAGS} -Wall"
-GNUDEVFLAGS="${GNUDEVFLAGS} -Wunused-variable"
-# GNUDEVFLAGS="${GNUDEVFLAGS} -Werror -Wno-error=cpp -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=unused-dummy-argument -Wno-error=maybe-uninitialized"
-# GNUDEVFLAGS="-Wconversion -pedantic -fcheck=all -g -fbacktrace -fmax-errors=10"
+# GNUDEVFLAGS="${GNUDEVFLAGS} -Wall -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=unused-dummy-argument -Wno-error=maybe-uninitialized"
+GNUDEVFLAGS="${GNUDEVFLAGS} -Werror -Wno-error=cpp"
 GNUUSEFULFLAGS="-std=f2008"
 
 # default optimization flags for PGI compiler
@@ -517,6 +515,7 @@ if [ -n "${ALF_FLAGS_EXT+x}" ]; then
 fi
 
 ALF_FLAGS_QRREF="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
+ALF_FLAGS_QRREF="$(echo "$ALF_FLAGS_QRREF" | sed 's| -pedantic||')"
 # Modules need to know the programm configuration since entanglement needs MPI
 ALF_FLAGS_MODULES="${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_ANA="${F90USEFULFLAGS} ${F90OPTFLAGS} ${ALF_INC} ${ALF_FLAGS_EXT}"
