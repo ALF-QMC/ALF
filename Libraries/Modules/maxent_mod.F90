@@ -197,7 +197,7 @@ Module MaxEnt_mod
 
            CLOSE(44)
 
-2006       FORMAT('Res: 1/Alpha, XQ,S,CHI: ', F24.12,2x,F24.12,2x,F24.12,2x,F24.12)
+2006       FORMAT('Res: 1/Alpha, XQ,S,CHI: ', E25.17E3,2x,E25.17E3,2x,E25.17E3,2x,E25.17E3)
 
            ALPHA_ST =  ALPHA 
             DEALLOCATE ( XLAM, SIG1, COVM1, UC, DEF )
@@ -836,7 +836,7 @@ Module MaxEnt_mod
            CLOSE(44)
 
 
-2006       FORMAT('Res: Alpha, XQ,S,CHI: ', F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+2006       FORMAT('Res: Alpha, XQ,S,CHI: ', E25.17E3,2x,E25.17E3,2x,E25.17E3,2x,E25.17E3)
 
 
             DEALLOCATE ( XLAM, SIG1, COVM1, UC, DEF )
