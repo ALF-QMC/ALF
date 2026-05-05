@@ -1,6 +1,7 @@
 
 Module  Fourier
   use runtime_error_mod
+  Use Natural_Constants, only: Eps_small
   Use MaxEnt_mod
   Use MaxEnt_stoch_mod
   Use Matrix
@@ -650,7 +651,7 @@ Module  Fourier
       Real (Kind=Kind(0.d0)) :: Alpha_st,  Chisq, x, Zero
 
       Nom   = Size(Xom ,1)
-      Zero = 1.D-10
+      Zero = Eps_small
       Do Nw = 1,Nom
          if ( xom(Nw) .lt. -Zero ) then
             Write(error_unit,*) 'Tau_Matz_T_Bose: Frequencies should be larger than zero'

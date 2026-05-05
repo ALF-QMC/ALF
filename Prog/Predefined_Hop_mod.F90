@@ -48,6 +48,7 @@
       Use Operator_mod
       Use WaveFunction_mod
       Use MyMats
+      Use Natural_Constants, only: twopi, Eps_small
       use iso_fortran_env, only: output_unit, error_unit
       use Hamiltonian_main
       Implicit none
@@ -128,7 +129,7 @@
         Real (Kind=Kind(0.d0)) :: Xmax_loc, Xmax_hop, Zero, X
         Integer :: nc, nf
 
-        Zero     =  1.D-10
+        Zero     =  Eps_small
         Xmax_loc =  0.d0
         Xmax_hop =  0.d0
 
@@ -269,8 +270,9 @@
 
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1
-        Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max
+        Integer :: nf, nc, I
+        Real (Kind = Kind(0.d0) ), parameter :: Zero = Eps_small
+        Real (Kind = Kind(0.d0) ) :: Ham_T_max
         Real (Kind = Kind(0.d0) ), allocatable :: Ham_T_perp_vec(:)
 
         
@@ -385,13 +387,14 @@
 
 
       ! Local
-      Integer :: nf,N_Bonds, nc, I, I1
-      Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max, x_p(2)
+      Integer :: nf, nc, I
+      Real (Kind = Kind(0.d0) ), parameter :: Zero = Eps_small
+      Real (Kind = Kind(0.d0) ) :: Ham_T_max
 
          !Write(6,*)   Iscalar(Latt%L1_p,Latt%BZ1_p)/(2.d0*acos(-1.d0)),Iscalar(Latt%L2_p,Latt%BZ2_p)/(2.d0*acos(-1.d0)) 
       
-         If (  mod(nint(Iscalar(Latt%L1_p,Latt%BZ1_p)/(2.d0*acos(-1.d0))),2)  /=  0   .or. & 
-             & mod(nint(Iscalar(Latt%L2_p,Latt%BZ2_p)/(2.d0*acos(-1.d0))),2)  /= 0 )  then
+         If (  mod(nint(Iscalar(Latt%L1_p,Latt%BZ1_p)/twopi),2)  /=  0   .or. & 
+             & mod(nint(Iscalar(Latt%L2_p,Latt%BZ2_p)/twopi),2)  /= 0 )  then
             Write(error_unit,*) '*** For  the  triangular  lattice,  our  implementation of the checkerborad '
             Write(error_unit,*) 'decomposition  requires even  values of L_1  and L_2  ***'
             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -520,8 +523,9 @@
 
 
    ! Local
-   Integer :: nf,N_Bonds, nc, I, I1
-   Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max, x_p(2)
+   Integer :: nf, nc, I
+   Real (Kind = Kind(0.d0) ), parameter :: Zero = Eps_small
+   Real (Kind = Kind(0.d0) ) :: Ham_T_max
 
       !Write(6,*)   Iscalar(Latt%L1_p,Latt%BZ1_p)/(2.d0*acos(-1.d0)),Iscalar(Latt%L2_p,Latt%BZ2_p)/(2.d0*acos(-1.d0)) 
 
@@ -642,8 +646,8 @@
 
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1, n, no
-        Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+        Integer :: nf, nc, I, n, no
+        Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
 
         
         select case (Latt%N)
@@ -836,8 +840,9 @@
         Type(Unit_cell),Intent(in)            :: Latt_unit
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1, n, no
-        Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8, Ham_Lambda_Max
+        Integer :: nf, nc, I
+        Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
+        Real (Kind=Kind(0.d0)) :: Ham_Lambda_Max
 
         !Write(6,*) Ham_T_vec, Ham_Chem_vec
         Ham_Lambda_Max = 0.d0
@@ -928,9 +933,9 @@
         
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1, No_Shift, n, nb
-        Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-        Logical :: Test=.false.
+        Integer :: nf,N_Bonds, nc, I, No_Shift, n, nb
+        Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
+        Logical, parameter :: Test=.false.
         Real (Kind=Kind(0.d0))                :: Ham_T1_max, Ham_T2_max, Ham_Tperp_max
 
         Ham_T1_max    = 0.d0
@@ -1238,9 +1243,9 @@
         Real (Kind=Kind(0.d0))                :: Ham_T1_max, Ham_T2_max, Ham_Tperp_max
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1, No_Shift, n, nb, no
-        Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-        Logical :: Test=.false.
+        Integer :: nf,N_Bonds, nc, I, No_Shift, n, nb, no
+        Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
+        Logical, parameter :: Test=.false.
 
         Ham_T1_max    = 0.d0
         Ham_T2_max    = 0.d0
@@ -1533,7 +1538,7 @@
          else
             get_pinning_factor = cmplx(1.d0,0.d0, kind(0.d0))
          endif
-         if( abs(get_pinning_factor  - cmplx(1.d0,0.d0, kind(0.d0))) >= 1.d-10 ) pinning_notice_issued = .true.
+         if( abs(get_pinning_factor  - cmplx(1.d0,0.d0, kind(0.d0))) >= Eps_small ) pinning_notice_issued = .true.
       end function get_pinning_factor
 
 !--------------------------------------------------------------------
@@ -1556,7 +1561,7 @@
          else
             get_pinning_offset = cmplx(0.d0,0.d0, kind(0.d0))
          endif
-         if( abs(get_pinning_offset) >= 1.d-10 ) pinning_notice_issued = .true.
+         if( abs(get_pinning_offset) >= Eps_small ) pinning_notice_issued = .true.
       end function get_pinning_offset
 
 !--------------------------------------------------------------------
@@ -1640,12 +1645,12 @@
         
         ! Local
         Integer                           :: Ndim, N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
-        Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc, orb
-        Real   (Kind=Kind(0.d0))          :: Ham_T, Ham_Chem,  Phi_X, Phi_Y
+        Integer                           :: n_1, n_2, Nb, n_f, l_f, N, nc, orb
+        Real   (Kind=Kind(0.d0))          :: Phi_X, Phi_Y
         Logical                           :: Bulk
         Complex(Kind=Kind(0.d0))          :: Z,  Z1, Z2
 
-        Integer                           :: N_pinned_vertices, i_pinned_vertex
+        Integer                           :: N_pinned_vertices
 
         
         N_FL =  size(this,1)
@@ -1862,12 +1867,12 @@
         
 
         !Local
-        Integer                           :: Ndim, N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
-        Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc
-        Real   (Kind=Kind(0.d0))          :: Ham_T, Ham_Chem,  Phi_X, Phi_Y
+        Integer                           :: N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
+        Integer                           :: n_1, n_2, Nb
+        Real   (Kind=Kind(0.d0))          :: Phi_X, Phi_Y
         Logical                           :: Bulk
         Complex(Kind=Kind(0.d0))          :: Z
-        Integer                           :: N_pinned_vertices, i_pinned_vertex
+        Integer                           :: N_pinned_vertices
 
         if( (present(pinned_vertices) .and. .not.(present(pinning_factor ).and. present(pinning_offset))) .or. &
           & (present(pinning_factor)  .and. .not.(present(pinned_vertices).and. present(pinning_offset))) .or. &
@@ -2067,8 +2072,8 @@
 
 
         !Local
-        Integer                   :: j, N1, N2,n
-        real (Kind=Kind(0.d0))    :: xj_p(2), xi_p(2), xjp_p(2), del_p(2), A_p(2), pi, XB_p(2), V, B, Zero, x_p(2), x1_p(2)
+        Integer                   :: N1, N2, n
+        real (Kind=Kind(0.d0))    :: xj_p(2), xi_p(2), xjp_p(2), del_p(2), A_p(2), XB_p(2), V, B, Zero, x_p(2), x1_p(2)
 
         Complex (Kind=Kind(0.d0)) :: Z_hop
 
@@ -2098,7 +2103,6 @@
         del_p  =  xj_p - xi_p
 
         !Twist
-        pi = acos(-1.d0)
         A_p(:)  =   Flux_1 * Xnorm(Latt%a1_p) * latt%bZ1_p(:)  /  Xnorm(Latt%L1_p) + &
              &      Flux_2 * Xnorm(Latt%a2_p) * latt%bZ2_p(:)  /  Xnorm(Latt%L2_p)
 
@@ -2111,18 +2115,18 @@
         endif
 
         !Orbital magnetic field (Landau gauge)
-        Zero =  1.0E-8
+        Zero =  Eps_small
         V  =  abs(Latt%L1_p(1) * Latt%L2_p(2)  -  Latt%L1_p(2) * Latt%L2_p(1) )
         If ( V > Zero )  then
            B = real(N_Phi,kind(0.d0))/V
-           Z_hop = Z_hop*exp(cmplx(0.d0, -2.d0*pi* B * del_p(1) *  ( xj_p(2) + xi_p(2) )/2.d0,kind(0.d0) ) )
+           Z_hop = Z_hop*exp(cmplx(0.d0, -twopi* B * del_p(1) *  ( xj_p(2) + xi_p(2) )/2.d0,kind(0.d0) ) )
            ! Boundary
            x_p   =  Real(N2,Kind(0.d0))*Latt%L2_p
            x1_p  =  Xjp_p + Real(N1,Kind(0.d0))*Latt%L1_p
-           Z_hop =  Z_hop  *  exp(cmplx( 0.d0, -Chi(x_p, x1_p,B,pi),kind(0.d0)))
+           Z_hop =  Z_hop  *  exp(cmplx( 0.d0, -Chi(x_p, x1_p,B),kind(0.d0)))
            x_p   =  Real(N1,Kind(0.d0))*Latt%L1_p
            x1_p  =  Xjp_p
-           Z_hop =  Z_hop  *  exp(cmplx( 0.d0, -Chi(x_p, x1_p,B,pi),kind(0.d0)))
+           Z_hop =  Z_hop  *  exp(cmplx( 0.d0, -Chi(x_p, x1_p,B),kind(0.d0)))
         endif
 
         Generic_hopping =  Z_hop
@@ -2137,12 +2141,13 @@
 !> Periodic boundary conditions for Landau gauge: c_{i+L} = e{-i Chi(L,i)} c_{i}
 !>
 !--------------------------------------------------------------------
-      Real (Kind=kind(0.d0)) function Chi(L_p,X_p,B,pi)
+      Real (Kind=kind(0.d0)) function Chi(L_p,X_p,B)
+        Use Natural_Constants, only: twopi
         Implicit none
 
-        Real (Kind=Kind(0.d0)), Intent(In) :: L_p(2), X_p(2), B, pi
+        Real (Kind=Kind(0.d0)), Intent(In) :: L_p(2), X_p(2), B
 
-        Chi =  - 2.d0 * pi *B * L_p(2) * X_p(1)
+        Chi =  - twopi *B * L_p(2) * X_p(1)
       end function Chi
 
     end Module Predefined_Hoppings

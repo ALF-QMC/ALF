@@ -119,9 +119,8 @@
         
 
         !Local
-        Integer :: NSTM, n, nf, nf_eff, NST, NTAU, nt, nt1, Ntau1, NVAR, N_Type, I, J
+        Integer :: NSTM, nf, nf_eff, NST, NTAU, nt1, Ntau1, NVAR
         Complex (Kind=Kind(0.d0)) :: Z, Z1, Phase_array(N_FL)
-        Real    (Kind=Kind(0.d0)) :: spin
         
         NSTM = Size(Stab_nt,1) - 1 
         !Do  n = 0,NSTM

@@ -80,7 +80,7 @@ Contains
     
     
     ! Local
-    Integer :: N_Part, Ndim, n,ne
+    Integer :: N_Part, Ndim
     Complex (Kind=Kind(0.d0)), allocatable ::  mat(:,:)
     Complex (Kind=Kind(0.d0)) :: alpha, beta
 

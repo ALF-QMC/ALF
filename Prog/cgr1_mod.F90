@@ -190,7 +190,10 @@ module cgr1_mod
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS, TPUP_temp
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
-        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z, DLJ
+        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z
+#if (defined(STAB3) || defined(STABLOG))
+        COMPLEX (Kind=Kind(0.d0)) ::  DLJ
+#endif
         Integer :: I, J, N_size, info, LWORK, next, L
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         

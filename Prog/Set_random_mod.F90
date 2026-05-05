@@ -59,11 +59,12 @@ module set_random
 
         Character (LEN=64), Intent(IN) :: File_seeds
         Integer,  Intent(out) :: SEED_IN
-        Integer :: I, IERR
+        Integer :: IERR
         Integer, allocatable :: SEED_VEC(:)
         
 #ifdef MPI
-        INTEGER        :: STATUS(MPI_STATUS_SIZE), irank_g, isize_g, igroup, ISIZE, IRANK
+        Integer :: I
+        INTEGER        :: STATUS(MPI_STATUS_SIZE), ISIZE, IRANK
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif

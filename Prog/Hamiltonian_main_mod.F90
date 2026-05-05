@@ -468,8 +468,6 @@
              Type (Fields),  INTENT(IN) :: nsigma_old
 
              Logical, save              :: first_call=.True.
-             integer                    :: field_id, tau, Nfields, Ntau
-             Complex (kind=kind(0.0d0)) :: Hs_old
 
              Get_Delta_S0_global_base = log(ham%Delta_S0_global(nsigma_old)) ! to avoid overflows we return the log of the ratio
 

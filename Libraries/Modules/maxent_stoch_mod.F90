@@ -50,7 +50,7 @@ Module MaxEnt_stoch_mod
 
        Integer, private :: NTAU, nt, Ngamma, ng, Ndis, nd,  L_seed
        Integer, private, allocatable:: Iseed_vec(:)
-       Real (Kind=Kind(0.d0)), private :: Delta, Delta2, OM_st_1, Om_en_1, DeltaXMAX, Beta, Pi, Dom_table, Dom_spectral, &
+       Real (Kind=Kind(0.d0)), private :: Delta, Delta2, OM_st_1, Om_en_1, DeltaXMAX, Beta, Dom_table, Dom_spectral, &
                                       &   Dx_spectral, Dx_table
        Real (Kind=Kind(0.d0)), allocatable, private :: XQMC1(:)
        Integer, allocatable,  private ::  Phim1_func(:), Phi_func(:)
@@ -88,10 +88,9 @@ Module MaxEnt_stoch_mod
            Real (Kind=Kind(0.d0)), allocatable ::  F_A_m(:), F_A_e(:)
            
 
-           Pi        = acos(-1.d0)
            NDis      = Ndis_1
-           DeltaXMAX = 0.01
-           delta     = 0.001
+           DeltaXMAX = 1.d-2
+           delta     = 1.d-3
            delta2    = delta*delta
            Ngamma    = Ngamma_1
            Beta      = Beta_1 ! Physical temperature for calculation of the kernel.
@@ -459,7 +458,7 @@ Module MaxEnt_stoch_mod
 
             Integer :: nw, nw1, nw_d, nx
             Real (Kind= Kind(0.d0)) :: om,  dom, a, b, x, x1, f1,f2
-            Logical ::  Test=.false.
+            Logical, parameter :: Test=.false.
          
 
             dom = (Om_en_1 -  Om_st_1)/dble(Ndis)
@@ -506,7 +505,7 @@ Module MaxEnt_stoch_mod
                nx = Int(x1/Dx_table) + 1
                Phi_func(nw) = nx
             enddo
-            If (Test)   then 
+            If (Test)   then
                ! Check the Phim1   function
                do nx = 1,Size(Default_table,1)
                   x = dble(nx)*dx_table
@@ -561,7 +560,7 @@ Module MaxEnt_stoch_mod
             Implicit None
             ! Flat Default with sum xmom1. 
             ! D(om) = xmom1/(Om_en_1 - Om_st_1)
-            Real (Kind=Kind(0.d0)) :: x,  test
+            Real (Kind=Kind(0.d0)) :: x
             Integer ::  nx
 
             nx = int(x/Dx_table) + 1
@@ -604,7 +603,6 @@ Module MaxEnt_stoch_mod
            Implicit none
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: Xn
            Real (Kind=Kind(0.d0)), Dimension(:) :: Xn_m
-           Real (Kind=Kind(0.d0)) :: om  
            Integer :: nd, ng
 
            do ng = 1,Ngamma

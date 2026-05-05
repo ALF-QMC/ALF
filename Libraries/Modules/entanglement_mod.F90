@@ -64,9 +64,8 @@ Module entanglement_mod
 #endif
           Implicit none
           Integer, INTENT(IN)               :: Group_Comm
-          
-          Integer                           :: ISIZE, IRANK, IERR
 #ifdef MPI
+          Integer                           :: ISIZE, IRANK, IERR
           ! Create subgroups of two replicas each
           CALL MPI_COMM_SIZE(Group_Comm,ISIZE,IERR)
           CALL MPI_COMM_RANK(Group_Comm,IRANK,IERR)
@@ -96,7 +95,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), INTENT(OUT)   :: Renyi_A, Renyi_B, Renyi_AB
 
           Integer, Dimension(:), Allocatable :: List_AB
-          Integer          :: I, J, IERR, INFO, Nsites_AB
+          Integer          :: I, Nsites_AB
 
           Nsites_AB=Nsites_A+Nsites_B
           
@@ -132,7 +131,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), INTENT(OUT)   :: Renyi_A, Renyi_B, Renyi_AB
 
           Integer, Allocatable :: List_AB(:,:), Nsites_AB(:)
-          Integer          :: I, J, IERR, INFO, N_FL, Nsites_AB_max
+          Integer          :: I, J, N_FL, Nsites_AB_max
 
           N_FL=size(GRC,3)
           Allocate(Nsites_AB(N_FL))
@@ -176,7 +175,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), INTENT(OUT)   :: Renyi_A, Renyi_B, Renyi_AB
 
           Integer, Allocatable :: List_AB(:,:,:), Nsites_AB(:,:)
-          Integer          :: I, J, IERR, INFO, N_FL, Nsites_AB_max, nc, num_nc
+          Integer          :: I, J, N_FL, Nsites_AB_max, nc, num_nc
 
           N_FL=size(GRC,3)
           num_nc=size(List_B,3)
@@ -248,17 +247,17 @@ Module entanglement_mod
           Integer, INTENT(IN)               :: List(:)
           Integer, INTENT(IN)               :: Nsites, N_SUN
 
+#ifdef MPI
           Complex (kind=kind(0.d0)), Dimension(:,:), Allocatable :: GreenA, GreenA_tmp, IDA
           ! Integer, Dimension(:), Allocatable :: PIVOT
-          Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: J, IERR, INFO, N_FL, nf, N_FL_half
+          Complex (kind=kind(0.d0)) :: PRODDET, alpha, beta
+          Integer          :: J, N_FL, nf, N_FL_half
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
-          Logical, save :: First_call = .True.
           
           EXTERNAL ZGEMM
           EXTERNAL ZGETRF
-          
+
           N_FL = size(GRC,3)
           N_FL_half = N_FL/2
             
@@ -271,7 +270,6 @@ Module entanglement_mod
             return
           endif
             
-#ifdef MPI
           ! Check if entanglement replica group is of size 2 such that the second renyi entropy can be calculated
           if(ENT_SIZE==2) then
           
@@ -312,11 +310,14 @@ Module entanglement_mod
           ! At this point, each task of the temepering group / world returns the same averaged value of the pairs, including the possible "free"/ unpaired one.
           ! This mechanisms leads to some syncronization, but I (Johannes) am lacking a better way to treat odd number of tasks.
 #else
+          Block
+          Logical, save :: First_call = .True.
           Calc_Renyi_Ent_indep=0.0d0
           if (First_call) then
             write(error_unit,*) "Entanglement module compiled without MPI, no Renyi entropy results possible!"
             First_call = .false.
           endif
+          End Block
 #endif
               
           End function Calc_Renyi_Ent_indep
@@ -361,15 +362,14 @@ Module entanglement_mod
           Integer, INTENT(IN) :: List(:,:)
           Integer, INTENT(IN)               :: Nsites(:), N_SUN(:) ! new
 
+#ifdef MPI
           Complex (kind=kind(0.d0)), Dimension(:,:), Allocatable :: GreenA, GreenA_tmp, IDA
           ! Integer, Dimension(:), Allocatable :: PIVOT
-          Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: I, J, IERR, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, nf_eff, start_flav
+          Complex (kind=kind(0.d0)) :: PRODDET, alpha, beta
+          Integer          :: I, J, N_FL, nf, N_FL_half, x, dim, nf_eff, start_flav
           Integer         , Dimension(:), Allocatable :: SortedFlavors ! new
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
-          Logical, save :: First_call = .True.
-          
           EXTERNAL ZGEMM
           EXTERNAL ZGETRF
           
@@ -401,8 +401,7 @@ Module entanglement_mod
           Calc_Renyi_Ent_gen_fl=CMPLX(1.d0,0.d0,kind(0.d0))
           alpha=CMPLX(2.d0,0.d0,kind(0.d0))
           beta =CMPLX(1.d0,0.d0,kind(0.d0))
-          
-#ifdef MPI
+
           ! Check if entanglement replica group is of size 2 such that the second reny entropy can be calculated
           if(ENT_SIZE==2) then
           
@@ -447,11 +446,14 @@ Module entanglement_mod
           ! At this point, each task of the temepering group / world returns the same averaged value of the pairs, including the possible "free"/ unpaired one.
           ! This mechanisms leads to some syncronization, but I (Johannes) am lacking a better way to treat odd number of tasks.
 #else
+          Block
+          Logical, save :: First_call = .True.
           Calc_Renyi_Ent_gen_fl=0.0d0
           if (First_call) then
             write(error_unit,*) "Entanglement module compiled without MPI, no Renyi entropy results possible!"
             First_call = .false.
           endif
+          End Block
 #endif
             
         End function Calc_Renyi_Ent_gen_fl
@@ -493,16 +495,15 @@ Module entanglement_mod
           Integer, Dimension(:,:,:), INTENT(IN) :: List
           Integer, INTENT(IN)               :: Nsites(:,:)
 
+#ifdef MPI
           Complex (kind=kind(0.d0)), Dimension(:,:), Allocatable :: GreenA, GreenA_tmp, IDA
           ! Integer, Dimension(:), Allocatable :: PIVOT
-          Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: I, J, IERR, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, nf_eff, start_flav
+          Complex (kind=kind(0.d0)) :: PRODDET, alpha, beta
+          Integer          :: I, J, N_FL, nf, N_FL_half, x, dim, start_flav
           Integer          :: nc, num_nc
-          Integer         , Dimension(:), Allocatable :: SortedFlavors,N_SUN_fl,df_list
+          Integer         , Dimension(:), Allocatable :: SortedFlavors,N_SUN_fl
           Integer         , Dimension(:,:), Allocatable :: List_tmp, eff_ind, eff_ind_inv
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
-          Logical, save :: First_call = .True.
-          
           EXTERNAL ZGEMM
           EXTERNAL ZGETRF
           
@@ -548,8 +549,7 @@ Module entanglement_mod
           Calc_Renyi_Ent_gen_all=CMPLX(1.d0,0.d0,kind(0.d0))
           alpha=CMPLX(2.d0,0.d0,kind(0.d0))
           beta =CMPLX(1.d0,0.d0,kind(0.d0))
-            
-#ifdef MPI
+
           ! Check if entanglement replica group is of size 2 such that the second reny entropy can be calculated
           if(ENT_SIZE==2) then
           
@@ -599,11 +599,14 @@ Module entanglement_mod
           ! At this point, each task of the temepering group / world returns the same averaged value of the pairs, including the possible "free"/ unpaired one.
           ! This mechanisms leads to some syncronization, but I (Johannes) am lacking a better way to treat odd number of tasks.
 #else
+          Block
+          Logical, save :: First_call = .True.
           Calc_Renyi_Ent_gen_all=0.0d0
           if (First_call) then
             write(error_unit,*) "Entanglement module compiled without MPI, no Renyi entropy results possible!"
             First_call = .false.
           endif
+          End Block
 #endif
 
             
@@ -673,8 +676,7 @@ Module entanglement_mod
 
           Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: I, J, IERR, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, nf_eff, start_flav, dim_sq
-          Integer         , Dimension(:), Allocatable :: SortedFlavors ! new
+          Integer          :: I, J, IERR, INFO, dim, dim_eff, nf_eff, dim_sq
 
 
           Calc_Renyi_Ent_pair=CMPLX(1.d0,0.d0,kind(0.d0))
@@ -796,8 +798,7 @@ Module entanglement_mod
 
           Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: I, J, IERR, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, start_flav, dim_sq
-          Integer         , Dimension(:), Allocatable :: SortedFlavors ! new
+          Integer          :: I, J, IERR, INFO, dim, dim_eff, dim_sq
 
           Calc_Renyi_Ent_single=CMPLX(1.d0,0.d0,kind(0.d0))
           alpha=CMPLX(2.d0,0.d0,kind(0.d0))

@@ -71,8 +71,8 @@
            Complex (Kind=Kind(0.d0)), Dimension(:,:), Allocatable  :: HLP4, HLP5, HLP6
            
            Complex (Kind=Kind(0.d0))  ::  Z
-           Integer  ::  I, J, nf, nf_eff, NT, NT1, NTST, NST, N,  N_type
-           Real (Kind=Kind(0.d0))  ::  spin,  Mc_step_Weight
+           Integer  ::  I, J, nf, nf_eff, NT, NT1, NTST, NST
+           Real (Kind=Kind(0.d0))  ::  Mc_step_Weight
            
            Allocate( HLP4(Ndim,Ndim), HLP5(Ndim,Ndim), HLP6(Ndim,Ndim) )
            Allocate( G00(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL), GT0(Ndim,Ndim,N_FL),  GTT(Ndim,Ndim,N_FL) )
