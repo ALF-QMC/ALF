@@ -54,7 +54,6 @@
       Use ContainerElementBase_mod
       Use OpTTypes_mod
       Use OpT_time_dependent_mod
-      Use Natural_Constants, only: Eps_machine
       use iso_fortran_env, only: output_unit, error_unit
 
       ! Private variables
