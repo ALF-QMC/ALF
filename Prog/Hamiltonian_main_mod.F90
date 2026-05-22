@@ -146,6 +146,9 @@
       
       ! Sentinel value for uninitialized integer Hamiltonian variables
       Integer, parameter, private :: HAM_VAR_UNSET_INT = -huge(0)
+
+      ! Set to .True. to override the symmetric decomposition check in Ham_Set_base
+      Logical, private :: override_symmetric_decomposition_check = .False.
       
       type ham_base
       contains
@@ -1054,15 +1057,20 @@
       ! --- Check that Op_V operator sequence is symmetric when Symm = .true. ---
       ! The product (I + g_1*V_1)...(I + g_N*V_N) must equal (I + g_N*V_N)...(I + g_1*V_1).
       ! This is satisfied when operators are palindromically arranged OR when they commute.
-      if (Symm) then
+      if (Symm .and. .not. override_symmetric_decomposition_check) then
          if (.not. Op_V_is_symmetric(Op_V, N_FL, Ndim)) then
-            write(error_unit, '(A)') 'Ham_set error: Symm = .true. but Op_V operator sequence is not symmetric.'
+            write(error_unit, '(A)') 'Ham_set warning: Symm = .true. but Op_V operator sequence is not symmetric.'
             write(error_unit, '(A)') '   The product of (I + g*V) in forward order differs from reverse order.'
             write(error_unit, '(A)') '   A symmetric Trotter decomposition requires the operator sequence to be'
             write(error_unit, '(A)') '   either palindromically arranged (Op_V(i) = Op_V(N+1-i) for all i),'
             write(error_unit, '(A)') '   or composed of mutually commuting operators.'
             write(error_unit, '(A)') '   Check the operator arrangement in Ham_V.'
-            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+            write(error_unit, '(A)') '   '
+            write(error_unit, '(A)') '   In many cases, this is an error and should be treated as such.'
+            write(error_unit, '(A)') '   However, in some cases, like to Kondo models, this is acceptable as'
+            write(error_unit, '(A)') '   symmetric decomposition is restored once the auxiliary fields are averaged.'
+            write(error_unit, '(A)') '   You may set "override_symmetric_decomposition_check" to .true. to override this warning.'
+            ! CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
          endif
       endif
 
