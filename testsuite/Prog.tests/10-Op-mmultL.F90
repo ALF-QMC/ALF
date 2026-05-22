@@ -114,6 +114,8 @@ Program Opmulttest
             Op%P(i) = i
             !             Op%U(i,i) = CMPLX(1.d0, 0.d0, kind(0.D0))
          enddo
+         Op%type = n_type
+         Op%g    = 0.02D0
          !         Op%N_non_zero = 2
          !         Op%g = 2.D0
          !         spin =-1.0

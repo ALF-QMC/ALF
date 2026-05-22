@@ -110,6 +110,8 @@ Program Opmulttest
               Op%P(i) = i
               !             Op%U(i,i) = CMPLX(1.d0, 0.d0, kind(0.D0))
            enddo
+           Op%type = n_type
+           Op%g    = 0.02D0
            ! the following line is neccessary as we circumvent the Op_set routine
            call Op_set(Op)
            

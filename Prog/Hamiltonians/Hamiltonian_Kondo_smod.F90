@@ -235,6 +235,7 @@
              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
 
+          Thtrot = 0
           Ltrot = nint(beta/dtau)
           if (Projector) Thtrot = nint(theta/dtau)
           Ltrot = Ltrot+2*Thtrot
@@ -254,6 +255,10 @@
 
           ! Setup the trival wave function, in case of a projector approach
           if (Projector) Call Ham_Trial()
+
+          ! Override the symmetric decomposition check in Ham_Set_base for Kondo model, 
+          ! as it is not symmetric at the operator level but becomes symmetric after averaging over auxiliary fields.
+          override_symmetric_decomposition_check = .true.  
 
 #ifdef MPI
           If (Irank_g == 0) then
