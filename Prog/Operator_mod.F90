@@ -263,7 +263,7 @@ Contains
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
-    Real    (Kind=Kind(0.d0)) :: herm_tol = 1.D-12
+    Real    (Kind=Kind(0.d0)) :: herm_tol = Eps_machine
     Real    (Kind=Kind(0.d0)) :: herm_dev
     Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3)
 #ifdef MPI
