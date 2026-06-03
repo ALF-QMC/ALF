@@ -47,6 +47,7 @@ Module MaxEnt_mod
 !
 !--------------------------------------------------------------------
 
+        Use Natural_Constants, only: Eps_small, Eps_convergence
         Use MyMats
         Use Errors
         use iso_fortran_env, only: output_unit, error_unit
@@ -82,7 +83,7 @@ Module MaxEnt_mod
             !WRITE(6,*) 'NTAU, Nom: ', NTAU,NOM
             Xmom1 = Xqmc(1)
 
-            ZERO =  1.0D-8
+            ZERO =  Eps_small
             ALLOCATE ( XLAM(NTAU), SIG1(NTAU), COVM1(NTAU,NTAU), UC(NTAU,NTAU), DEF(NOM) )
             XLAM=0.D0;  SIG1=0.D0; UC = 0.D0
 
@@ -268,7 +269,7 @@ Module MaxEnt_mod
                ENDDO
                NITER = NITER + 1
                !WRITE(6,*) 'Maximize: ', XNORM, NITER
-               IF (XNORM.LT.1.0D-6 .OR. NITER.GE.500) EXIT
+               IF (XNORM.LT.Eps_convergence .OR. NITER.GE.500) EXIT
             ENDDO
             CALL   SETQ(A,XKER,XQMC, XQ,XENT,CHISQ)
 
@@ -336,7 +337,7 @@ Module MaxEnt_mod
                ENDDO
                NITER = NITER + 1
                !WRITE(6,*) 'Maximize_Self: ', XNORM, NITER
-               IF (XNORM.LT.1.0D-6 .OR. NITER.GE.1000) EXIT
+               IF (XNORM.LT.Eps_convergence .OR. NITER.GE.1000) EXIT
             ENDDO
             CALL  SETQ(A,XKER,XQMC, XQ,XENT,CHISQ)
 
@@ -685,7 +686,8 @@ Module MaxEnt_mod
             Implicit None
             Real (Kind=Kind(0.d0)), Dimension(:)   :: XQMC, A
             Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV, XKER
-            Real (Kind=Kind(0.d0)) :: ALPHA_ST, ALPHA_N, ALPHA_EN ! , PI
+            Real (Kind=Kind(0.d0)) :: ALPHA_ST, ALPHA_N, ALPHA_EN
+            ! Real (Kind=Kind(0.d0)), parameter :: PI = acos(-1.d0)
             Real (Kind=Kind(0.D0)), Intent(Out) :: CHISQ
 
             Integer       :: NT, NT1, NT2, NW, NCOUNT, NTH
@@ -700,9 +702,8 @@ Module MaxEnt_mod
             NOM  = SIZE(A, 1)
             ALLOCATE(A_ME(NOM))
             !WRITE(6,*) 'NTAU, Nom: ', NTAU,NOM
-!            PI   = ACOS(-1.d0)
             XMOM1= 1.0D0 !PI
-            ZERO =  1.0D-8
+            ZERO =  Eps_small
             ALLOCATE ( XLAM(NTAU), SIG1(NTAU), COVM1(NTAU,NTAU), UC(NTAU,NTAU), DEF(NOM) )
             XLAM=0.D0;  SIG1=0.D0; UC = 0.D0
 

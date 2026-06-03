@@ -127,6 +127,7 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
+      Use Natural_Constants, only: Eps_small
 
       Implicit none
       
@@ -207,7 +208,7 @@
 #endif
           Implicit none
 
-          integer                :: ierr, nf, unit_info
+          integer                :: nf, unit_info
           Character (len=64)     :: file_info
 
 
@@ -218,8 +219,7 @@
 
 
 #ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
+          Integer        :: ierr, Isize, Irank, irank_g, isize_g, igroup
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -401,7 +401,6 @@
           Integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
-          Integer :: n,nth
 
           Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
                &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
@@ -447,7 +446,7 @@
 
           Implicit none
 
-          Integer :: N_part, nf
+          Integer :: N_part
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = Ndim/2
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
@@ -467,9 +466,8 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: nf, I, I1, I2,  nc,  no, N_ops
-          Real (Kind=Kind(0.d0)) :: X, Zero=1.D-10
-          Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
+          Integer :: I, I1, I2,  nc,  no, N_ops
+          Real (Kind=Kind(0.d0)), parameter :: Zero=Eps_small
 
 
           N_ops = 0
@@ -661,10 +659,8 @@
 
           !Local
           Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
-          Complex (Kind=Kind(0.d0)) :: ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, Zhubc, ZCon, ZJ, Z, ZP,ZS, ZZ, ZXY
-          Integer :: I,J, no, n, I_c,I_f, nf, J_c, J_f, no_I, no_J, imj
-          Real    (Kind=Kind(0.d0)) :: X
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, Zhubc, ZCon, ZJ, Z, ZP,ZS
+          Integer :: I,J, no, I_c,I_f, nf, J_c, J_f, no_I, no_J, imj
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -807,8 +803,7 @@
 
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
-          Real    (Kind=Kind(0.d0)) :: X
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS
           Integer :: IMJ, I_c, I_f, J_c, J_f, I,J, no_I, no_J
 
           ZP = PHASE/Real(Phase, kind(0.D0))

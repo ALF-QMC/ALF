@@ -129,6 +129,7 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
+      Use Natural_Constants, only: Eps_small
 
       Implicit none
       
@@ -210,7 +211,7 @@
 #endif
           Implicit none
 
-          integer                :: ierr, nf, unit_info
+          integer                :: nf, unit_info
           Character (len=64)     :: file_info
           Logical                :: toggle 
 
@@ -221,8 +222,7 @@
           ! Simulation type                          -->  Finite  T or Projection  Symmetrize Trotter.
                   
 #ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
+          Integer        :: ierr, Isize, Irank, irank_g, isize_g, igroup
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -256,7 +256,7 @@
             Write(error_unit,*) 'Ham_Set: If N_FL = 2, N_SUN has to be even'
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
-          If (abs(ham_h0) >= 1.D-10 .and. N_FL /= 2 ) then
+          If (abs(ham_h0) >= Eps_small .and. N_FL /= 2 ) then
             Write(error_unit,*) 'Ham_Set: Set N_fl=2 if you want to use the pinning field'
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
@@ -317,7 +317,7 @@
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
-             if (abs(ham_h0) >= 1.D-10 ) Write(unit_info,*) 'Pinning field : ', ham_h0
+             if (abs(ham_h0) >= Eps_small ) Write(unit_info,*) 'Pinning field : ', ham_h0
              if (Index(str_to_upper(Lattice_type),'BILAYER') > 0 )  then
                Write(unit_info,*) 't2            : ', Ham_T2
                Write(unit_info,*) 'Ham_U2        : ', Ham_U2
@@ -370,7 +370,7 @@
           Integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
-          Integer :: n,nth, i 
+          Integer :: i 
           ! Indices of pinned vertices. Shape [N_pinned_vertices, 2]
           Integer,  allocatable                    :: pinned_vertices(:,:)
           ! Factor, by which the vertex matrix elements will get multiplied. Shape [N_pinned_vertices, N_FL]
@@ -459,7 +459,7 @@
 
           Implicit none
 
-          Integer :: N_part, nf
+          Integer :: N_part
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = Ndim/2
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
@@ -479,8 +479,8 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: nf, I, I1, I2,  nc,  J, no,  N_ops
-          Real (Kind=Kind(0.d0)) :: X,  Zero = 1.D-10
+          Integer :: nf, I, I1, nc, no,  N_ops
+          Real (Kind=Kind(0.d0)) :: Zero = Eps_small
           Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
 
 
@@ -578,7 +578,7 @@
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
           enddo
           ! Local quantities 
-          If (abs(ham_h0) >= 1.D-10 ) then
+          If (abs(ham_h0) >= Eps_small ) then
             Allocate ( Obs_local(1) )
             Filename = "SpinZ"
             Channel = "--"
@@ -705,10 +705,8 @@
 
           !Local
           Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
-          Complex (Kind=Kind(0.d0)) :: ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
-          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
-          Real    (Kind=Kind(0.d0)) :: X
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZP,ZS
+          Integer :: I,J, nf, dec, I1, no_I
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -773,7 +771,7 @@
 
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
 
-          If (abs(ham_h0) >= 1.D-10 ) then
+          If (abs(ham_h0) >= Eps_small ) then
             ! Compute local observables.
             Do I = 1,Size(Obs_local,1)
                Obs_local(I)%N         =  Obs_local(I)%N + 1
@@ -837,9 +835,7 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
-          Real    (Kind=Kind(0.d0)) :: X
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -880,7 +876,6 @@
         !> New local field on time slice nt and operator index n
         Complex  (Kind=Kind(0.d0)), Intent(In) :: Hs_new
 
-        Integer :: nt1,I
 
         if (Continuous) then
            S0 = exp( (-real(Hs_new,kind(0.d0))**2  + real(nsigma%f(n,nt),Kind(0.d0))**2 ) /2.d0 ) 

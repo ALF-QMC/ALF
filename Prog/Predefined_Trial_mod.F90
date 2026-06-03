@@ -114,6 +114,7 @@
 
 
 
+        Use Natural_Constants, only: pi, twopi
         Implicit none
         Character (len=64), Intent(IN)                :: Lattice_type
         Integer, Intent(IN)                           :: Ndim, N_FL, N_part
@@ -125,15 +126,16 @@
 
         Type(Operator),  dimension(:,:), allocatable  :: OP_tmp
         Type (Hopping_Matrix_type), allocatable       :: Hopping_Matrix_tmp(:)
-        Real (Kind=Kind(0.d0))                        :: Dtau, Ham_T, Ham_Chem, XB_X, XB_Y, Phi_X, Phi_Y, Dimer
+        Real (Kind=Kind(0.d0))                        :: Dtau, Ham_T, Ham_Chem, Phi_X, Phi_Y
         Logical                                       :: Checkerboard, Symm, Kekule_Trial
 
         Type (Lattice)                                :: Latt_Kekule
         Real (Kind=Kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2),x1_p(2), hop(3), del_p(2)
-        Real (Kind=Kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp, dom, om
+        Real (Kind=Kind(0.d0))  :: delta = 1.d-2, Ham_T1, Ham_T2, Ham_Tperp, dom, om
 
-        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi,  den_file, Nom = 200 , nw
-        Logical :: Test=.false. ,  Bulk =.true.
+        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, N_Phi,  den_file, Nom = 200 , nw
+        Logical, parameter :: Test=.false.
+        Logical :: Bulk =.true.
         Complex (Kind=Kind(0.d0)) :: Z_norm, Z
 
         Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
@@ -302,7 +304,7 @@
               Enddo
            endif
         Case ("SQUARE")
-           Phi_X_vec    = 0.01
+           Phi_X_vec    = 1.d-2
            Call  Set_Default_hopping_parameters_square(Hopping_Matrix_tmp,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                 &                                      Bulk,  N_Phi_vec, N_FL, &
                 &                                      List, Invlist, Latt, Latt_unit )
@@ -317,7 +319,7 @@
         Case ("N_LEG_LADDER")
            Ham_T_vec     = 1.d0
            Ham_Tperp_vec = 1.d0
-           Phi_X_vec     = 0.01
+           Phi_X_vec     = 1.d-2
            Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix_tmp, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                 &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
                 &                                            List, Invlist, Latt, Latt_unit )
@@ -372,7 +374,7 @@
               Write(6,*) Op_tmp(1,1)%E(I)
            enddo
            Open(newunit=den_file, file="Den_H0", status="unknown")
-           delta = 2.d0 * Acos(-1.d0)/(Iscalar(Latt%L1_p,Latt%BZ1_p))
+           delta = twopi/(Iscalar(Latt%L1_p,Latt%BZ1_p))
            dom =(Op_tmp(1,1)%E(ndim) - Op_tmp(1,1)%E(1)) / dble(Nom)
            om = Op_tmp(1,1)%E(1)
            do nw = 1,Nom + 1
@@ -380,7 +382,7 @@
                Do I  = 1,NDim 
                   Z  =  Z  + 1.d0/cmplx(om - Op_tmp(1,1)%E(I),delta, kind=kind(0.d0))
                enddo
-               Write(den_file,"(F14.7,2x,F14.7)") om, - Aimag(Z)/(dble(Ndim)*acos(-1.d0))
+               Write(den_file,"(F14.7,2x,F14.7)") om, - Aimag(Z)/(dble(Ndim)*pi)
                om = om + dom
            enddo  
            close(den_file)

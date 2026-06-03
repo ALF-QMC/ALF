@@ -32,6 +32,7 @@
 
 module MaxEnt_Wrapper_mod
    Use MyMats
+   Use Natural_Constants, only: pi, Eps_small
    implicit none
    Real (Kind=Kind(0.d0)), allocatable, private :: Ra(:), ba(:)
    
@@ -39,9 +40,7 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_ph(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-       pi = 3.1415927
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        if ( beta*om > 600 ) then
          XKER_ph = (exp(-tau*om) + exp(-( beta - tau )*om )) / pi
@@ -56,9 +55,7 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_ph_c(tau,om, beta)
         ! Kernal for A_c(om), same as XKER_ph
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-       pi = 3.1415927
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        if ( beta*om > 600 ) then
          XKER_ph_c = (exp(-tau*om) + exp(-( beta - tau )*om )) / pi
@@ -73,9 +70,7 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_pp(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-       pi = 3.1415927
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        if ( beta*om > 600 ) then
          XKER_pp = exp(-tau*om) / pi
@@ -90,9 +85,7 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_p(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-       pi = 3.1415927
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        if ( beta*om > 600 ) then
          XKER_p  = exp(-tau*om) / pi
@@ -107,9 +100,7 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_T0(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
-
-       pi = 3.1415927
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
        XKER_T0  = exp(-tau*om) / pi
 
@@ -124,8 +115,6 @@ contains
      Real (Kind=Kind(0.d0)) function F_QFI_ph(om, beta)
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
-      real (Kind=Kind(0.d0)) :: pi
-      pi = 3.1415927
       if ( abs(beta*om) > 600 ) then
         F_QFI_ph = 4.d0/pi
       else
@@ -138,8 +127,6 @@ contains
       ! will improve
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
-      real (Kind=Kind(0.d0)) :: pi
-      pi = 3.1415927
       if ( abs(beta*om) > 600 ) then
         F_QFI_ph_c = 4.d0/pi
       else
@@ -151,8 +138,6 @@ contains
       Real (Kind=Kind(0.d0)) function F_QFI_pp(om, beta)
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
-      real (Kind=Kind(0.d0)) :: pi
-      pi = 3.1415927
       if ( abs(beta*om) > 600 ) then
         F_QFI_pp = 4.d0/pi
       else
@@ -169,14 +154,14 @@ contains
       Integer, Intent(In) :: N
 
       Real (Kind=Kind(0.d0)), allocatable :: Mat(:,:), U(:,:), W(:)
-      Real (Kind=Kind(0.d0)) :: X, Y
+      Real (Kind=Kind(0.d0)) :: X, y
       Integer ::   I, J , m ,  nc
-      Logical :: Test=.false.
+      Logical, parameter :: Test=.false.
 
       allocate(Mat(N,N), U(N,N), W(N))
       allocate(Ra(N/2),ba(N/2))
 
-      If (Test) Write(6,*) "Setting Ra and ba using the method of Karrasch of  Phys. Rev. B 82 (2010), 125114"
+      if (Test) Write(6,*) "Setting Ra and ba using Karrasch, Phys. Rev. B 82 (2010), 125114"
 
       Mat = 0.d0 
       do  i = 1,N-1 
@@ -200,7 +185,7 @@ contains
                X = X +  Mat(m,j)*U(j,i) 
             enddo
             X = X -W(i)*U(m,i) 
-            if (Abs(X) >= 1.d-10) then 
+            if (Abs(X) >= Eps_small) then 
                Write(6,*) ABS(X)
                write(error_unit,*) "Issue with eigenvalue in subroutine Set_Ra_ba of mod maxent_wrapper_mod"
                CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)  
@@ -208,7 +193,7 @@ contains
          enddo
       enddo
 
-      If (Test) then 
+      if (Test) then
          Open(Unit=10,File="Ra_ba.dat", status="Unknown")
          Do i = 1,size(ba,1)
             write(10,*) Ra(i),ba(i)
@@ -315,7 +300,7 @@ contains
        real (Kind=Kind(0.d0)) :: Zero
        ! same as Back_trans_pp, since Back_trans_pp gives = chi(q,om)/omega
        !                                                  = A(q,om)*tanh(beta om/2)/om
-       Zero = 1.D-8
+       Zero = Eps_small
        if ( abs(om) < zero ) then
           Back_trans_ph_c = beta * Aom/2.d0
        elseif ( beta*om > 600 ) then
@@ -339,7 +324,7 @@ contains
        real (Kind=Kind(0.d0)), intent(in) ::  Aom, beta, om
        real (Kind=Kind(0.d0)) :: Zero
 
-       Zero = 1.D-8
+       Zero = Eps_small
        if ( abs(om) < Zero ) then
           Back_trans_pp = beta * Aom/2.d0
        elseif ( beta*om > 600 ) then
@@ -360,9 +345,8 @@ contains
      Real (Kind=Kind(0.d0)) function XKER_p_ph(tau,om, beta)
 
        Implicit None
-       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
+       real (Kind=Kind(0.d0)) :: tau, om, beta
 
-       pi = 3.1415927
 
        if ( beta*om > 600 ) then
          XKER_p_ph = (exp(-tau*om) + exp(-(beta-tau)*om)) / pi
@@ -488,7 +472,8 @@ contains
        Character (Len=*), INTENT(IN)      :: Channel
        Logical,  INTENT(IN)               :: Default_model_exists, Stochastic
        Integer :: Ndis, Nw
-       Real (Kind = Kind(0.d0)) ::   Dom, X, Om,  Zero = 1.D-8
+       Real (Kind = Kind(0.d0)) ::   Dom, X, Om
+       Real (Kind = Kind(0.d0)), parameter :: Zero = Eps_small
 
        Ndis = size(Default,1)
        Dom = (OM_en - Om_st)/dble(Ndis)
@@ -528,7 +513,7 @@ contains
             ! See Back_trans_ph_c/Back_trans_pp
             ! Default(om) = (1 - exp(-beta*om))/(1 + exp(-beta*om))*A(om)/om 
                Om = Om_st + dble(nw)*dom
-               if ( abs(om) < zero ) then
+               if ( abs(om) < Zero ) then
                   Default(nw) = Default(nw)*2.d0/ beta 
                elseif ( beta*om > 600 ) then
                   Default(nw) = Default(nw) * om
@@ -557,7 +542,7 @@ contains
             X  = 0.d0
             Do nw = 1, Ndis
                Om = Om_st + dble(nw)*dom
-               if ( abs(om) < zero ) then
+               if ( abs(om) < Zero ) then
                   Default(nw) = Default(nw)*2.d0/ beta 
                elseif ( beta*om > 600 ) then
                   Default(nw) = Default(nw) * om

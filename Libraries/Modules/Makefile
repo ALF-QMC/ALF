@@ -67,6 +67,9 @@ libfakeintel.so: fakeintel.c
 		echo "No C compiler found, libfakeintel.so not created." 1>&2; \
 	fi
 
+entanglement_mod.o: entanglement_mod.F90
+	$(ALF_FC) -c $(shell echo $(ALF_FLAGS_MODULES) | sed 's| -pedantic||') $<
+
 $(DEPSFILE): $(SRCS) $(DEPSGEN)
 	python3 $(DEPSGEN) $(SRCS) > $(DEPSFILE)
 

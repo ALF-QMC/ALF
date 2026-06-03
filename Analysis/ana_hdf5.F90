@@ -48,7 +48,7 @@
 #endif
       implicit none
       Integer                         :: i, hdferr, nargs, storage_type, nlinks, max_corder
-      Character (len=64)              :: File_out, File_in, name
+      Character (len=64)              :: File_in, name
       Character (len=64), allocatable :: names(:)
       INTEGER(HID_T)                  :: file_id, group_id
       INTEGER(HSIZE_T)                :: n

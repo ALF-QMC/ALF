@@ -87,17 +87,13 @@
         
 !       Local.
         CLASS(UDV_State), Dimension(:), ALLOCATABLE :: udvr_local
-        Complex (Kind=Kind(0.d0)) :: DETZ, ZK, DET1(2)
+        Complex (Kind=Kind(0.d0)) :: DETZ
         Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  GRUPB, GRUP
         Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  G00UP, G0TUP, GT0UP,  GTTUP
         Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  G00UP_T, G0TUP_T, GT0UP_T,  GTTUP_T
-        Complex (Kind=Kind(0.d0)), allocatable  :: TEMP(:,:), TMPUP(:,:)
+        Complex (Kind=Kind(0.d0)), allocatable  :: TEMP(:,:)
 
-        Real    (Kind=kind(0.d0))  :: XMEAN_DYN, XMAX_DYN
-
-        Integer :: NTAUIN,  NTDM,  LFAM, NFAM, N_Part,  LQ , I, NCON, NF, nf_eff, NFLAG, NL, NT1, NT_ST, NT, NTAU, NTAU1, n, NCHECK
-
-        Real (Kind=Kind(0.d0)) :: XMEAN, XMAX
+        Integer :: LQ , I, NF, nf_eff, NT1, NT_ST, NT, NTAU, NTAU1, NCHECK
         Real (Kind=Kind(0.d0)) :: Mc_step_weight
         
         LQ = ndim

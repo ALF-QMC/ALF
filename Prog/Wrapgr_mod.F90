@@ -354,7 +354,7 @@ Contains
 
     ! Space for local variables
     Integer                   :: n, Flip_length, nf, nf_eff, N_Type, ng_c, Flip_count
-    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal,S0_ratio
+    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, S0_ratio
     COMPLEX (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New 
     Logical                   :: Acc
     Character (Len=64)        :: Mode
@@ -444,7 +444,7 @@ Contains
     ! Local
     integer :: swaps            ! number of swaps made in one pass
     integer :: nc               ! loop variable
-    integer :: temp, n          ! temporary holder for making swap
+    integer :: temp             ! temporary holder for making swap
     Complex (Kind=Kind(0.d0))      :: X
 
     

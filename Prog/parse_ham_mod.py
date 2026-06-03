@@ -172,7 +172,6 @@ def create_read_write_par(filename, parameters, ham_name):
 
 #ifdef MPI
          Integer        :: Isize, Irank, igroup, irank_g, isize_g
-         Integer        :: STATUS(MPI_STATUS_SIZE)
          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
          call MPI_Comm_rank(Group_Comm, irank_g, ierr)

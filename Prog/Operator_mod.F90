@@ -47,6 +47,7 @@ Module Operator_mod
   Use Fields_mod
   Use runtime_error_mod
   Use iso_fortran_env, only: error_unit
+  Use Natural_Constants, only: Eps_machine, Eps_small
   
   Implicit none
   
@@ -261,10 +262,13 @@ Contains
 
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
-    Real    (Kind=Kind(0.d0)) :: Zero = 1.D-9 !, Phi(-2:2)
-    Real    (Kind=Kind(0.d0)) :: herm_tol = 1.D-12
+    Real    (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
+    Real    (Kind=Kind(0.d0)) :: herm_tol = Eps_machine
     Real    (Kind=Kind(0.d0)) :: herm_dev
-    Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3), ierr
+    Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3)
+#ifdef MPI
+    Integer :: ierr
+#endif
     Complex (Kind=Kind(0.d0)) :: Z
     Type  (Fields)   :: nsigma_single
     
@@ -571,7 +575,7 @@ Contains
 
     g_loc = OP%g
     if (op%g_t_alloc)  g_loc = Op%g_t(nt)
-    if ( abs(g_loc) < 1.D-12 ) return
+    if ( abs(g_loc) < Eps_machine ) return
 
     if ( op%type < 3 ) then
        sp = sign*nint(Real(HS_Field))
@@ -665,7 +669,7 @@ Contains
     ! quick return if possible
     g_loc = Op%g
     if (op%g_t_alloc) g_loc = Op%g_t(nt)
-    if ( abs(g_loc) < 1.D-12 ) return
+    if ( abs(g_loc) < Eps_machine ) return
 
     if ( op%type < 3 ) then
        sp = nint(Real(Hs_Field))

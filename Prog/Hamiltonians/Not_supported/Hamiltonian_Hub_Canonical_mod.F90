@@ -168,6 +168,7 @@
 
 !===================================================================================
         Subroutine Ham_hop
+          Use Natural_Constants, only: twopi
           Implicit none
 
           !Setup the hopping
@@ -175,12 +176,10 @@
           !  e^{-dtau H_t}  =    Prod_{n=1}^{Ncheck} e^{-dtau_n H_{n,t}}
 
           Integer :: I, I1, I2, n, Ncheck,nc
-          Complex  (Kind=8) :: Z
-          Real     (Kind=8) :: Pi
+          Complex  (Kind=kind(0.d0)) :: Z
 
           Ncheck = 1
-          Pi = acos(-1.d0)
-          Z = exp( cmplx(0.d0,Phi_x*2.d0*pi/real(L1,kind(0.d0)),kind(0.d0)))
+          Z = exp( cmplx(0.d0,Phi_x*twopi/real(L1,kind(0.d0)),kind(0.d0)))
           allocate(Op_T(Ncheck,N_FL))
           do n = 1,N_FL
              Do nc = 1,Ncheck

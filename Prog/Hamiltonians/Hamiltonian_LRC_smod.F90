@@ -224,7 +224,6 @@
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -364,7 +363,6 @@
           Integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
-          Integer :: n,nth
 
           Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
                &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
@@ -492,7 +490,7 @@
           !> New local field on time slice nt and operator index n
           Complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
           
-          Integer :: nt1, I, ns 
+          Integer :: I
           Real (Kind=Kind(0.d0)) :: Y
           Real (Kind=Kind(0.d0)),  Allocatable :: V(:) 
 
@@ -617,10 +615,8 @@
 
           !Local
           Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
-          Complex (Kind=Kind(0.d0)) :: ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
-          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
-          Real    (Kind=Kind(0.d0)) :: X
+          Complex (Kind=Kind(0.d0)) :: Z, Zrho, Zkin, ZPot, ZP,ZS
+          Integer :: I,J, nf
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -718,9 +714,7 @@
                     
 
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
-          Real    (Kind=Kind(0.d0)) :: X
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -784,8 +778,7 @@
 
 
           ! Local
-          Integer :: n_op, n, ns
-          Real (Kind=Kind(0.d0)) :: T0_proposal
+          Integer :: n, ns
           Real (Kind=Kind(0.d0)),  allocatable  ::  V(:),  V1(:)
 
           n = Size(nsigma%f,1)

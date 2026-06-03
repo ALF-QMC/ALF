@@ -123,10 +123,10 @@ Module Global_mod
 
 
         !>  Local variables.
-        Integer :: NST, NSTM, NF, nf_eff, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step,  N_count, N_part
+        Integer :: NST, NSTM, NF, nf_eff, NT, NT1, NVAR,N, N1,N2, I, NC, n_step,  N_count
         Type    (Fields)           :: nsigma_old
-        Real    (Kind=Kind(0.d0)) :: log_T0_Proposal_ratio, Weight, Weight1, delta_S0_log, exp_delta_S0
-        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Ratiotot_p, Phase_old, Phase_new
+        Real    (Kind=Kind(0.d0)) :: log_T0_Proposal_ratio, Weight, delta_S0_log
+        Complex (Kind=Kind(0.d0)) :: Z, Ratiotot, Phase_old, Phase_new
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
         Complex (Kind=Kind(0.d0)) :: Ratio(2), Ratio_p(2),Phase_array(N_FL)
@@ -464,9 +464,9 @@ Module Global_mod
 
 
         !  Local variables.
-        Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC, N_part,j, nf_eff
+        Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC, nf_eff
         Real    (Kind=Kind(0.d0)) :: log_T0_Proposal_ratio, Weight
-        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Phase_old, Phase_new
+        Complex (Kind=Kind(0.d0)) :: Z, Ratiotot, Phase_old, Phase_new
         Complex (Kind=Kind(0.d0)), allocatable :: Det_vec_test(:,:), Phase_Det_new(:), Phase_Det_old(:)
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Type   (Fields)   :: nsigma_old
@@ -684,8 +684,8 @@ Module Global_mod
 
         ! Local
         Integer  :: Nf, i, nt, nf_eff
-        Complex (Kind=Kind(0.d0)) :: Z, Z1, Ratio_1_array(N_FL), Ratio_2_array(N_FL), g_loc
-        Real    (Kind=Kind(0.d0)) :: X, Ratio_2, delta, log_delta
+        Complex (Kind=Kind(0.d0)) :: Z, Ratio_1_array(N_FL), Ratio_2_array(N_FL), g_loc
+        Real    (Kind=Kind(0.d0)) :: X, log_delta
 
         Ratio = cmplx(0.d0,0.d0,kind(0.d0))
         Ratio_2_array = 0.d0
