@@ -45,6 +45,8 @@ Module Operator_mod
   Use mat_subroutines
   Use MyMats
   Use Fields_mod
+  Use runtime_error_mod
+  Use iso_fortran_env, only: error_unit
   Use Natural_Constants, only: Eps_machine, Eps_small
   
   Implicit none
@@ -261,6 +263,8 @@ Contains
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
+    Real    (Kind=Kind(0.d0)) :: herm_tol = 1.D-12
+    Real    (Kind=Kind(0.d0)) :: herm_dev
     Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3)
 #ifdef MPI
     Integer :: ierr
@@ -268,6 +272,65 @@ Contains
     Complex (Kind=Kind(0.d0)) :: Z
     Type  (Fields)   :: nsigma_single
     
+    ! --- Validate Op%type ---
+    ! Valid types: 0 (hopping/no HS field), 1 (Ising), 2 (discrete HS), 3 (continuous scalar HS), 4 (complex three-body)
+    if (Op%type < 0 .or. Op%type > 4) then
+       Write(error_unit, '(A,I0)') ' Op_set: Invalid operator type: ', Op%type
+       Write(error_unit, '(A)')    '   Valid types are 0 (hopping), 1 (Ising), 2 (discrete HS), 3 (continuous scalar HS), 4 (complex three-body).'
+       Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+    endif
+
+    ! --- Validate projector Op%P ---
+    do I = 1, Op%N
+       if (Op%P(I) < 1) then
+          Write(error_unit, '(A,I0,A,I0)') ' Op_set: Projector index P(', I, ') out of bounds: ', Op%P(I)
+          Write(error_unit, '(A)')          '   All projector entries must be >= 1.'
+          Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+       endif
+    enddo
+
+    ! --- Validate Hermiticity of Op%O and detect if diagonal (single pass) ---
+    N = Op%N
+    Op%diag = .true.
+    if (N > 1) then
+       do I = 1, N
+          do J = I+1, N
+             herm_dev = abs(Op%O(I,J) - conjg(Op%O(J,I)))
+             if (herm_dev > herm_tol * max(abs(Op%O(I,J)), abs(Op%O(J,I)), 1.D-30)) then
+                Write(error_unit, '(A)')        ' Op_set: Operator matrix Op%O is not Hermitian.'
+                Write(error_unit, '(A,I0,A,I0,A,2ES15.7,A)') &
+                     '   O(', I, ',', J, ') = (', real(Op%O(I,J)), aimag(Op%O(I,J)), ')'
+                Write(error_unit, '(A,I0,A,I0,A,2ES15.7,A)') &
+                     '   O(', J, ',', I, ') = (', real(Op%O(J,I)), aimag(Op%O(J,I)), ')'
+                Write(error_unit, '(A,ES15.7)') '   |O(i,j) - conjg(O(j,i))| = ', herm_dev
+                Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+             endif
+             ! Binary comparison is OK here as Op%O was initialized to zero during Op_make.
+             ! Checking only the upper-triangle element suffices: after the Hermiticity check above,
+             ! Op%O(I,J)==0 implies Op%O(J,I)==conjg(0)==0.
+             if (Op%diag) then
+                if (Op%O(I,J) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag = .false.
+             endif
+          enddo
+       enddo
+       ! Check that diagonal elements are real
+       do I = 1, N
+          if (abs(aimag(Op%O(I,I))) > herm_tol * max(abs(Op%O(I,I)), 1.D-30)) then
+             Write(error_unit, '(A)')        ' Op_set: Operator matrix Op%O has complex diagonal elements (not Hermitian).'
+             Write(error_unit, '(A,I0,A,I0,A,2ES15.7,A)') &
+                  '   O(', I, ',', I, ') = (', real(Op%O(I,I)), aimag(Op%O(I,I)), ')'
+             Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+          endif
+       enddo
+    else
+       ! N = 1: diagonal element must be real for Hermiticity
+       if (abs(aimag(Op%O(1,1))) > herm_tol * max(abs(Op%O(1,1)), 1.D-30)) then
+          Write(error_unit, '(A)')        ' Op_set: 1x1 operator matrix has non-zero imaginary part (not Hermitian).'
+          Write(error_unit, '(A,2ES15.7,A)') '   O(1,1) = (', real(Op%O(1,1)), aimag(Op%O(1,1)), ')'
+          Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+       endif
+    endif
+
     if (allocated(OP%g_t)) Op%g_t_alloc = .true.
     
     Call nsigma_single%make(1,1)
@@ -287,14 +350,6 @@ Contains
     Op%E = 0.d0
     
     If (Op%N > 1) then
-       N = Op%N
-       Op%diag = .true.
-       do I=1,N
-          do J=i+1,N
-             ! Binary comparison is OK here as Op%O was initialized to zero during Op_make.
-             if (Op%O(i,j) .ne. cmplx(0.d0,0.d0, kind(0.D0)) .or. Op%O(j,i) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag=.false.
-          enddo
-       enddo
        if (Op%diag) then
           do I=1,N
              Op%E(I)=DBLE(Op%O(I,I))
@@ -323,6 +378,11 @@ Contains
           if (noderank == 0) then
              TMP = Op%U ! that way we have the changes to the determinant due to the permutation
              Z = Det_C(TMP, N)
+             if (abs(Z) < 1.D-30) then
+                Write(error_unit, '(A,ES15.7)') ' Op_set: Eigenvector matrix has near-zero determinant: |det| = ', abs(Z)
+                Write(error_unit, '(A)')        '   Cannot normalize to SU(N). Check operator matrix.'
+                Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+             endif
              ! Scale Op%U to be in SU(N) 
              DO I = 1, N
                 Op%U(I,1) = Op%U(I, 1)/Z 
@@ -889,7 +949,157 @@ Contains
        endif
     endif
   end Subroutine Op_Wrapdo
-  
+
+!--------------------------------------------------------------------
+!> @brief
+!> Compare two Operator instances on their defining properties.
+!> Returns .true. if operators are equal (within tolerance for
+!> floating-point fields), .false. otherwise.
+!> Only compares N, type, P, O, g, alpha, and g_t.
+!> Derived fields (E, U, M_exp) are skipped.
+!--------------------------------------------------------------------
+  function Op_equal(Op_a, Op_b) result(equal)
+    Implicit None
+    Type (Operator), INTENT(IN) :: Op_a, Op_b
+    Logical :: equal
+    Real (Kind=Kind(0.d0)), parameter :: eq_tol = 1.D-10
+    Real (Kind=Kind(0.d0)) :: tol, scale
+    Integer :: i, j
+
+    equal = .false.
+
+    ! Integer fields: exact match
+    if (Op_a%N /= Op_b%N) return
+    if (Op_a%type /= Op_b%type) return
+
+    ! Projector indices: exact match
+    do i = 1, Op_a%N
+       if (Op_a%P(i) /= Op_b%P(i)) return
+    enddo
+
+    ! Operator matrix: tolerance-based
+    scale = max(1.d0, maxval(abs(Op_a%O(1:Op_a%N, 1:Op_a%N))), &
+                      maxval(abs(Op_b%O(1:Op_b%N, 1:Op_b%N))))
+    tol = eq_tol * scale
+    do j = 1, Op_a%N
+       do i = 1, Op_a%N
+          if (abs(Op_a%O(i,j) - Op_b%O(i,j)) > tol) return
+       enddo
+    enddo
+
+    ! Coupling constant g
+    scale = max(1.d0, abs(Op_a%g), abs(Op_b%g))
+    if (abs(Op_a%g - Op_b%g) > eq_tol * scale) return
+
+    ! Operator shift alpha
+    scale = max(1.d0, abs(Op_a%alpha), abs(Op_b%alpha))
+    if (abs(Op_a%alpha - Op_b%alpha) > eq_tol * scale) return
+
+    ! Time-dependent coupling g_t
+    if (allocated(Op_a%g_t) .neqv. allocated(Op_b%g_t)) return
+    if (allocated(Op_a%g_t)) then
+       if (size(Op_a%g_t) /= size(Op_b%g_t)) return
+       scale = max(1.d0, maxval(abs(Op_a%g_t)), maxval(abs(Op_b%g_t)))
+       tol = eq_tol * scale
+       do i = 1, size(Op_a%g_t)
+          if (abs(Op_a%g_t(i) - Op_b%g_t(i)) > tol) return
+       enddo
+    endif
+
+    equal = .true.
+  end function Op_equal
+
+!--------------------------------------------------------------------
+!> @brief
+!> Check if the Op_V operator sequence is symmetric, i.e., the product
+!> of (I + g_n * V_n) in forward order equals the product in reverse order,
+!> where V_n is operator O_n embedded in the Ndim space via projector P_n.
+!> This is satisfied when operators are arranged palindromically,
+!> or when all operators commute (e.g., on-site operators in the Hubbard model).
+!>
+!> @param[in] Op_V_arr  Operator array of shape (N_op, N_FL)
+!> @param[in] N_FL_in   Number of flavors
+!> @param[in] Ndim_in   Dimension of the full single-particle Hilbert space
+!> @return    .true. if symmetric, .false. otherwise
+!--------------------------------------------------------------------
+  logical function Op_V_is_symmetric(Op_V_arr, N_FL_in, Ndim_in)
+    Implicit None
+    Type(Operator), intent(in) :: Op_V_arr(:,:)
+    Integer, intent(in) :: N_FL_in, Ndim_in
+
+    Integer :: n_op, n, nf, i, j, NN
+    Complex(Kind=Kind(0.d0)), allocatable :: M_fwd(:,:), M_rev(:,:), M_tmp(:,:), M_op(:,:)
+    Real(Kind=Kind(0.d0)) :: diff, scale
+    Real(Kind=Kind(0.d0)), parameter :: sym_tol = 1.D-10
+
+    Op_V_is_symmetric = .true.
+    n_op = size(Op_V_arr, 1)
+    NN = Ndim_in
+
+    if (n_op <= 1) return
+
+    allocate(M_fwd(NN, NN), M_rev(NN, NN), M_tmp(NN, NN), M_op(NN, NN))
+
+    do nf = 1, N_FL_in
+       ! Initialize M_fwd = Identity
+       M_fwd = cmplx(0.d0, 0.d0, kind(0.d0))
+       do i = 1, NN
+          M_fwd(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+       enddo
+
+       ! Forward product: (I + g_1*V_1) * ... * (I + g_N*V_N)
+       do n = 1, n_op
+          M_op = cmplx(0.d0, 0.d0, kind(0.d0))
+          do i = 1, NN
+             M_op(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+          enddo
+          do j = 1, Op_V_arr(n, nf)%N
+             do i = 1, Op_V_arr(n, nf)%N
+                M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) = &
+                   M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) + &
+                   Op_V_arr(n, nf)%g * Op_V_arr(n, nf)%O(i, j)
+             enddo
+          enddo
+          M_tmp = matmul(M_fwd, M_op)
+          M_fwd = M_tmp
+       enddo
+
+       ! Initialize M_rev = Identity
+       M_rev = cmplx(0.d0, 0.d0, kind(0.d0))
+       do i = 1, NN
+          M_rev(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+       enddo
+
+       ! Reverse product: (I + g_N*V_N) * ... * (I + g_1*V_1)
+       do n = n_op, 1, -1
+          M_op = cmplx(0.d0, 0.d0, kind(0.d0))
+          do i = 1, NN
+             M_op(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+          enddo
+          do j = 1, Op_V_arr(n, nf)%N
+             do i = 1, Op_V_arr(n, nf)%N
+                M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) = &
+                   M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) + &
+                   Op_V_arr(n, nf)%g * Op_V_arr(n, nf)%O(i, j)
+             enddo
+          enddo
+          M_tmp = matmul(M_rev, M_op)
+          M_rev = M_tmp
+       enddo
+
+       ! Compare forward and reverse products
+       diff = maxval(abs(M_fwd - M_rev))
+       scale = max(1.d0, maxval(abs(M_fwd)), maxval(abs(M_rev)))
+       if (diff > sym_tol * scale) then
+          Op_V_is_symmetric = .false.
+          deallocate(M_fwd, M_rev, M_tmp, M_op)
+          return
+       endif
+    enddo
+
+    deallocate(M_fwd, M_rev, M_tmp, M_op)
+  end function Op_V_is_symmetric
+
   function Op_is_real(Op) result(retval)
     Implicit None
     

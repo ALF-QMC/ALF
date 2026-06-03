@@ -42,7 +42,13 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, beta
 
-       XKER_ph = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
+       if ( beta*om > 600 ) then
+         XKER_ph = (exp(-tau*om) + exp(-( beta - tau )*om )) / pi
+       elseif ( beta*om < -600 ) then
+         XKER_ph = (exp((beta-tau)*om) + exp(tau*om)) / pi
+       else
+         XKER_ph = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
+       endif
 
      end function XKER_ph
      
@@ -51,7 +57,13 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, beta
 
-       XKER_ph_c = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
+       if ( beta*om > 600 ) then
+         XKER_ph_c = (exp(-tau*om) + exp(-( beta - tau )*om )) / pi
+       elseif ( beta*om < -600 ) then
+         XKER_ph_c = (exp((beta-tau)*om) + exp(tau*om)) / pi
+       else
+         XKER_ph_c = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
+       endif
 
      end function XKER_ph_c
 
@@ -60,7 +72,13 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, beta
 
-       XKER_pp = exp(-tau*om) / ( pi*(1.d0 + exp( - beta * om ) ) )
+       if ( beta*om > 600 ) then
+         XKER_pp = exp(-tau*om) / pi
+       elseif ( beta*om < -600 ) then
+         XKER_pp = exp((beta-tau)*om) / pi
+       else
+         XKER_pp = exp(-tau*om) / ( pi*(1.d0 + exp( - beta * om ) ) )
+       endif
 
      end function XKER_pp
 
@@ -69,7 +87,13 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, beta
 
-       XKER_p  = exp(-tau*om) / ( pi*(1.d0 + exp( - beta * om ) ) )
+       if ( beta*om > 600 ) then
+         XKER_p  = exp(-tau*om) / pi
+       elseif ( beta*om < -600 ) then
+         XKER_p  = exp( (beta-tau)*om) / pi
+       else
+         XKER_p  = exp(-tau*om) / ( pi*(1.d0 + exp( - beta * om ) ) )
+       endif
 
      end function XKER_p
 
@@ -91,7 +115,11 @@ contains
      Real (Kind=Kind(0.d0)) function F_QFI_ph(om, beta)
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
-      F_QFI_ph = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+      if ( abs(beta*om) > 600 ) then
+        F_QFI_ph = 4.d0/pi
+      else
+        F_QFI_ph = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+      endif
 
      end function F_QFI_ph
      
@@ -99,14 +127,22 @@ contains
       ! will improve
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
-      F_QFI_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+      if ( abs(beta*om) > 600 ) then
+        F_QFI_ph_c = 4.d0/pi
+      else
+        F_QFI_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+      endif
 
      end function F_QFI_ph_c
 
       Real (Kind=Kind(0.d0)) function F_QFI_pp(om, beta)
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
-      F_QFI_pp = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+      if ( abs(beta*om) > 600 ) then
+        F_QFI_pp = 4.d0/pi
+      else
+        F_QFI_pp = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+      endif
 
      end function F_QFI_pp
 
@@ -247,7 +283,13 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)), intent(in) ::  Aom, beta, om
 
-       Back_trans_ph = Aom/(1.d0 + exp(-beta*om) )
+       if ( beta*om > 600 ) then
+         Back_trans_ph = Aom
+       elseif ( beta*om < -600 ) then
+         Back_trans_ph = Aom * exp(beta*om)
+       else
+         Back_trans_ph = Aom/(1.d0 + exp(-beta*om) )
+       endif
        ! This gives S(q,om) = chi(q,om)/(1 - e^(-beta om))
 
      end function BACK_TRANS_PH
@@ -261,6 +303,10 @@ contains
        Zero = Eps_small
        if ( abs(om) < zero ) then
           Back_trans_ph_c = beta * Aom/2.d0
+       elseif ( beta*om > 600 ) then
+          Back_trans_ph_c = Aom / om
+       elseif ( beta*om < -600 ) then
+          Back_trans_ph_c = -Aom / om
        else
           Back_trans_ph_c = Aom * (1.d0 - exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
           ! This gives sigma'(q,om) = A_c(q,om)*(1 - e^(-beta om))/(1 + e^(-beta om))/om
@@ -281,6 +327,10 @@ contains
        Zero = Eps_small
        if ( abs(om) < Zero ) then
           Back_trans_pp = beta * Aom/2.d0
+       elseif ( beta*om > 600 ) then
+          Back_trans_pp = Aom / om
+       elseif ( beta*om < -600 ) then
+          Back_trans_pp = -Aom / om
        else
           Back_trans_pp = Aom * (1.d0 - exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
        endif
@@ -297,7 +347,14 @@ contains
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, beta
 
-       XKER_p_ph  =  (exp(-tau*om)  + exp(-(beta-tau)*om)) / (pi*(1.d0 + exp( -beta * om )) )
+
+       if ( beta*om > 600 ) then
+         XKER_p_ph = (exp(-tau*om) + exp(-(beta-tau)*om)) / pi
+       elseif ( beta*om < -600 ) then
+         XKER_p_ph = (exp((beta-tau)*om) + exp(tau*om)) / pi
+       else
+         XKER_p_ph = (exp(-tau*om) + exp(-(beta-tau)*om)) / (pi*(1.d0 + exp( -beta * om )) )
+       endif
 
      end function XKER_p_ph
 
@@ -427,10 +484,16 @@ contains
        case("PH")
          If (.not. Default_model_exists ) Default = 1.d0/(Om_en - Om_st) ! Flat  default   
          !Compute   sum rule  for  A(om)
+         ! Note: PH channel uses symmetric spectrum with Om_st = 0 (enforced in Max_SAC.F90),
+         ! so om > 0 always holds here and the beta*om < -600 branch is never reached.
          X  = 0.d0
          Do  nw = 1, Ndis
              Om = Om_st + dble(nw)*dom
-             Default(nw)  = (1.d0 + exp(-beta*om)) * Default(nw)
+             if ( beta*om > 600 ) then
+               Default(nw) = Default(nw)
+             else
+               Default(nw) = (1.d0 + exp(-beta*om)) * Default(nw)
+             endif
              X = X + Default(nw) 
          enddo
          X = X*dom
@@ -452,6 +515,10 @@ contains
                Om = Om_st + dble(nw)*dom
                if ( abs(om) < Zero ) then
                   Default(nw) = Default(nw)*2.d0/ beta 
+               elseif ( beta*om > 600 ) then
+                  Default(nw) = Default(nw) * om
+               elseif ( beta*om < -600 ) then
+                  Default(nw) = Default(nw) * (-om)
                else
                   Default(nw) = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 
                endif
@@ -477,6 +544,10 @@ contains
                Om = Om_st + dble(nw)*dom
                if ( abs(om) < Zero ) then
                   Default(nw) = Default(nw)*2.d0/ beta 
+               elseif ( beta*om > 600 ) then
+                  Default(nw) = Default(nw) * om
+               elseif ( beta*om < -600 ) then
+                  Default(nw) = Default(nw) * (-om)
                else
                   Default(nw) = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 
                endif

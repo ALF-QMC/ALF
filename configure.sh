@@ -12,6 +12,7 @@ Please choose one of the following MACHINEs:
  * SuperMUC-NG
  * JUWELS
  * FRITZ
+ * HELMA
 Possible MODEs are:
  * MPI (default)
  * noMPI
@@ -459,6 +460,26 @@ case $MACHINE in
       set_intelcc
       set_intelcxx
       set_hdf5_flags "$INTELCC" ifort "$INTELCXX" || return 1
+    fi
+  ;;
+
+
+  #NHR@FAU Helma CPU cluster
+  HELMA)
+    module --force switch gpu-env/2025 cpu-env/2026
+    module load intel/2025.3.1
+    module load intelmpi/2021.17.0
+    module load mkl/2024.2.2
+
+    F90OPTFLAGS="$INTELLLVMOPTFLAGS"
+    F90USEFULFLAGS="$INTELLLVMUSEFULFLAGS"
+    ALF_FC="$INTELLLVMCOMPILER"
+    find_mkl_flag || return 1
+    LIB_BLAS_LAPACK="${INTELMKL}"
+    if [ "${HDF5_ENABLED}" = "1" ]; then
+      set_intelcc
+      set_intelcxx
+      set_hdf5_flags "$INTELCC" ifx "$INTELCXX" || return 1
     fi
   ;;
   #Default (unknown machine)

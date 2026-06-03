@@ -316,6 +316,7 @@ Program Main
         Call Alloc_Ham(get_ham_name())
         leap_frog_bulk = .false.
         Call ham%Ham_set()
+        Call Validate_Ham_Variables()
         ! Test  if  user  has  specified  correct  array  size  for time dependent Hamiltonians
         N_op = Size(OP_V,1)
         do n = 1, N_op
@@ -363,10 +364,6 @@ Program Main
         Enddo
 
         if(Projector) then
-           if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) then
-              write(error_unit,*) "Projector is selected but there are no trial wave functions!"
-              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-           endif
            do nf_eff=1,N_fl_eff
               nf=Calc_Fl_map(nf_eff)
               if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) then
