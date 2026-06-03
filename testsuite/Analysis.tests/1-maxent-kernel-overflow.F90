@@ -18,14 +18,12 @@ Program Test_MaxEnt_Kernel_Overflow
   Use MaxEnt_Wrapper_mod
   implicit none
 
-  real(Kind=Kind(0.d0)) :: beta, tau, om, pi
+  real(Kind=Kind(0.d0)) :: beta, tau, om
   real(Kind=Kind(0.d0)) :: val, ref, relerr
   real(Kind=Kind(0.d0)) :: tol
   real(Kind=Kind(0.d0)) :: taus(4)
   integer :: it, nerr
 
-  ! Use the same single-precision pi constant as maxent_wrapper_mod
-  pi  = 3.1415927
   beta = 10.d0
   tol  = 1.d-12
   nerr = 0
