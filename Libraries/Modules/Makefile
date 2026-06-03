@@ -29,7 +29,7 @@ SRCS = Mat_subroutines_mod.F90 \
 DEPSFILE := .deps.mk
 DEPSGEN := ../../Prog/gen_deps.py
 
-lib: $(LIB)
+lib: $(LIB) libfakeintel.so
 
 # OBJS and MODS are auto-generated into $(DEPSFILE) by gen_deps.py
 -include $(DEPSFILE)
@@ -56,11 +56,22 @@ lattices_armv8.4-a.so: runtime_error_mod.F90 lattices_interface_mod.F90 matrix_m
 %.o: %.F90
 	$(ALF_FC) -c $(ALF_FLAGS_MODULES) $<
 
+libfakeintel.so: fakeintel.c
+	@for cc in gcc clang icc icx cc; do \
+		if command -v $$cc > /dev/null 2>&1; then \
+			$$cc -shared -fPIC -o libfakeintel.so fakeintel.c; \
+			break; \
+		fi; \
+	done; \
+	if [ ! -f libfakeintel.so ]; then \
+		echo "No C compiler found, libfakeintel.so not created." 1>&2; \
+	fi
+
 $(DEPSFILE): $(SRCS) $(DEPSGEN)
 	python3 $(DEPSGEN) $(SRCS) > $(DEPSFILE)
 
 clean: $(DEPSFILE)
-	rm -f $(OBJS) $(MODS) $(LIB) $(DEPSFILE)
+	rm -f $(OBJS) $(MODS) $(LIB) $(DEPSFILE) libfakeintel.so
 
 #unused modules: histograms histograms_v2 log_mesh natural_constants
 #unused, except for in Prog/FFA_Orginals/: precdef
