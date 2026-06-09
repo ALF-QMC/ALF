@@ -1,4 +1,4 @@
-!  Copyright (C) 2018-2023 The ALF project
+!  Copyright (C) 2018-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -30,8 +30,6 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 
-     Module Lattices_v3
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -40,6 +38,8 @@
 !> This module generates one and two dimensional Bravais lattices and the unit cell
 !
 !--------------------------------------------------------------------
+     Module Lattices_v3
+
          Use Matrix
          Use runtime_error_mod
          Use Natural_Constants, only: twopi, Eps_small
@@ -85,17 +85,34 @@
 
        Contains
 
-         subroutine Make_lattice(L1_p, L2_p, a1_p, a2_p, Latt)
-
-           ! This is for a general tilted square lattice defined by the vector a1, a2
-           ! L1_p,  L2_p define cluster topology. ( Tilted etc.)
-           ! L1_p = n*a1_p + m *a2_p
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!> @brief
+!> Generate a general tilted square lattice spanned by the vectors a1, a2.
+!> L1_p, L2_p define cluster topology (Tilted etc.).
+!> L1_p = n*a1_p + m*a2_p
+!>
+!> @param[in] L1_p First lattice vector
+!> @param[in] L2_p Second lattice vector
+!> @param[in] a1_p First primitive lattice vector
+!> @param[in] a2_p Second primitive lattice vector
+!> @param[out] Latt Lattice object
+!> @param[in] nnlist_range_in Optional range of nnlist and nnlistk.
+!>            For example, nnlist_range_in = 1 gives nearest neighbors,
+!>            nnlist_range_in = 2 gives next nearest neighbors etc.
+!>            It defaults to 1 if not provided.
+!--------------------------------------------------------------------
+         subroutine Make_lattice(L1_p, L2_p, a1_p, a2_p, Latt, nnlist_range_in)
 
 
            Implicit none
 
-           Real (Kind=Kind(0.d0)),  dimension(:) :: L1_p, L2_p, a1_p, a2_p
+           Real (Kind=Kind(0.d0)),  dimension(:), intent(in) :: L1_p, L2_p, a1_p, a2_p
            Type (Lattice) :: Latt
+
+           Integer, intent(in), optional :: nnlist_range_in
+           Integer :: nnlist_range
 
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: xk_p, b1_p, b2_p, BZ1_p, BZ2_p, b_p
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p, x1_p, a_p,d_p
@@ -115,6 +132,17 @@
            Latt%L2_p = L2_p
            Latt%a1_p = a1_p
            Latt%a2_p = a2_p
+
+           if (present(nnlist_range_in)) then
+               nnlist_range = nnlist_range_in
+           else
+               nnlist_range = 1
+           endif
+
+            if (nnlist_range .lt. 1) then
+                write(error_unit,*) 'Make_lattice: nnlist_range_in has to be a positive integer.'
+                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
 
 
            !Compute the Reciprocal lattice vectors.
@@ -275,17 +303,17 @@
            endif
 
            !Setup nnlist
-           Allocate ( Latt%nnlist(LQ,-1:1,-1:1) )
+           Allocate ( Latt%nnlist(LQ,-nnlist_range:nnlist_range,-nnlist_range:nnlist_range) )
 
            do nr = 1, Latt%N
-              do nd1 = -1,1
-                 do nd2 = -1,1
+              do nd1 = -nnlist_range,nnlist_range
+                 do nd2 = -nnlist_range,nnlist_range
                     d_p = dble(nd1)*a1_p + dble(nd2)*a2_p
                     x_p  = dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  + d_p
-                    call npbc(x1_p, x_p , Latt%L1_p, Latt%L2_p)
-                    call npbc(x_p , x1_p, Latt%L1_p, Latt%L2_p)
-                    call npbc(x1_p, x_p , Latt%L1_p, Latt%L2_p)
-                    call npbc(x_p , x1_p, Latt%L1_p, Latt%L2_p)
+                    do i = 1, max(2, nnlist_range+1)
+                       call npbc(x1_p, x_p , Latt%L1_p, Latt%L2_p)
+                       call npbc(x_p , x1_p, Latt%L1_p, Latt%L2_p)
+                    enddo
                     nnr1 =  nint ( Iscalar(Latt%BZ1_p,x_p) / twopi )
                     nnr2 =  nint ( Iscalar(Latt%BZ2_p,x_p) / twopi )
                     nnr  = Latt%invlist(nnr1,nnr2)
@@ -302,12 +330,16 @@
            enddo
 
            !Setup nnlistk
-           Allocate ( Latt%nnlistk(LQ,-1:1,-1:1) )
+           Allocate ( Latt%nnlistk(LQ,-nnlist_range:nnlist_range,-nnlist_range:nnlist_range) )
            do nr = 1, Latt%N
-              do nd1 = -1,1
-                 do nd2 = -1,1
+              do nd1 = -nnlist_range,nnlist_range
+                 do nd2 = -nnlist_range,nnlist_range
                     d_p = dble(nd1)*b1_p + dble(nd2)*b2_p
                     x_p  = dble(Latt%listk(nr,1))*Latt%b1_p + dble(Latt%listk(nr,2))*Latt%b2_p  + d_p
+                    do i = 1, max(2, nnlist_range+1)
+                       call npbc(x1_p, x_p , Latt%BZ1_p, Latt%BZ2_p)
+                       call npbc(x_p , x1_p, Latt%BZ1_p, Latt%BZ2_p)
+                    enddo
                     Latt%nnlistk(nr,nd1,nd2)  = Inv_K(x_p,Latt)
                  enddo
               enddo
