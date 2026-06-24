@@ -8,6 +8,18 @@
 # All arguments are forwarded verbatim to configure.sh.
 # See configure.sh for the full list of MACHINE, MODE, STAB, and option values.
 
+# Ensure this script is sourced inside a Fish shell, not executed directly or
+# sourced from a different shell (e.g. bash/sh).
+if not set -q FISH_VERSION
+    printf "Error: configure.fish must be sourced inside a Fish shell session.\n" >&2
+    exit 1
+end
+if not status --is-interactive
+    printf "Error: configure.fish must be sourced, not executed directly.\n" >&2
+    printf "  Use: source configure.fish MACHINE [MODE] [STAB] [options]\n" >&2
+    exit 1
+end
+
 set -l _alf_dir (dirname (realpath (status --current-filename)))
 set -l _alf_env_file (mktemp 2>/dev/null; or mktemp -t alf_env)
 
