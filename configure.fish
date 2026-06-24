@@ -12,12 +12,12 @@
 # sourced from a different shell (e.g. bash/sh).
 if not set -q FISH_VERSION
     printf "Error: configure.fish must be sourced inside a Fish shell session.\n" >&2
-    exit 1
+    return 1
 end
 if not status --is-interactive
     printf "Error: configure.fish must be sourced, not executed directly.\n" >&2
     printf "  Use: source configure.fish MACHINE [MODE] [STAB] [options]\n" >&2
-    exit 1
+    return 1
 end
 
 set -l _alf_dir (dirname (realpath (status --current-filename)))
