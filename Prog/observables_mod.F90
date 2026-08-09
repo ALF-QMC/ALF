@@ -369,6 +369,7 @@
            ! Local
            Integer :: Ns, Nt, no, no1, I, Ntau
            Complex (Kind=Kind(0.d0)), allocatable, target :: Tmp(:,:,:,:)
+           Complex (Kind=Kind(0.d0)), allocatable :: In_C(:), Out_C(:) 
            Character (len=64) :: File_pr,  File_suff
 #if defined OBS_LEGACY
            Real    (Kind=Kind(0.d0))              :: x_p(2)
@@ -445,14 +446,27 @@
               write(filename ,'(A,I0,A,A)') "Temp_",igroup,"/",trim(File_h5)
 #endif
 #endif
-
+              ! The  temporary arrays are needed to avoid a buf in the GCC  16.1.0  compiler on Mac Silicon
+              allocate(In_C(Size(Obs%Obs_Latt,1)), Out_C(Size(Obs%Obs_Latt,1)))
               do nt = 1, Ntau
                  do no = 1, Obs%Latt_unit%Norb
                     do no1 = 1, Obs%Latt_unit%Norb
-                       Call Fourier_R_to_K(Obs%Obs_Latt(:,nt,no,no1), Tmp(:,nt,no,no1), Obs%Latt)
+                       In_C = Obs%Obs_Latt(:,nt,no,no1)
+                       !Call Fourier_R_to_K(Obs%Obs_Latt(:,nt,no,no1), Tmp(:,nt,no,no1), Obs%Latt)
+                       Call Fourier_R_to_K(In_C, Out_C, Obs%Latt)
+                       Tmp(:,nt,no,no1) = Out_C
                     enddo
                  enddo
               enddo
+              deallocate(In_C, Out_C)
+
+              !do nt = 1, Ntau
+              !   do no = 1, Obs%Latt_unit%Norb
+              !      do no1 = 1, Obs%Latt_unit%Norb
+              !         Call Fourier_R_to_K(Obs%Obs_Latt(:,nt,no,no1), Tmp(:,nt,no,no1), Obs%Latt)
+              !      enddo
+              !   enddo
+              !enddo
 
 #if defined OBS_LEGACY
               write(File_aux, '(A,A)') trim(File_pr), "_info"
