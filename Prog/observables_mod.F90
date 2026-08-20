@@ -361,9 +361,7 @@
            ! Local
            Integer :: Ns, Nt, no, no1, I, Ntau
            Complex (Kind=Kind(0.d0)), allocatable, target :: Tmp(:,:,:,:)
-           Complex (Kind=Kind(0.d0)), allocatable :: In_C(:), Out_C(:) 
-           Character (len=64) :: File_pr,  File_suff
-#if defined OBS_LEGACY
+           Complex (Kind=Kind(0.d0)), allocatable :: In_C(:), Out_C(:)
            Real    (Kind=Kind(0.d0))              :: x_p(2)
            Complex (Kind=Kind(0.d0))              :: Sign_bin
            Character (len=64) :: File_pr,  File_suff, File_aux, tmp_str
