@@ -362,4 +362,77 @@
 !!$      end Subroutine Predefined_Int_J_SUN
 
 
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief
+!> Sets a spin-spin interaction term of the form \f$ J S_a S_b \f$  in the operator format.
+!> Here, a and b can be x,y or z.
+!> This formulation assumes that all charges fluctuations are frozen out, e.g. by a large Hubbard U.
+!> Thereby, \f$ c^\dagger_{i,\uparrow} c_{i,\uparrow} + c^\dagger_{i,\downarrow} c_{i,\downarrow} = 1 \f$.
+!> The spin operators are represented in terms of fermionic operators as follows:
+!> \f$ S^{\alpha}_i = \frac{1}{2}(c^\dagger_i \sigma^\alpha c_i)\f$
+!> Here, \f$ c^\dagger_i = (c^\dagger_{i,\uparrow}, c^\dagger_{i,\downarrow}) \f$ is a spinor of fermionic creation operators and \f$ \sigma^\alpha \f$ are the Pauli matrices.
+!> The exact term implemented here is \f$g \abs{J} / 8 (S^a_i + conjg(g) J/\abs{J} S^b_j)^2 = S^a_i S^b_j + const.\f$.
+!> The term includes a gauge factor g = gauge, which can possibly be used to alleviate the sign problem.
+!> The gauge factor is a pure phase factor, defined as \f$ g = e^{i \phi} \f$ with \f$ \phi = \text{gauge\_phi} \pi \f$.
+!--------------------------------------------------------------------
+        subroutine Predefined_Int_SaSb(Op, a, b, I1_up, I2_up, I1_do, I2_do, J, dtau, gauge_phi)
+          implicit none
+          type(Operator), intent(out) :: Op
+          Character (len=1), intent(in) :: a, b
+          integer, intent(in) :: I1_up, I2_up, I1_do, I2_do
+          real(Kind=Kind(0.d0)), intent(in) :: J, dtau
+          real(Kind=Kind(0.d0)), intent(in) :: gauge_phi
+
+          real(Kind=Kind(0.d0)), parameter :: pi = acos(-1.d0)
+          real(Kind=Kind(0.d0)) :: J_sgn
+          complex(Kind=Kind(0.d0)) :: gauge
+
+            gauge = cmplx(cos(gauge_phi*pi), sin(gauge_phi*pi), kind(0.D0))
+            if (abs(abs(gauge)-1.d0) > 1.d-8) then
+                write(error_unit, *) 'Error in Predefined_Int_SaSb: gauge must be a pure phase factor with absolute value 1.'
+                call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+            endif
+            if (abs(J).le.1D-12)then
+              J_sgn = 0.d0
+            else
+              J_sgn = J/abs(J)
+            end if
+
+            call Op_make(Op,4)
+            Op%P(1) = I1_up
+            Op%P(2) = I2_up
+            Op%P(3) = I1_do
+            Op%P(4) = I2_do
+            select case (a)
+            case('x')
+               Op%O(1,3) = cmplx(1.d0, 0.d0, kind(0.D0))
+               Op%O(3,1) = cmplx(1.d0 ,0.d0, kind(0.D0))
+            case('y')
+               Op%O(1,3) = cmplx(0.d0, -1.d0, kind(0.D0))
+               Op%O(3,1) = cmplx(0.d0 ,1.d0, kind(0.D0))
+            case('z')
+               Op%O(1,1) = cmplx(1.d0 ,0.d0, kind(0.D0))
+               Op%O(3,3) = cmplx(-1.d0 ,0.d0, kind(0.D0))
+            end select
+            select case (b)
+            case('x')
+               Op%O(2,4) = conjg(gauge)*cmplx(J_sgn*1.d0 ,0.d0, kind(0.D0))
+               Op%O(4,2) = conjg(gauge)*cmplx(J_sgn*1.d0 ,0.d0, kind(0.D0))
+            case('y')
+               Op%O(2,4) = conjg(gauge)*cmplx(0.d0, -J_sgn*1.d0, kind(0.D0))
+               Op%O(4,2) = conjg(gauge)*cmplx(0.d0 ,J_sgn*1.d0, kind(0.D0))
+            case('z')
+               Op%O(2,2) = conjg(gauge)*cmplx(J_sgn*1.d0 ,0.d0, kind(0.D0))
+               Op%O(4,4) = conjg(gauge)*cmplx(-J_sgn*1.d0 ,0.d0, kind(0.D0))
+            end select
+            Op%g     = SQRT(gauge*CMPLX(-dtau*abs(J)/8d0, 0.D0, kind(0.D0)))
+            Op%alpha = cmplx(0.d0, 0.d0, kind(0.D0))
+            Op%type  = 2
+            call Op_set(Op)
+        end subroutine Predefined_Int_SaSb
+
+
      end Module Predefined_Int
