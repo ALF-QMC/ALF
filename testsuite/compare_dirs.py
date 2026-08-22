@@ -15,13 +15,15 @@ from py_alf.analysis import analysis
 from py_alf.utils import find_sim_dirs
 
 def analyze_and_load(root_dir):
+    """Run analysis for all simulations under root_dir and load results."""
     dirs = find_sim_dirs(root_dir)
-    for dir in dirs:
-        analysis(dir)
+    for sim_dir in dirs:
+        analysis(sim_dir)
     return load_res(dirs)
 
 
 def compare_dirs(dir_R, dir_T, resultsfile):
+    """Compare observables from two simulation directories and write a report."""
     obs_R = analyze_and_load(dir_R)
     obs_T = analyze_and_load(dir_T)
 
@@ -42,6 +44,7 @@ def compare_dirs(dir_R, dir_T, resultsfile):
 
 
 def _get_arg_parser():
+    """Return an argument parser for comparing two simulation directories."""
     parser = argparse.ArgumentParser(
         description='Testing two directories of ALF simulations'
                     'for identical results.')
