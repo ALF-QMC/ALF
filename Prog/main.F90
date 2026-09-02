@@ -72,9 +72,11 @@
 !> \endverbatim
 !> @param CPU_MAX Real
 !> \verbatim
-!>  Available Wallclock time. The program will carry as many bins as
-!>  possible during this time
-!>  If not specified the program will stop after NBIN bins are calculated
+!>  Available Wallclock time.
+!>  The run stops at whichever bound comes first: NBIN bins, or this
+!>  wallclock time. With NBIN <= 0 the wallclock time is the only bound and
+!>  the program carries as many bins as possible during it; with CPU_MAX not
+!>  specified NBIN is the only bound.
 !> \endverbatim
 !> @param Propose_S0 Logical
 !> \verbatim
@@ -188,7 +190,7 @@ Program Main
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
 
         ! For the truncation of the program:
-        logical                   :: prog_truncation, run_file_exists
+        logical                   :: prog_truncation, run_file_exists, NBin_bounded
         integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
         
         ! For MPI shared memory
@@ -410,7 +412,10 @@ Program Main
         endif
         Call Hop_mod_init
 
-        IF (ABS(get_CPU_MAX()) > Zero ) call set_NBin(10000000)
+        ! Both are bounds; the run stops at whichever comes first. The sentinel
+        ! lifts the bin bound only when NBin is unset.
+        NBin_bounded = get_NBin() > 0
+        IF (ABS(get_CPU_MAX()) > Zero .AND. .NOT. NBin_bounded ) call set_NBin(10000000)
         If (get_N_Global_tau() > 0) then
            Call Wrapgr_alloc
         endif
@@ -492,8 +497,14 @@ Program Main
 #endif
            Open (Unit = 50,file=file_info,status="unknown",position="append")
            Write(50,*) 'Sweeps                              : ', get_NSweep()
-           If ( abs(get_CPU_MAX()) < ZERO ) then
+           ! NBin_bounded, not get_NBin(), so the sentinel is never printed as
+           ! a requested bin count.
+           If ( NBin_bounded ) then
               Write(50,*) 'Bins                                : ', get_NBin()
+           else
+              Write(50,*) 'No bin-number limitation '
+           endif
+           If ( abs(get_CPU_MAX()) < ZERO ) then
               Write(50,*) 'No CPU-time limitation '
            else
               Write(50,'(" Prog will stop after hours:",2x,F8.4)') get_CPU_MAX()

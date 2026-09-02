@@ -1,5 +1,17 @@
 # Log of backward compatibility changes and critical bugs
 
+### 2026-09-02 NBin and CPU_MAX are both bounds
+Author: A. Gavrishev <br>
+[GitHub](https://github.com/ALF-QMC/ALF/pull/XXX)
+
+Previously when a non-zero `CPU_MAX` was set, any `NBin` setting was discarded outright. Now, both are simulation bounds and the run stops at whichever is reached first; this makes the use of checkpoint restarting when limited by wall-time easier as it is straightforward to set an overall bin count target that simulations must eventually reach. `NBin <= 0` keeps the purely time-bounded behaviour.
+
+A run that sets both `NBin > 0` and `CPU_MAX > 0` and previously relied on `CPU_MAX` switching the Nbin target "off" must now explicitly
+set `NBin = 0`.
+
+The `info` file now reports both bounds, adding a `Bins` or `No bin-number limitation` line. Any
+code that parses `info` by line position rather than by key has to be slightly adapted.
+
 ### 2026-01-28 factors of pi in analytical continuation
 Author F. Assaad <br>
 Merge request [!257](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/257) | [GitHub](https://github.com/ALF-QMC/ALF/issues/587)

@@ -79,6 +79,12 @@ test:
       else 
         "$ALF_DIR/Analysis/ana.out" *;
       fi
+    # Runs the binary directly and reads data.h5, so noMPI with HDF5 only.
+    - if echo "$MODE" | grep -iq -e "serial" -e "noMPI" &&
+         echo "$CONFIG_ARGS" | grep -iq "HDF5"; then
+        python3 -c "import h5py" 2>/dev/null || pip install --quiet h5py;
+        python3 "$ALF_DIR/testsuite/test_nbin_cpu_max.py";
+      fi
     - mkdir "$ALF_DIR/testsuite/tests"
     - cd "$ALF_DIR/testsuite/tests"
     - if echo $ALF_FC | grep -q "mpiifort -fc=ifx"; then exit 0; fi

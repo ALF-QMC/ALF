@@ -69,6 +69,18 @@ runs:
           "$ALF_DIR/Analysis/ana.out" *
         fi
 
+    - name: NBin/CPU_MAX bound test
+      shell: bash
+      env:
+        ARGS: ${{ inputs.args }}
+      run: |
+        . ./configure.sh $ARGS
+        # Runs the binary directly and reads data.h5, so noMPI with HDF5 only.
+        if ! echo "$MODE" | grep -iq -e "serial" -e "noMPI"; then exit 0; fi
+        if ! echo "$CONFIG_ARGS" | grep -iq "HDF5"; then exit 0; fi
+        python3 -c "import h5py" 2>/dev/null || pip install --quiet h5py
+        python3 "$ALF_DIR/testsuite/test_nbin_cpu_max.py"
+
     - name: Run unit tests
       shell: bash
       env:

@@ -10,9 +10,9 @@ from collections import OrderedDict
 # Generic (Hamiltonian independent) ALF parameters with default values.
 _PARAMS_GENERIC = OrderedDict([
     ('VAR_QMC',
-        {'CPU_MAX': {'comment': 'Code stops after CPU_MAX hours, if 0 or '
-                                'not specified, the code stops after '
-                                'Nbin bins',
+        {'CPU_MAX': {'comment': 'Code stops after CPU_MAX hours or NBin '
+                                'bins, whichever comes first. If 0 or not '
+                                'specified, the code stops after NBin bins',
                      'value': 0.0},
          'Delta_t_Langevin_HMC': {'comment': 'Time step for Langevin or '
                                              'HMC',
