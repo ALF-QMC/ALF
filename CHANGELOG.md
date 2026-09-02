@@ -2,7 +2,7 @@
 
 ### 2026-09-02 NBin and CPU_MAX are both bounds
 Author: A. Gavrishev <br>
-[GitHub](https://github.com/ALF-QMC/ALF/pull/XXX)
+[GitHub](https://github.com/ALF-QMC/ALF/pull/648)
 
 Previously when a non-zero `CPU_MAX` was set, any `NBin` setting was discarded outright. Now, both are simulation bounds and the run stops at whichever is reached first; this makes the use of checkpoint restarting when limited by wall-time easier as it is straightforward to set an overall bin count target that simulations must eventually reach. `NBin <= 0` keeps the purely time-bounded behaviour.
 
