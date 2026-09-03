@@ -1,0 +1,57 @@
+! Rank-2 vertices (Op_make(Op_V,2) in the tV Hamiltonian), so Upgrade2's
+! delayed branch takes its multi-rank arm instead: the Woodbury chain runs to
+! n = 2, the update is formed as a ZGEMM against Zarr, and delay_append lands
+! two column pairs at once. The Hubbard set beside this one never reaches it.
+!
+! ham_V and Nwrap are well below the shipped defaults: at the default V = 4 a
+! run this short is flagged unstable and aborts, which would fail the test for
+! reasons that have nothing to do with the delay.
+
+&VAR_ham_name
+ham_name = "tV"
+/
+
+&VAR_lattice
+L1           = 4
+L2           = 4
+Lattice_type = "Square"
+Model        = "tV"
+/
+
+&VAR_Model_Generic
+Checkerboard = .T.
+Symm         = .T.
+N_SUN        = 2
+N_FL         = 1
+Dtau         = 0.1d0
+Beta         = 2.d0
+Projector    = .F.
+/
+
+&VAR_QMC
+Nwrap                = 5
+NSweep               = 2
+NBin                 = 1
+Ltau                 = 0
+LOBS_ST              = 0
+LOBS_EN              = 0
+CPU_MAX              = 0.0
+Propose_S0           = .F.
+Global_moves         = .F.
+Global_tau_moves     = .F.
+Sequential           = .T.
+Langevin             = .F.
+HMC                  = .F.
+/
+
+&VAR_errors
+n_skip  = 1
+N_rebin = 1
+/
+
+&VAR_tV
+ham_T    = 1.d0
+ham_chem = 0.d0
+ham_V    = 1.d0
+/
+! slash terminates namelist statement - DO NOT REMOVE

@@ -86,3 +86,21 @@ test:
     - cmake --build . --target all --config Release
     - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
+
+# The delayed update has to walk the same Markov chain as the immediate one.
+# The compiled tests under Prog.tests cover delayed_update_mod's own routines;
+# only running the sampler covers Upgrade2's delayed branch, where those
+# routines meet the Woodbury chain. One build, four short runs, a byte
+# comparison -- kept out of the matrix above because it needs a plain build and
+# a plain run directory, and because the property is compiler independent.
+test_delayed_update:
+  stage: test
+  needs: []
+  image: ghcr.io/alf-qmc/alf-container/alf-requirements/bookworm
+  script:
+    - . configure.sh GNU noMPI
+    - make all
+    - mkdir "$ALF_DIR/testsuite/tests"
+    - cd "$ALF_DIR/testsuite/tests"
+    - ALF_TEST_DELAYED=1 cmake ..
+    - ALF_TEST_DELAYED=1 ctest -VV -R delayed-vs-immediate

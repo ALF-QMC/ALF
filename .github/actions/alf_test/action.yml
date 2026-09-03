@@ -78,7 +78,19 @@ runs:
         mkdir -p "$ALF_DIR/testsuite/tests"
         cd "$ALF_DIR/testsuite/tests"
         if echo "$ALF_FC" | grep -q "mpiifort -fc=ifx"; then exit 0; fi
-        cmake ..
+        # The delayed-vs-immediate comparison drives ALF.out directly, the way a
+        # plain noMPI leg builds it; it is opt-in via ALF_TEST_DELAYED so the
+        # other legs (MPI, TEMPERING, PARALLEL_PARAMS) don't try to run it. An
+        # HDF5 build needs h5diff on PATH to compare the .h5 output it
+        # produces instead of confout_0 -- ALF vendors its own HDF5 build (see
+        # configure.sh) rather than relying on one being preinstalled, so pick
+        # up h5diff from there.
+        if echo "$MODE" | grep -iq -e "serial" -e "noMPI"; then
+          if [ -n "${HDF5_DIR:-}" ]; then PATH="$HDF5_DIR/bin:$PATH"; fi
+          ALF_TEST_DELAYED=1 cmake ..
+        else
+          cmake ..
+        fi
         cmake --build . --target all --config Release
         ctest -VV -O log.txt
         grep "tests passed" log.txt | cut -d " " -f 1

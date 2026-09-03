@@ -951,6 +951,187 @@ Contains
   end Subroutine Op_Wrapdo
 
 !--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Apply the same conjugation Op_Wrapup/Op_Wrapdo apply to a Green's function,
+!> but to the two panels of a factored one.
+!>
+!> @details
+!> A delayed (rank-k) update holds the Green's function as `G = G_stale + X*Y^T`.
+!> Op_Wrapup and Op_Wrapdo act as `G -> L*G*R` with L and R the identity outside
+!> `Op%P(1:Op%N)`, hence
+!>
+!>     L*(G_stale + X*Y^T)*R = (L*G_stale*R) + (L*X)*(R^T*Y)^T.
+!>
+!> This routine applies L to X and R^T to Y, costing O(Op%N**2*ncols).
+!>
+!> Converting the wrap's right-multiply into a left-multiply on Y:
+!>
+!>     wrap does ZSLGEMM('r','n',A)  ->  here ZSLGEMM('l','T',A)
+!>     wrap does ZSLGEMM('r','T',A)  ->  here ZSLGEMM('l','N',A)
+!>     wrap does ZSLGEMM('r','c',A)  ->  here ZSLGEMM('l','N',conjg(A))
+!>
+!> Note: ZSLGEMM has no conjugate-without-transpose and therefore A must be
+!> conjugated into a temporary first. For most typical models Op%N is small,
+!> and hence the cost of this operation is negligible.
+!>
+!> This subroutine mirrors the sixteen branches of Op_Wrapup/Op_Wrapdo and hence
+!> care must be taken to keep the logic synchronised between them. Within
+!> the testsuite, test 37-delayed-wrap forms an explicit check to catch any
+!> such drift.
+!>
+!> @param[inout] Xpan(Ndim,ncols), Ypan(Ndim,ncols) The panels.
+!> @param[in] updo 'u' to mirror Op_Wrapup, 'd' to mirror Op_Wrapdo.
+!--------------------------------------------------------------------
+  Subroutine Op_Wrap_panels(Xpan, Ypan, Op, HS_Field, Ndim, ncols, N_Type, nt, updo)
+    use iso_fortran_env, only: error_unit
+    Implicit none
+
+    Integer                   , INTENT(IN)    :: Ndim, ncols, N_Type, nt
+    Type (Operator)           , INTENT(IN)    :: Op
+    Complex (Kind=Kind(0.d0)) , INTENT(INOUT) :: Xpan(Ndim,ncols), Ypan(Ndim,ncols)
+    Complex (Kind=Kind(0.d0)) , INTENT(IN)    :: HS_Field
+    Character (Len=1)         , INTENT(IN)    :: updo
+
+    ! Local
+    Complex (Kind=Kind(0.d0)) :: VH1(Op%N,Op%N), VH2(Op%N,Op%N)
+    Complex (Kind=Kind(0.d0)) :: g_loc, phi_loc
+    Integer :: I, sp
+    Logical :: up
+    Type (Fields) :: nsigma_single
+
+    if (ncols <= 0) return
+
+    if (updo == 'u' .or. updo == 'U') then
+       up = .true.
+    elseif (updo == 'd' .or. updo == 'D') then
+       up = .false.
+    else
+       write(error_unit,*) 'Op_Wrap_panels: updo must be one of [u,U,d,D], got ', updo
+       Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+       return
+    endif
+
+    Call nsigma_single%make(1,1)
+    nsigma_single%f(1,1) = HS_Field
+    nsigma_single%t(1)   = op%type
+    phi_loc = nsigma_single%phi(1,1)
+
+    g_loc = Op%g
+    if (op%g_t_alloc) g_loc = Op%g_t(nt)
+
+    if ( op%type < 3 ) then
+       sp = nint(Real(HS_Field))
+       If (N_type == 1) then
+          if (Op%diag) then
+             ! Row scale on X, the reciprocal row scale on Y. The table entries
+             ! are read rather than recomputed, so the panel product tracks the
+             ! matrix to the last bit.
+             if (op%g_t_alloc) then
+                do I = 1,Op%N
+                   if (up) then
+                      call ZSCAL(ncols, exp( phi_loc*Op%g_t(nt)*Op%E(I)), Xpan(Op%P(I),1), Ndim)
+                      call ZSCAL(ncols, exp(-phi_loc*Op%g_t(nt)*Op%E(I)), Ypan(Op%P(I),1), Ndim)
+                   else
+                      call ZSCAL(ncols, exp(-phi_loc*Op%g_t(nt)*Op%E(I)), Xpan(Op%P(I),1), Ndim)
+                      call ZSCAL(ncols, exp( phi_loc*Op%g_t(nt)*Op%E(I)), Ypan(Op%P(I),1), Ndim)
+                   endif
+                enddo
+             else
+                do I = 1,Op%N
+                   if (up) then
+                      call ZSCAL(ncols, Op%E_Exp(I, sp), Xpan(Op%P(I),1), Ndim)
+                      call ZSCAL(ncols, Op%E_Exp(I,-sp), Ypan(Op%P(I),1), Ndim)
+                   else
+                      call ZSCAL(ncols, Op%E_Exp(I,-sp), Xpan(Op%P(I),1), Ndim)
+                      call ZSCAL(ncols, Op%E_Exp(I, sp), Ypan(Op%P(I),1), Ndim)
+                   endif
+                enddo
+             endif
+          else
+             if (op%g_t_alloc) then
+                Do I = 1,Op%N
+                   VH1(:,I) = Op%U(:,I)*exp(-phi_loc*Op%g_t(nt)*Op%E(I))
+                Enddo
+                Do I = 1,Op%N
+                   VH2(:,I) = exp(phi_loc*Op%g_t(nt)*Op%E(I))*conjg(Op%U(:,I))
+                Enddo
+             else
+                Do I = 1,Op%N
+                   VH1(:,I) = Op%U(:,I)*Op%E_Exp(I,-sp)
+                Enddo
+                Do I = 1,Op%N
+                   VH2(:,I) = Op%E_Exp(I, sp)*conjg(Op%U(:,I))
+                Enddo
+             endif
+             if (up) then
+                ! Wrapup: R from ('r','n',VH1), L from ('l','T',VH2).
+                call ZSLGEMM('l','T',Op%n,Ndim,ncols,VH1,Op%P,Ypan)
+                call ZSLGEMM('l','T',Op%n,Ndim,ncols,VH2,Op%P,Xpan)
+             else
+                ! Wrapdo: L from ('l','n',VH1), R from ('r','T',VH2).
+                call ZSLGEMM('l','n',Op%n,Ndim,ncols,VH1,Op%P,Xpan)
+                call ZSLGEMM('l','N',Op%n,Ndim,ncols,VH2,Op%P,Ypan)
+             endif
+          endif
+       elseif (N_Type == 2 .and. .not. Op%diag) then
+          VH1 = conjg(Op%U)
+          if (up) then
+             ! Wrapup: L from ('l','n',U), R from ('r','c',U).
+             call ZSLGEMM('l','n',Op%n,Ndim,ncols,Op%U,Op%P,Xpan)
+             call ZSLGEMM('l','N',Op%n,Ndim,ncols,VH1,Op%P,Ypan)
+          else
+             ! Wrapdo: R from ('r','n',U), L from ('l','c',U).
+             call ZSLGEMM('l','c',Op%n,Ndim,ncols,Op%U,Op%P,Xpan)
+             call ZSLGEMM('l','T',Op%n,Ndim,ncols,Op%U,Op%P,Ypan)
+          endif
+       endif
+    else
+       If (N_type == 1) then
+          if (Op%diag) then
+             do I = 1,Op%N
+                if (up) then
+                   call ZSCAL(ncols, exp( phi_loc*g_loc*Op%E(I)), Xpan(Op%P(I),1), Ndim)
+                   call ZSCAL(ncols, exp(-phi_loc*g_loc*Op%E(I)), Ypan(Op%P(I),1), Ndim)
+                else
+                   call ZSCAL(ncols, exp(-phi_loc*g_loc*Op%E(I)), Xpan(Op%P(I),1), Ndim)
+                   call ZSCAL(ncols, exp( phi_loc*g_loc*Op%E(I)), Ypan(Op%P(I),1), Ndim)
+                endif
+             enddo
+          else
+             Do I = 1,Op%N
+                VH1(:,I) = Op%U(:,I)*exp(-phi_loc*g_loc*Op%E(I))
+             Enddo
+             Do I = 1,Op%N
+                VH2(:,I) = exp(phi_loc*g_loc*Op%E(I))*conjg(Op%U(:,I))
+             Enddo
+             if (up) then
+                call ZSLGEMM('l','T',Op%n,Ndim,ncols,VH1,Op%P,Ypan)
+                call ZSLGEMM('l','T',Op%n,Ndim,ncols,VH2,Op%P,Xpan)
+             else
+                call ZSLGEMM('l','n',Op%n,Ndim,ncols,VH1,Op%P,Xpan)
+                call ZSLGEMM('l','N',Op%n,Ndim,ncols,VH2,Op%P,Ypan)
+             endif
+          endif
+       elseif (N_Type == 2 .and. .not. Op%diag) then
+          VH1 = conjg(Op%U)
+          if (up) then
+             call ZSLGEMM('l','n',Op%n,Ndim,ncols,Op%U,Op%P,Xpan)
+             call ZSLGEMM('l','N',Op%n,Ndim,ncols,VH1,Op%P,Ypan)
+          else
+             call ZSLGEMM('l','c',Op%n,Ndim,ncols,Op%U,Op%P,Xpan)
+             call ZSLGEMM('l','T',Op%n,Ndim,ncols,Op%U,Op%P,Ypan)
+          endif
+       endif
+    endif
+
+    Call nsigma_single%clear()
+
+  end Subroutine Op_Wrap_panels
+
+!--------------------------------------------------------------------
 !> @brief
 !> Compare two Operator instances on their defining properties.
 !> Returns .true. if operators are equal (within tolerance for

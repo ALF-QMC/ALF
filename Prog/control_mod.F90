@@ -55,6 +55,18 @@ module Control
     Integer          , private, save :: NCG, NCG_tau
     Integer (Kind=Kind(0.d0)) , private, save :: NC_up, ACC_up
     Integer (Kind=Kind(0.d0)) , private, save :: NC_eff_up, ACC_eff_up
+
+    ! Delay depth in force, 0 when the delayed update is off. Recorded because
+    ! ALF_DELAY_K is an environment variable rather than a parameter, and a knob
+    ! that changes the arithmetic must leave a trace in the run record.
+    Integer, private, save :: Delay_depth_used = 0
+
+    ! How that depth was arrived at: fixed by ALF_DELAY_K, measured by the probe
+    ! "auto" runs, or the closed form the probe falls back to. Reported on its own
+    ! line rather than folded into the depth, because the fallback is the failure
+    ! worth seeing -- a probe that quietly fell back on every chain is a probe
+    ! that is not running, and a depth alone cannot show it.
+    Character (Len=16), private, save :: Delay_depth_from = 'off'
     Integer (Kind=kind(0.d0)),  private, save :: NC_Glob_up, ACC_Glob_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_HMC_up, ACC_HMC_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Temp_up, ACC_Temp_up
@@ -174,6 +186,22 @@ module Control
         NC_eff_up = NC_eff_up + 1
         if (toggle) ACC_eff_up = ACC_eff_up + 1
       end Subroutine Control_upgrade_eff
+
+!--------------------------------------------------------------------
+!> @brief
+!> Record the delay depth this run is using, for the info file.
+!> @details
+!> Set once at setup, not per update, and deliberately *not* cleared by
+!> Control_init: the depth is a property of the build and environment, and
+!> Control_init runs again just before the bin loop.
+!--------------------------------------------------------------------
+      Subroutine Control_set_delay_depth(k, source)
+        Implicit none
+        Integer, Intent(In) :: k
+        Character (Len=*), Intent(In), Optional :: source
+        Delay_depth_used = k
+        if (Present(source)) Delay_depth_from = source
+      end Subroutine Control_set_delay_depth
 
       Subroutine Control_upgrade_Temp(toggle)
         Implicit none
@@ -480,6 +508,12 @@ module Control
            If ( NC_eff_up > 0 ) then
               Write(50,*) ' Effective Acceptance       : ', ACC_eff
            Endif
+           ! Always written, including the 0 of a run with the delay off: a
+           ! missing line and a line reading 0 are the same fact, but only the
+           ! second one distinguishes an old binary from a new one running
+           ! immediate updates.
+           Write(50,*) ' Delay depth                : ', Delay_depth_used
+           Write(50,*) ' Delay depth from           : ', Trim(Delay_depth_from)
 #if defined(TEMPERING)
            Write(50,*) ' Acceptance Tempering       : ', ACC_Temp
 #endif

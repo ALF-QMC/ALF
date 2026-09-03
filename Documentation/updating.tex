@@ -52,7 +52,106 @@ This default updating scheme can be overruled by, e.g., setting \texttt{Global\_
 It is also worth noting that this type of sequential spin-flip updating does not satisfy detailed balance, but rather the more fundamental stationarity condition \cite{Sokal89}. 
 
 
-% 
+%
+%------------------------------------------------------------
+\subsubsection{Delayed (rank-$k$) updates}
+\label{sec:delayed}
+%------------------------------------------------------------
+%
+Consider sequential single spin flips. Each accepted spin flip applies a
+rank-$d$ update to the whole Green's function, where $d$ is the range of the
+vertex, the operator dimension $N$ of Sec.~\ref{sec:op}. That update carries
+the arithmetic intensity of a level-2 BLAS operation (\texttt{ZGERU} for
+$d = 1$, a \texttt{ZGEMM} for $d>1$): it streams $N_{\mathrm{dim}}^2$
+complex entries to carry out $\mathcal{O}(d \, N_{\mathrm{dim}}^2)$
+floating-point operations. At large dimensions of the Green's function, the
+Green's function updates on spin flip acceptance become bound by memory
+bandwidth rather than by arithmetic, and this will cause performance
+degradation in most typical use cases. To alleviate this, we can exploit the
+fact that at the level of the spin flip proposals we do not require the updated
+Green's function to be stored as a full matrix. Instead, we just need the
+$d \times d$ block $\bm{P} G \bm{P}^{T}$ of the Green's function on the support
+of the vertex -- the rows and columns listed in \texttt{Op\%P} -- to form the
+acceptance ratio, and, on subsequent acceptance of a proposal, the
+corresponding $d$ rows and $d$ columns.
+Therefore, following Ref.~\cite{Sun2024}, we can hold the Green's function in a
+``factorized'' form
+\begin{equation}
+  G = G_{\text{stale}} + X Y^{T},
+  \qquad X, Y \in \mathbb{C}^{N_{\mathrm{dim}} \times k},
+\end{equation}
+where $k$ is a chosen ``delay depth''.
+If a flip is accepted we append $d$ columns to the ``panels'' $X$ and $Y$
+and the block, rows and columns are reconstructed
+on demand at a cost of $\mathcal{O}(d^2 k)$ and
+$\mathcal{O}(N_{\mathrm{dim}} d k)$, respectively. Once the panels hold $k$ or
+more columns they are flushed into
+$G_{\text{stale}}$ with a single \texttt{ZGEMM} (a level-3 operation).
+
+We choose the factorized region to span a single time slice's sequential
+vertex loop. \texttt{Wrapgr\_mod} brackets that loop and nothing else, so the
+region is closed -- and any partial panel flushed -- before the slice is left.
+The hopping propagators, the stabilization, measurements, global updates
+and any time-displaced calculations are still always handed an ordinary Green's
+function. Between
+two vertex updates the Green's function is conjugated with the vertex operator,
+which acts as $G \rightarrow L \, G \, R$ with $L$ and $R$ equal to the identity
+outside the support of the operator. Since
+\begin{equation}
+  L \left( G_{\text{stale}} + X Y^{T} \right) R
+  = \left( L \, G_{\text{stale}} \, R \right)
+  + \left( L X \right) \left( R^{T} Y \right)^{T},
+\end{equation}
+the conjugation passes through the factorization and is applied
+to the panels by \texttt{Op\_Wrap\_panels} at a cost that is independent of
+$N_{\mathrm{dim}}$.
+
+It should be noted that the delayed scheme is algebraically equivalent to the
+immediate one but not bit-for-bit identical. The same quantities are evaluated
+through a different sequence of additions and multiplications, and
+floating-point arithmetic is not associative, so some numerical deviation is
+expected between the immediate path and a delayed one, and between different
+depths $k$. The acceptance ratios still agree to rounding
+error, so both
+schemes accept the same flips and write an identical \texttt{confout} -- an
+exact equality checked in \path{testsuite/delayed.tests}. The one exception is a
+Metropolis ``near-tie'': a proposal whose acceptance ratio falls within rounding
+of the random number it is compared against. The immediate run meets such
+proposals just as often; it is only that two runs at different delays can
+resolve one of them differently, and
+the chains then branch and decorrelate (while remaining valid samples of the
+same
+distribution). Of course, at a given depth and for a given executable,
+every Markov chain is still reproducible.
+
+The delayed update is selected by the environment variable
+\texttt{ALF\_DELAY\_K}:
+\begin{itemize}
+  \item unset or \texttt{0} -- disabled (default);
+  \item a positive integer -- the depth $k$ is fixed at that value;
+  \item \texttt{auto} -- the depth is measured at start-up.  The candidates are
+    chosen from $k \in \{8, 16, 32, 64, 128, 256\}$, restricted to those
+    not exceeding $N_{\mathrm{dim}}$; for each of them the cost of one flush and
+    one panel reconstruction is timed at the $N_{\mathrm{dim}}$ of the model at
+    hand, and the largest candidate within 5\% of the cheapest cost is taken
+    (since overestimating the delay depth typically yields better performance).
+    The result is therefore explicitly sensitive to the machine and to the
+    loaded BLAS / LAPACK library.  Should the measurement fail, the closed form
+    below is used instead as a fallback, and the \texttt{info} file then
+    reports \texttt{formula};
+  \item \texttt{formula} -- the closed form 
+    $k \approx \sqrt{2 N_{\mathrm{dim}}}$ is used and is clamped to $[8, 256]$,
+    never exceeding $N_{\mathrm{dim}}$; this is also the automatic probe's
+    fallback. It should be noted that the formula makes the assumption that the
+    memory bandwidth will cancel between the panel contribution and the Green's
+    function flush.
+\end{itemize}
+
+The chain's delay depth and how it was arrived at
+(\texttt{off}, \texttt{fixed}, \texttt{probe} or \texttt{formula}) are written
+to each run's \texttt{info} file as \texttt{Delay depth} and
+\texttt{Delay depth from}.
+%
 %------------------------------------------------------------
 \subsubsection{Sampling of $e^{-S_0}$}
 \label{sec:S0}
