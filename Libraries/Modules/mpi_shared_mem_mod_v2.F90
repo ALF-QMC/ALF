@@ -101,8 +101,7 @@ module mpi_shared_memory
         real(Kind=Kind(0.d0)), intent(in) :: chunk_size
         
 #ifdef MPI
-        integer :: ierr, tmp_int, status
-        real(Kind=Kind(0.d0)) :: dummy_real_dp
+        integer :: ierr
 
         chunk_size_gb=chunk_size
         if (chunk_size_gb > 0) then
@@ -592,9 +591,9 @@ module mpi_shared_memory
       
       subroutine deallocate_all_shared_memory()
         Implicit none
-        integer :: ierr, i, mpi_win_loc
         
 #ifdef MPI
+        integer :: ierr, i, mpi_win_loc
         external :: MPI_Win_free    ! This seems to be required by gfortran10 with OpenMPI on Fedora33 (should be part of MPI module)
 
         do i=1,num_chunks_real

@@ -38,6 +38,7 @@
 !> Collection of routines for postprocessing the Monte Carlo bins
 !
 !--------------------------------------------------------------------
+      Use Natural_Constants, only: Eps_small, Eps_convergence
       use iso_fortran_env, only: output_unit, error_unit
       use Files_mod
       Use Errors
@@ -171,9 +172,8 @@
 
       Character (len=64) :: file, obs_dsetname, sgn_dsetname
       INTEGER                       :: rank, hdferr
-      INTEGER(HSIZE_T)              :: mem_dims(1)
       INTEGER(HSIZE_T), allocatable :: dims(:), maxdims(:)
-      INTEGER(HID_T)                :: file_id, dset_id, dataspace, memspace
+      INTEGER(HID_T)                :: file_id, dset_id, dataspace
       TYPE(C_PTR)                   :: dat_ptr
 
       file = 'data.h5'
@@ -267,7 +267,7 @@ Subroutine read_local(file, sgn, bins, Latt, Latt_unit, dtau, Channel)
 
       Character (len=64) :: file_aux, str_temp1,  str_temp2
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
-      Integer :: no, no1, n, nt, nb, Ntau, Ndim, Nbins, stat, Ndim_unit
+      Integer :: no, n, nt, nb, Ntau, Ndim, Nbins, stat, Ndim_unit
       Real(Kind=Kind(0.d0)) :: X
       Real(Kind=Kind(0.d0)), allocatable :: Xr_p(:,:), Orb_pos_temp(:)
       Real(Kind=Kind(0.d0)) :: x_p(2), a1_p(2), a2_p(2), L1_p(2), L2_p(2)
@@ -1051,11 +1051,11 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
 
       Logical :: PartHole, L_Back, Extended_Zone
       Character (len=64) :: File_out, command,  xk1_str,  xk2_str 
-      Real    (Kind=Kind(0.d0)), parameter :: Zero=1.D-8
+      Real    (Kind=Kind(0.d0)), parameter :: Zero=Eps_small
       Integer :: N_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones
       Integer :: Nbins, LT, Lt_eff,  n_mk
       Integer :: nb, no, no1, no2, n,i, nt, nt1, ierr, Norb,  NBZ_1,  NBZ_2
-      Complex (Kind=Kind(0.d0)) :: Z, Zmean, Zerr
+      Complex (Kind=Kind(0.d0)) :: Z
       Real    (Kind=Kind(0.d0)), allocatable :: Phase(:)
       Complex (Kind=Kind(0.d0)), allocatable :: V_help_loc(:,:,:,:), Bins_help(:,:,:,:) 
       Real    (Kind=Kind(0.d0)), allocatable :: Xk_p(:,:),  Xk_p1(:), Xk_extended_p(:), X
@@ -1156,8 +1156,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
                Xk_Extended_p(:)  =   Xk_p(:,n) +  NBZ_1 * Latt%BZ1_p +  NBZ_2 * Latt%BZ2_p
                if ( Xk_Extended_p(1) >= -zero .and. XK_Extended_p(2) >= -zero ) then
                   L_back  = .false. 
-                  if ( sqrt(Xk_extended_p(1)**2 + Xk_extended_p(2)**2) < 1.D-6 .and. N_Back == 1 )   L_back  = .true.
-                  ! Set   weights
+                  if ( sqrt(Xk_extended_p(1)**2 + Xk_extended_p(2)**2) < Eps_convergence .and. N_Back == 1 )   L_back  = .true.
                   If (Extended_Zone)  then
                      do  no  =  1,Norb
                         X =  0.d0
@@ -1263,7 +1262,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
          enddo
          if (PartHole)  V_help_suscep   =  V_help_suscep * cmplx(2.d0,0.d0,Kind(0.d0))
          L_back  = .false. 
-         if ( sqrt(Xk_p(1,n)**2 + Xk_p(2,n)**2) < 1.D-6 .and. N_Back == 1 )  L_back  = .true. 
+         if ( sqrt(Xk_p(1,n)**2 + Xk_p(2,n)**2) < Eps_convergence .and. N_Back == 1 )  L_back  = .true. 
          call COV(V_help_suscep, phase, Xcov, Xmean, background, L_back, N_rebin, Weights  )
          Xmean_st(n) = Xmean(1)*dtau
          Xerr_st(n)  =  Sqrt(Xcov(1,1))*dtau
@@ -1333,12 +1332,11 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
    Integer :: N_skip, N_rebin, N_Cov, N_Back, N_auto
    Integer :: Nbins, N_BZ_Zones
    Logical :: Extended_Zone
-   Integer :: i, n, nb, no, no1, ierr
+   Integer :: n, nb, no, ierr
    Complex (Kind=Kind(0.d0)), allocatable :: Phase(:)
    Complex (Kind=Kind(0.d0)), allocatable :: V_help(:)
    Real    (Kind=Kind(0.d0)) :: Xr_p(2)
-   Complex (Kind=Kind(0.d0)) :: Z, Xmean, Xerr, Xmean_r, Xerr_r
-   Real (Kind=Kind(0.d0)) :: Xm,Xe
+   Complex (Kind=Kind(0.d0)) :: Xmean, Xerr
    
    NAMELIST /VAR_errors/ N_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones, Extended_Zone
 
@@ -1542,7 +1540,7 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
                do  n = 1,  Latt%N 
                   Xk_Extended_p(:)  =   Xk_p_s(:,n) +  NBZ_1 * Latt%BZ1_p +  NBZ_2 * Latt%BZ2_p
                   L_back  = .false. 
-                  if ( sqrt(Xk_Extended_p(1)**2 + Xk_Extended_p(2)**2) < 1.D-6 .and. N_Back == 1 )   L_back  = .true.
+                  if ( sqrt(Xk_Extended_p(1)**2 + Xk_Extended_p(2)**2) < Eps_convergence .and. N_Back == 1 )   L_back  = .true.
                   do no  =  1,Latt_unit%Norb
                      X =  0.d0
                      do i  =  1,size(Latt%BZ1_p,1)
@@ -1575,7 +1573,7 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
                   do nb = 1,Nbins
                      V_help(1,nb) = bins  (n,nb)%el(no,no1)
                   enddo
-                  if ( sqrt(Xk_p(1)**2 + Xk_p(2)**2) < 1.D-6 ) then
+                  if ( sqrt(Xk_p(1)**2 + Xk_p(2)**2) < Eps_convergence ) then
                      do nb = 1,Nbins
                         V_help(2,nb) = Bins0(nb,no)*Latt%N
                         V_help(3,nb) = Bins0(nb,no1)
@@ -1865,7 +1863,7 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
 
       Integer :: Nobs, Nbins
 
-      INTEGER :: i, ierr
+      INTEGER :: ierr
       Character (len=64) :: obs_dsetname, sgn_dsetname
       INTEGER(HID_T)     :: file_id, group_id
       logical            :: file_exists, link_exists
@@ -1981,7 +1979,7 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
 
       Integer :: Norb, Nunit, Ntau, Nbins
 
-      INTEGER :: i, ierr
+      INTEGER :: ierr
       Character (len=64) :: obs_dsetname, bak_dsetname, sgn_dsetname
       INTEGER(HID_T)     :: file_id, group_id
       logical            :: file_exists, link_exists
@@ -2107,8 +2105,8 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
 
       Integer :: Norb, Nunit, Ntau, Nbins
 
-      INTEGER :: i, ierr
-      Character (len=64) :: obs_dsetname, bak_dsetname, sgn_dsetname
+      INTEGER :: ierr
+      Character (len=64) :: obs_dsetname, sgn_dsetname
       INTEGER(HID_T)     :: file_id, group_id
       logical            :: file_exists, link_exists
       INTEGER(HSIZE_T), allocatable :: dims(:)

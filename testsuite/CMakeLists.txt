@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.5...4.2)
 if(DEFINED ENV{ALF_FC})
   set(CMAKE_Fortran_COMPILER $ENV{ALF_FC})
 endif()
@@ -19,4 +19,5 @@ Project(matmod.tests C Fortran)
 
 add_subdirectory(matmod.tests)
 add_subdirectory(Prog.tests)
+add_subdirectory(Analysis.tests)
 enable_testing()

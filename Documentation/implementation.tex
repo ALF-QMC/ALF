@@ -215,7 +215,7 @@ such that
                                                                     &   & $\vec{R}_i$ = \texttt{list(i,1)}$\vec{a}_1$ + \texttt{list(i,2)}$\vec{a}_2$  $  \equiv i_1  \vec{a}_1 + i_2  \vec{a}_2 $ \\
     \texttt{Latt\%invlist}                             & \texttt{int}   &  Return lattice point from position: \texttt{Invlist}$(i_1,i_2) = i $ \\
     \texttt{Latt\%nnlist}                              & \texttt{int}   &  Nearest neighbor indices: $j = \texttt{nnlist} (i, n_1, n_2) $, \\
-                                                       &                &  $n_1, n_2 \in [-1,1] $, $\vec{R}_j = \vec{R}_i + n_1 \vec{a}_1  + n_2 \vec{a}_2 $ \\
+                                                       &                &  $|n_1|, |n_2| \leq  \texttt{nnlist\_range} $, $\vec{R}_j = \vec{R}_i + n_1 \vec{a}_1  + n_2 \vec{a}_2 $ \\
    \texttt{Latt\%imj}                                  & \texttt{int}   &  $\vec{R}_{\mathrm{imj}(i,j)}  =  \vec{R}_i -  \vec{R}_j$, with  $\mathrm{imj}, i, j \in  1,\cdots, N_{\text{unit-cell}}$ \\
     \texttt{Latt\%BZ1\_p}, \texttt{Latt\%BZ2\_p}       & \texttt{dble}  & Reciprocal space vectors $\vec{g}_i$   [See Eq.~\eqref{Latt.G.eq}] \\
     \texttt{Latt\%b1\_p}, \texttt{Latt\%b2\_p}          & \texttt{dble}  &  $k$-quantization [See Eq.~\eqref{k.quant.eq}] \\
@@ -227,7 +227,7 @@ such that
    \texttt{Latt\%b2\_perp\_p}                          & \texttt{dble}  &  Orthonormal vectors to $\vec{b}_i$ (for internal use) \\\bottomrule
    \end{tabular}
    \caption{Components of the \texttt{Lattice} type for two-dimensional lattices using as example the default lattice name \texttt{Latt}.
-   The \hl{highlighted} variables must be specified by the user.  Other components of \texttt{Lattice} are generated upon calling: \texttt{Call Make\_Lattice(L1, L2, a1, a2, Latt)}. 
+   The \hl{highlighted} variables must be specified by the user.  Other components of \texttt{Lattice} are generated upon calling: \texttt{Call Make\_Lattice(L1, L2, a1, a2, Latt,nnlist\_range)}.   The variable \texttt{nnlist\_range} is optional and defaults to unity.
     \label{table:lattice}}
 \end{center}
 \end{table}

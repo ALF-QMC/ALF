@@ -59,7 +59,6 @@
       ! Private variables
       Type(DynamicMatrixArray), private, allocatable :: ExpOpT_vec(:) ! for now we have for simplicity for each flavour a vector
       Integer, private, save ::  Ncheck
-      Real (Kind=Kind(0.d0)), private, save  :: Zero
 
       Contains
 
@@ -137,7 +136,6 @@
              enddo
           enddo
 
-          Zero = 1.E-12
         end subroutine Hop_mod_init
 
 !--------------------------------------------------------------------

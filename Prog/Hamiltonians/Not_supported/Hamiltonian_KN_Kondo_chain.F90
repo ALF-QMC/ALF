@@ -480,6 +480,7 @@
 !--------------------------------------------------------------------
         Subroutine Ham_Hop
 
+          Use Natural_Constants, only: twopi
           Implicit none
 
           Real (Kind=Kind(0.d0))  :: X_p(2), Delta_K
@@ -507,7 +508,7 @@
                 Enddo
              Enddo
           elseif (K_space) then
-             Delta_K = 2.d0*acos(-1.d0)/real(L,Kind=Kind(0.d0))
+             Delta_K = twopi/real(L,Kind=Kind(0.d0))
              allocate(Op_T(K*L*Latt%N,1))
              nc = 0
              Do i_0 = 1,Latt%N

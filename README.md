@@ -50,7 +50,7 @@ $$
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
 \sum\limits_{s=1}^{N_{\mathrm{fl}}}
 \sum\limits_{x,y}^{N_{\mathrm{dim}}}
-\hat{c}^{\dagger}_{x \sigma s} I_{xy}^{(k s)}\hat{c}_{y \sigma s}
+\hat{c}^{\dagger}_{x \sigma s}{I_{xy}^{(k s)}}\hat{c}_{y \sigma s}
 \right)
 $$
 $$

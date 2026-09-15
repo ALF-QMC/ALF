@@ -42,6 +42,7 @@
          Use Errors
          Use MyMats
          Use Matrix
+         Use Natural_Constants, only: Eps_small
          use iso_fortran_env, only: output_unit, error_unit
 #ifdef _OPENMP
          use check_omp_num_threads_mod
@@ -53,11 +54,11 @@
          Integer :: Nunit, Norb, N_auto
          Integer :: no, no1, n, nbins, n_skip, nb, NT, NT1, Lt, N_rebin, N_cov, ierr, N_Back
          Integer :: Lt_eff
-         real    (Kind=Kind(0.d0)):: X, Y,  dtau, X_diag
+         real    (Kind=Kind(0.d0)):: X, Y,  dtau
          Complex (Kind=Kind(0.d0)), allocatable :: Xmean(:), Xcov(:,:)
          Complex (Kind=Kind(0.d0)) :: Zmean, Zerr
          Complex (Kind=Kind(0.d0)) :: Z, Z_diag
-         Real    (Kind=Kind(0.d0)) :: Zero=1.D-8
+         Real    (Kind=Kind(0.d0)), parameter :: Zero=Eps_small
          Real    (Kind=Kind(0.d0)), allocatable :: Phase(:)
          Complex (Kind=Kind(0.d0)), allocatable :: PhaseI(:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins(:,:,:), Bins_chi(:,:), OneBin(:,:,:)
@@ -309,11 +310,10 @@
 !!$         Real (Kind=Kind(0.d0)), INTENT(IN) :: Xk_p(2,Nunit)
 !!$
 !!$         !Local
-!!$         real (Kind=Kind(0.d0)) :: X1_p(2), Zero, pi, X
+!!$         real (Kind=Kind(0.d0)) :: X1_p(2), X
+!!$         real (Kind=Kind(0.d0)), parameter :: Zero = 1.D-4, pi = acos(-1.d0)
 !!$         Integer :: m
 !!$
-!!$         Zero = 1.D-4
-!!$         pi = acos(-1.d0)
 !!$         X1_p(1)  =  Xk_p(2,n)
 !!$         X1_p(2)  = -Xk_p(1,n)
 !!$         if (X1_p(1) < -pi + Zero )  X1_p(1) = X1_p(1) + 2.0*pi

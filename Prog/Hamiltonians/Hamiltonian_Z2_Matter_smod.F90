@@ -54,6 +54,7 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use Predefined_Obs
+      Use Natural_Constants, only: Eps_small
 
       Implicit none
       
@@ -102,7 +103,7 @@
       Type (Unit_cell),      target :: Latt_unit
       Logical                :: One_dimensional
       Integer, allocatable   :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
-      real (Kind=Kind(0.d0)) :: Zero = 1.D-10
+      real (Kind=Kind(0.d0)) :: Zero = Eps_small
 
       !>    Storage for the Ising action
       Real (Kind=Kind(0.d0)) :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1), DW_Ising_Flux(-1:1,-1:1)
@@ -133,12 +134,12 @@
 #endif
           Implicit none
 
-          integer :: ierr, nf, unit_info
+          integer :: nf, unit_info
           Character (len=64) :: file_info
           
 #ifdef MPI
+          Integer        :: ierr
           Integer        :: Isize, Irank, igroup, irank_g, isize_g
-          Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -314,8 +315,7 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: nf, I, I1, I2,  nc, nc1,  J, N_Field_type, N_ops
-          Real (Kind=Kind(0.d0)) :: X
+          Integer :: nf, I, I1, nc, N_Field_type, N_ops
 
           N_ops = size(Field_list_inv,1)
           Allocate(Op_V(N_ops, N_FL))
@@ -380,12 +380,13 @@
         Subroutine Ham_Trial()
 
           Use Predefined_Trial
+          Use Natural_Constants, only: pi
 
           Implicit none
           
           Integer                              :: nf, Ix, Iy, I, n
           Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
-          Real (Kind=Kind(0.d0))               :: Pi = acos(-1.d0), Delta = 0.01d0
+          Real (Kind=Kind(0.d0)), parameter    :: Delta = 0.01d0
           
           Allocate(WF_L(N_FL),WF_R(N_FL))
           do nf=1,N_FL
@@ -544,7 +545,7 @@
 
 
           !Local
-          Integer                   ::  ns , nc, n_op, n_op1, ntau_p1, ntau_m1, I, n
+          Integer                   ::  n_op, n_op1, ntau_p1, ntau_m1, I, n
           Integer, allocatable      ::  Isigma1(:),Isigma2(:),Isigma3(:)
           Real  (Kind = Kind(0.d0)) ::  S0_Matter, T0_Proposal
 
@@ -663,7 +664,7 @@
           !> Arguments
           type (Fields),  Intent(IN)  :: nsigma_old
           !> Local
-          Integer :: I,n,n1,n2,n3,n4,nt,nt1, nc_F, nc_J, nc_h_p, nc_h_m, n1_m, n4_m
+          Integer :: I,n1,n2,n3,n4,nt,nt1, nc_F, nc_J, nc_h_p, nc_h_m, n1_m, n4_m
           Real (Kind=kind(0.d0)) :: exp_delta_S0
 
 
@@ -739,9 +740,8 @@
           ! This subroutine sets up lists and arrays so as to enable an
           ! an efficient calculation of  S0(n,nt)
 
-          Integer :: nc, nth, n, n1, n2, n3, n4, I, I1, n_orientation, Ix, Iy, N_Field_type,  N_Pos
+          Integer :: nc, n, n1, I, I1, n_orientation, Ix, Iy, N_Field_type,  N_Pos
           Integer :: N_ops
-          Real (Kind=Kind(0.d0)) :: X_p(2)
 
 
           N_ops = 0
@@ -969,16 +969,12 @@
 
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin_mat, ZPot_mat, Z, ZP,ZS, Z1, Z2, ZN
-          Complex (Kind=Kind(0.d0)) :: ZQ, ZSTAR, ZQT, ZQTT
-          Integer :: I,J, imj, nf, dec, I1, I2,I3,I4, J1,J2,J3,J4, no_I, no_J,  iFlux_tot,  &
-               &     no, no1, ntau1, ntau2, L_Vison, L_Wilson, n, nx,ny
-          Real (Kind=Kind(0.d0)) :: X_ave, X, XI1,XI2,XI3,XI4, X_p(2)
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
+          Complex (Kind=Kind(0.d0)) :: Zrho, Z, ZP,ZS, Z1, ZN
+          Integer :: I,J, imj, nf, I1, J1, iFlux_tot,  &
+               &     no, ntau1
+          Real (Kind=Kind(0.d0)) :: X_ave
           Integer,  allocatable  :: Isigma(:), Isigmap1(:)
-          Integer ::  IB_x, IB_y, Ix, Iy
-
-          Real (Kind=Kind(0.d0)) :: X_star_i, X_star_j,  X_star_ij
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -1140,8 +1136,8 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J, NT1
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS
+          Integer :: NT1
 
           NT1 = NT
           If (NT == 0 ) NT1 = LTROT
@@ -1366,7 +1362,7 @@
         Integer, Intent(IN) :: Isigma(:), Isigmap1(:)
         
         Real ( Kind =Kind(0.d0) ) :: X
-        Integer :: I3, I4, nt1
+        Integer :: I3, I4
 
         tau_x = 1.d0
         If  (Abs(Ham_T) > Zero ) then

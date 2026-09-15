@@ -204,7 +204,7 @@
 #endif
           Implicit none
 
-          integer                :: ierr, nf, unit_info
+          integer                :: nf, unit_info
           Character (len=64)     :: file_info
 
           ! L1, L2, Lattice_type, List(:,:), Invlist(:,:) -->  Lattice information
@@ -213,8 +213,7 @@
           ! Simulation type                          -->  Finite  T or Projection  Symmetrize Trotter.
 
 #ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
+          Integer        :: ierr, Isize, Irank, irank_g, isize_g, igroup
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -324,7 +323,6 @@
           Integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
-          Integer :: n,nth
 
           Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
                &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
@@ -389,7 +387,7 @@
 
           Implicit none
 
-          Integer :: N_part, nf
+          Integer :: N_part
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = Ndim/2
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
@@ -415,9 +413,8 @@
           Type (Hopping_Matrix_type), Allocatable :: Bond_Matrix(:)
 
           Integer                           :: I, J, I1, J1, no_I, no_J, nf
-          Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc
+          Integer                           :: n_1, n_2, Nb, n_f,l_f, N, nc
           Complex(Kind=Kind(0.d0))          :: Z
-          real(Kind=Kind(0.d0))             :: Zero =  1.0E-6
 
           Allocate (Ham_V_vec(N_FL), Ham_V2_vec(N_FL), Ham_Vperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
                &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
@@ -635,10 +632,9 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, Zn, weight, delta
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, tmp
-          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n, nf2, k, k1, l, l1
-          Real    (Kind=Kind(0.d0)) :: X
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), Zn, weight, delta
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZP,ZS, tmp
+          Integer :: I,J, nf, I1, J1,n, nf2, k, k1, l, l1
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -760,9 +756,7 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
-          Real    (Kind=Kind(0.d0)) :: X
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))

@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2023 The ALF project
+!  Copyright (C) 2016 - 2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -127,7 +127,7 @@
     Module Hamiltonian_main
       Use runtime_error_mod
       Use files_mod
-      Use Operator_mod, only: Operator
+      Use Operator_mod, only: Operator, Op_V_is_symmetric
       Use WaveFunction_mod, only: WaveFunction
       Use Observables
       Use Fields_mod, only: Fields
@@ -136,10 +136,20 @@
     Implicit none
     
     private
-    public :: Alloc_Ham, ham_base, ham
+    public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED, Validate_Ham_Variables
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
+      
+      ! Sentinel value for rejected global moves in log scale
+      Real (Kind=Kind(0.d0)), parameter :: LOG_T0_REJECTED = -huge(1.d0)
+      
+      ! Sentinel value for uninitialized integer Hamiltonian variables
+      Integer, parameter, private :: HAM_VAR_UNSET_INT = -huge(0)
+
+      ! Set to .True. to override the symmetric decomposition check in Ham_Set_base
+      Logical, private :: override_symmetric_decomposition_check = .False.
+      
       type ham_base
       contains
         procedure, nopass :: ham_set => ham_set_base
@@ -154,6 +164,7 @@
         procedure, nopass :: Overide_global_tau_sampling_parameters => Overide_global_tau_sampling_parameters_base
         procedure, nopass :: Global_move => Global_move_base
         procedure, nopass :: Global_MALA_move => Global_MALA_move_base
+        procedure, nopass :: Global_move_log_T0 => Global_move_log_T0_base
         procedure, nopass :: Delta_S0_global => Delta_S0_global_base
         procedure, nopass :: Get_Delta_S0_global => Get_Delta_S0_global_base
         procedure, nopass :: S0 => S0_base
@@ -226,6 +237,9 @@
           write(error_unit, '("A","A","A")') 'Hamiltonian ', ham_name, ' not yet implemented!'
           CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
        end Select
+       
+       ! Initialize Hamiltonian variables to sentinel/safe default values
+       Call Init_Ham_Variables()
     end subroutine Alloc_Ham
     
     !--------------------------------------------------------------------
@@ -326,6 +340,75 @@
     !> ALF Collaboration
     !>
     !> @brief
+    !> Proposes a global move in space and time, returning the proposal ratio on logarithmic scale
+    !>
+    !> @details
+    !> This subroutine wraps around Global_move to keep T0_Proposal_ratio on a logarithmic scale,
+    !> avoiding numerical over/underflow issues for very small or very large proposal ratios.
+    !> Following the same pattern as Get_Delta_S0_global, which wraps Delta_S0_global.
+    !>
+    !> @param [OUT] Log_T0_Proposal_ratio Real
+    !> \verbatim
+    !>  Log_T0_Proposal_ratio = log(T0_Proposal_ratio)
+    !>                        = log( T0( sigma_new -> sigma_old ) / T0( sigma_old -> sigma_new) )
+    !>  If T0_Proposal_ratio is zero or negative, returns -huge(1.d0)
+    !> \endverbatim
+    !> @param [IN] nsigma_old,  Type(Fields)
+    !> \verbatim
+    !>  Old configuration. The new configuration is stored in nsigma.
+    !> \endverbatim
+    !> @param [OUT] Size_clust Real
+    !> \verbatim
+    !>  Size of cluster that will be flipped.
+    !> \endverbatim
+    !-------------------------------------------------------------------
+          Subroutine Global_move_log_T0_base(Log_T0_Proposal_ratio, nsigma_old, size_clust)
+
+             Implicit none
+             Real (Kind=Kind(0.d0)), intent(out) :: Log_T0_Proposal_ratio, size_clust
+             Type (Fields),  Intent(IN)  :: nsigma_old
+
+             Logical, save              :: warning_printed = .False.
+             Real (Kind=Kind(0.d0))     :: T0_Proposal_ratio
+             Real (Kind=Kind(0.d0))     :: min_safe_T0, max_safe_T0
+
+             ! Call the Hamiltonian's (possibly overridden) Global_move implementation
+             Call ham%Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
+
+             ! Define safe range for T0_Proposal_ratio to avoid extreme log values
+             ! Using sqrt of machine limits keeps log(T0) within roughly [-354, 354] in double precision
+             min_safe_T0 = sqrt(tiny(1.d0))
+             max_safe_T0 = sqrt(huge(1.d0))
+
+             ! Convert to logarithmic scale
+             if (T0_Proposal_ratio > 0.d0) then
+                Log_T0_Proposal_ratio = log(T0_Proposal_ratio)
+
+                ! Warn if T0_Proposal_ratio approaches the limits of double precision
+                if (.not. warning_printed .and. (T0_Proposal_ratio < min_safe_T0 .or. T0_Proposal_ratio > max_safe_T0)) then
+                   write(error_unit,*)
+                   write(error_unit,*) "WARNING:       Global_move produces T0_Proposal_ratio outside safe range!"
+                   write(error_unit,*) "T0_Proposal_ratio = ", T0_Proposal_ratio
+                   write(error_unit,*) "Safe range: [", min_safe_T0, ",", max_safe_T0, "]"
+                   write(error_unit,*) "This may cause numerical issues. Hamiltonian implementations should override"
+                   write(error_unit,*) "Global_move_log_T0 to compute log(T0_Proposal_ratio) directly in a numerically safe way."
+                   write(error_unit,*) "Suppressing further warnings."
+                   write(error_unit,*)
+                   warning_printed = .True.
+                endif
+             else
+                ! For T0_Proposal_ratio <= 0, return a very negative number
+                Log_T0_Proposal_ratio = LOG_T0_REJECTED
+             endif
+
+          End Subroutine Global_move_log_T0_base
+
+
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF Collaboration
+    !>
+    !> @brief
     !> Computes the ratio exp(S0(new))/exp(S0(old))
     !>
     !> @details
@@ -397,8 +480,6 @@
              Type (Fields),  INTENT(IN) :: nsigma_old
 
              Logical, save              :: first_call=.True.
-             integer                    :: field_id, tau, Nfields, Ntau
-             Complex (kind=kind(0.0d0)) :: Hs_old
 
              Get_Delta_S0_global_base = log(ham%Delta_S0_global(nsigma_old)) ! to avoid overflows we return the log of the ratio
 
@@ -958,6 +1039,171 @@
            
          end subroutine write_parameters_hdf5_base
 #endif
-         
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Initializes Hamiltonian variables to sentinel/safe default values.
+    !> @details
+    !> Called from Alloc_Ham before ham_set. Integer variables are set to
+    !> sentinel values that will be caught by Validate_Ham_Variables if
+    !> ham_set fails to initialize them. Logical variables are set to
+    !> safe defaults (.false.).
+    !> Variables managed by main.F90 (Group_Comm, N_FL_eff,
+    !> reconstruction_needed, leap_frog_bulk) are not touched here.
+    !--------------------------------------------------------------------
+    subroutine Init_Ham_Variables()
+      implicit none
+      Ndim      = HAM_VAR_UNSET_INT
+      N_FL      = HAM_VAR_UNSET_INT
+      N_SUN     = HAM_VAR_UNSET_INT
+      Ltrot     = HAM_VAR_UNSET_INT
+      Thtrot    = HAM_VAR_UNSET_INT
+      Projector = .false.
+      Symm      = .false.
+    end subroutine Init_Ham_Variables
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Validates that all required Hamiltonian variables have been properly
+    !> set by ham_set.
+    !> @details
+    !> Called from main.F90 after ham_set returns. Checks that integer
+    !> variables have been set to valid values (not the sentinel) and that
+    !> they satisfy basic physical constraints.
+    !--------------------------------------------------------------------
+    subroutine Validate_Ham_Variables()
+      implicit none
+
+      Integer :: n, nf, i
+
+      if (Ndim == HAM_VAR_UNSET_INT .or. Ndim <= 0) then
+         write(error_unit, '(A,I0)') 'Ham_set error: Ndim was not set or has invalid value: ', Ndim
+         write(error_unit, '(A)') 'Ndim must be a positive integer (total number of orbitals).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (N_FL == HAM_VAR_UNSET_INT .or. N_FL <= 0) then
+         write(error_unit, '(A,I0)') 'Ham_set error: N_FL was not set or has invalid value: ', N_FL
+         write(error_unit, '(A)') 'N_FL must be a positive integer (number of flavors).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (N_SUN == HAM_VAR_UNSET_INT .or. N_SUN <= 0) then
+         write(error_unit, '(A,I0)') 'Ham_set error: N_SUN was not set or has invalid value: ', N_SUN
+         write(error_unit, '(A)') 'N_SUN must be a positive integer (number of colors).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (Ltrot == HAM_VAR_UNSET_INT .or. Ltrot <= 0) then
+         write(error_unit, '(A,I0)') 'Ham_set error: Ltrot was not set or has invalid value: ', Ltrot
+         write(error_unit, '(A)') 'Ltrot must be a positive integer (number of time slices).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (Thtrot == HAM_VAR_UNSET_INT .or. Thtrot < 0) then
+         write(error_unit, '(A,I0)') 'Ham_set error: Thtrot was not set or has invalid value: ', Thtrot
+         write(error_unit, '(A)') 'Thtrot must be a non-negative integer (projection parameter).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (Projector .and. Thtrot == 0) then
+         write(error_unit, '(A)') 'Ham_set warning: Projector is .true. but Thtrot = 0.'
+         write(error_unit, '(A)') 'This means no projection is actually applied. Check Theta and Dtau.'
+      endif
+
+      ! --- Array allocation and dimension checks ---
+
+      if (.not. allocated(Op_V)) then
+         write(error_unit, '(A)') 'Ham_set error: Op_V was not allocated.'
+         write(error_unit, '(A)') 'Op_V must be allocated with shape (:, N_FL) in Ham_Set.'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+      if (size(Op_V, 2) /= N_FL) then
+         write(error_unit, '(A,I0)') 'Ham_set error: Op_V has wrong second dimension: ', size(Op_V, 2)
+         write(error_unit, '(A,I0)') 'Expected size(Op_V, 2) = N_FL = ', N_FL
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (.not. allocated(Op_T)) then
+         write(error_unit, '(A)') 'Ham_set error: Op_T was not allocated.'
+         write(error_unit, '(A)') 'Op_T must be allocated with shape (:, N_FL) in Ham_Set.'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+      if (size(Op_T, 2) /= N_FL) then
+         write(error_unit, '(A,I0)') 'Ham_set error: Op_T has wrong second dimension: ', size(Op_T, 2)
+         write(error_unit, '(A,I0)') 'Expected size(Op_T, 2) = N_FL = ', N_FL
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (Projector) then
+         if (.not. allocated(WF_L) .or. .not. allocated(WF_R)) then
+            write(error_unit, '(A)') 'Ham_set error: Projector is .true. but WF_L and/or WF_R were not allocated.'
+            write(error_unit, '(A)') 'Trial wave functions must be allocated with shape (N_FL) when Projector = .true.'
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+         endif
+         if (size(WF_L) /= N_FL) then
+            write(error_unit, '(A,I0)') 'Ham_set error: WF_L has wrong size: ', size(WF_L)
+            write(error_unit, '(A,I0)') 'Expected size(WF_L) = N_FL = ', N_FL
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+         endif
+         if (size(WF_R) /= N_FL) then
+            write(error_unit, '(A,I0)') 'Ham_set error: WF_R has wrong size: ', size(WF_R)
+            write(error_unit, '(A,I0)') 'Expected size(WF_R) = N_FL = ', N_FL
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+         endif
+      endif
+
+      ! --- Validate projector indices for Op_V and Op_T are in [1, Ndim] ---
+      do nf = 1, N_FL
+         do n = 1, size(Op_V, 1)
+            do i = 1, Op_V(n, nf)%N
+               if (Op_V(n, nf)%P(i) < 1 .or. Op_V(n, nf)%P(i) > Ndim) then
+                  write(error_unit, '(A,I0,A,I0,A,I0,A,I0)') &
+                       'Ham_set error: Op_V(', n, ',', nf, ')%P(', i, ') = ', Op_V(n, nf)%P(i)
+                  write(error_unit, '(A,I0,A)') &
+                       '   Valid projector index range is 1..Ndim = ', Ndim, '.'
+                  CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+               endif
+            enddo
+         enddo
+      enddo
+      do nf = 1, N_FL
+         do n = 1, size(Op_T, 1)
+            do i = 1, Op_T(n, nf)%N
+               if (Op_T(n, nf)%P(i) < 1 .or. Op_T(n, nf)%P(i) > Ndim) then
+                  write(error_unit, '(A,I0,A,I0,A,I0,A,I0)') &
+                       'Ham_set error: Op_T(', n, ',', nf, ')%P(', i, ') = ', Op_T(n, nf)%P(i)
+                  write(error_unit, '(A,I0,A)') &
+                       '   Valid projector index range is 1..Ndim = ', Ndim, '.'
+                  CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+               endif
+            enddo
+         enddo
+      enddo
+
+      ! --- Check that Op_V operator sequence is symmetric when Symm = .true. ---
+      ! The product (I + g_1*V_1)...(I + g_N*V_N) must equal (I + g_N*V_N)...(I + g_1*V_1).
+      ! This is satisfied when operators are palindromically arranged OR when they commute.
+      if (Symm .and. .not. override_symmetric_decomposition_check) then
+         if (.not. Op_V_is_symmetric(Op_V, N_FL, Ndim)) then
+            write(error_unit, '(A)') 'Ham_set warning: Symm = .true. but Op_V operator sequence is not symmetric.'
+            write(error_unit, '(A)') '   The product of (I + g*V) in forward order differs from reverse order.'
+            write(error_unit, '(A)') '   A symmetric Trotter decomposition requires the operator sequence to be'
+            write(error_unit, '(A)') '   either palindromically arranged (Op_V(i) = Op_V(N+1-i) for all i),'
+            write(error_unit, '(A)') '   or composed of mutually commuting operators.'
+            write(error_unit, '(A)') '   Check the operator arrangement in Ham_V.'
+            write(error_unit, '(A)') '   '
+            write(error_unit, '(A)') '   In many cases, this is an error and should be treated as such.'
+            write(error_unit, '(A)') '   However, in some cases, like to Kondo models, this is acceptable as'
+            write(error_unit, '(A)') '   symmetric decomposition is restored once the auxiliary fields are averaged.'
+            write(error_unit, '(A)') '   You may set "override_symmetric_decomposition_check" to .true. to override this warning.'
+            ! CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+         endif
+      endif
+
+    end subroutine Validate_Ham_Variables
+
 
     end Module Hamiltonian_main

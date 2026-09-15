@@ -34,6 +34,7 @@ module OpTTypes_mod
     use ContainerElementBase_mod
     use Operator_mod
     use mat_subroutines
+    use Natural_Constants, only: Eps_machine
     implicit none
 
     private
@@ -95,7 +96,7 @@ contains
         Complex(kind=kind(0.d0)) :: cg
         Integer :: i, j
         
-        this%Zero = 1.E-12
+        this%Zero = Eps_machine
         this%Ndim_hop = Op_T%N
         allocate(this%mat(this%Ndim_hop, this%Ndim_hop), this%invmat(this%Ndim_hop, this%Ndim_hop))
         allocate(this%mat_1D2(this%Ndim_hop, this%Ndim_hop), this%invmat_1D2(this%Ndim_hop, this%Ndim_hop))
@@ -204,7 +205,7 @@ contains
         Type(Operator), intent(in) :: Op_T
         Integer :: i, j
         
-        this%Zero = 1.E-12
+        this%Zero = Eps_machine
         this%Ndim_hop = Op_T%N
         
         allocate(this%mat(this%Ndim_hop, this%Ndim_hop), this%invmat(this%Ndim_hop, this%Ndim_hop))

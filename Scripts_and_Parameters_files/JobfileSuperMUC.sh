@@ -34,10 +34,10 @@ module switch mkl mkl/2018
 
 export OMP_NUM_THREADS=##Nthreads##
 
-# the follwing eviroment variables generate an optimal pinning (to the best of our knowledge)
-# This DOES NOT have to be addepted to the choice of Ntasks
+# the following environment variables generate an optimal pinning (to the best of our knowledge)
+# This DOES NOT have to be adapted to the choice of Ntasks
 # FIRST EXCEPTION: If you chose to use hyperthreading (not recommended) you should set I_MPI_PIN_CELL=cpu
-# SECOND EXCEPTION: The following enviroment variables are Intel specific.
+# SECOND EXCEPTION: The following environment variables are Intel specific.
 export KMP_AFFINITY=verbose,granularity=fine,compact
 export I_MPI_PIN_CELL=core
 export I_MPI_PIN_DOMAIN=auto:cache3

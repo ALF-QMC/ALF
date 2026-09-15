@@ -1,5 +1,7 @@
 default:
   tags: [k8s]
+  artifacts:
+    expire_in: 7 days
 
 stages:
   - lint

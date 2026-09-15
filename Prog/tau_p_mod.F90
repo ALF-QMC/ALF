@@ -87,17 +87,13 @@
         
 !       Local.
         CLASS(UDV_State), Dimension(:), ALLOCATABLE :: udvr_local
-        Complex (Kind=Kind(0.d0)) :: DETZ, ZK, DET1(2)
+        Complex (Kind=Kind(0.d0)) :: DETZ
         Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  GRUPB, GRUP
         Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  G00UP, G0TUP, GT0UP,  GTTUP
         Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  G00UP_T, G0TUP_T, GT0UP_T,  GTTUP_T
-        Complex (Kind=Kind(0.d0)), allocatable  :: TEMP(:,:), TMPUP(:,:)
+        Complex (Kind=Kind(0.d0)), allocatable  :: TEMP(:,:)
 
-        Real    (Kind=kind(0.d0))  :: XMEAN_DYN, XMAX_DYN
-
-        Integer :: NTAUIN,  NTDM,  LFAM, NFAM, N_Part,  LQ , I, NCON, NF, nf_eff, NFLAG, NL, NT1, NT_ST, NT, NTAU, NTAU1,n
-
-        Real (Kind=Kind(0.d0)) :: XMEAN, XMAX
+        Integer :: LQ , I, NF, nf_eff, NT1, NT_ST, NT, NTAU, NTAU1, NCHECK
         Real (Kind=Kind(0.d0)) :: Mc_step_weight
         
         LQ = ndim
@@ -191,6 +187,7 @@
            endif
            CALL ham%OBSERT (NTAU,GT0UP,G0TUP,G00UP,GTTUP,PHASE, Mc_step_Weight)
         endif
+        NCHECK = 0
         DO NT = THTROT+1, Ltrot-THTROT
            ! UR is on time slice NT
            NTAU = NT - THTROT -1
@@ -205,6 +202,7 @@
                  nf=Calc_Fl_map(nf_eff)
                  Call Control_Precision_tau(GTTUP(:,:,nf), GRUP(:,:,nf), Ndim)
               enddo
+              NCHECK = NCHECK + 1
               GTTUP = GRUP
 
               GRUPB = -GRUP
@@ -263,6 +261,34 @@
            endif
 
         ENDDO
+
+        ! Fallback: if no Stab_nt point lay strictly inside (Thtrot+1, Ltrot-Thtrot),
+        ! NCHECK is still 0 and no tau-precision comparison has been made.  In that
+        ! case we propagate GTTUP forward to the next stabilisation point Stab_nt(NT_ST+1)
+        ! and perform the standard Wrapur + CGRP check there.
+        ! For Langevin/HMC the tail loop below already performs this check, so the
+        ! fallback is restricted to the standard sequential update path.
+        ! Note: after the measurement loop's last iteration, GTTUP has already been
+        ! propagated to time slice Ltrot-Thtrot+1, so the propagation here starts at
+        ! Ltrot-Thtrot+2.
+        If ( NCHECK == 0 .and. &
+             & str_to_upper(Langevin_HMC%get_Update_scheme()) /= "LANGEVIN" .and. &
+             & str_to_upper(Langevin_HMC%get_Update_scheme()) /= "HMC" ) Then
+           do NT = Ltrot-Thtrot+2, Stab_nt(NT_ST+1)
+              CALL PROPRM1 (GTTUP, NT)
+              CALL PROPR   (GTTUP, NT)
+           enddo
+           Call Wrapur(STAB_NT(NT_ST), STAB_NT(NT_ST+1), UDVR_local)
+           do nf_eff = 1, N_FL_eff
+              nf = Calc_Fl_map(nf_eff)
+              CALL CGRP(DetZ, GRUP(:,:,nf), udvr_local(nf_eff), udvst(NT_ST+1, nf_eff))
+           enddo
+           NT_ST = NT_ST + 1
+           Do nf_eff = 1, N_FL_eff
+              nf = Calc_Fl_map(nf_eff)
+              Call Control_Precision_tau(GTTUP(:,:,nf), GRUP(:,:,nf), Ndim)
+           Enddo
+        Endif
 
         If (str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
            & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC") then   ! Finish calculating the forces

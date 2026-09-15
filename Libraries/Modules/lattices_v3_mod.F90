@@ -1,4 +1,4 @@
-!  Copyright (C) 2018-2023 The ALF project
+!  Copyright (C) 2018-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -30,8 +30,6 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 
-     Module Lattices_v3
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -40,8 +38,11 @@
 !> This module generates one and two dimensional Bravais lattices and the unit cell
 !
 !--------------------------------------------------------------------
+     Module Lattices_v3
+
          Use Matrix
          Use runtime_error_mod
+         Use Natural_Constants, only: twopi, Eps_small
          use iso_fortran_env, only: output_unit, error_unit
          implicit none
          private
@@ -84,35 +85,64 @@
 
        Contains
 
-         subroutine Make_lattice(L1_p, L2_p, a1_p, a2_p, Latt)
-
-           ! This is for a general tilted square lattice defined by the vector a1, a2
-           ! L1_p,  L2_p define cluster topology. ( Tilted etc.)
-           ! L1_p = n*a1_p + m *a2_p
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!> @brief
+!> Generate a general tilted square lattice spanned by the vectors a1, a2.
+!> L1_p, L2_p define cluster topology (Tilted etc.).
+!> L1_p = n*a1_p + m*a2_p
+!>
+!> @param[in] L1_p First lattice vector
+!> @param[in] L2_p Second lattice vector
+!> @param[in] a1_p First primitive lattice vector
+!> @param[in] a2_p Second primitive lattice vector
+!> @param[out] Latt Lattice object
+!> @param[in] nnlist_range_in Optional range of nnlist and nnlistk.
+!>            For example, nnlist_range_in = 1 gives nearest neighbors,
+!>            nnlist_range_in = 2 gives next nearest neighbors etc.
+!>            It defaults to 1 if not provided.
+!--------------------------------------------------------------------
+         subroutine Make_lattice(L1_p, L2_p, a1_p, a2_p, Latt, nnlist_range_in)
 
 
            Implicit none
 
-           Real (Kind=Kind(0.d0)),  dimension(:) :: L1_p, L2_p, a1_p, a2_p
+           Real (Kind=Kind(0.d0)),  dimension(:), intent(in) :: L1_p, L2_p, a1_p, a2_p
            Type (Lattice) :: Latt
+
+           Integer, intent(in), optional :: nnlist_range_in
+           Integer :: nnlist_range
 
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: xk_p, b1_p, b2_p, BZ1_p, BZ2_p, b_p
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p, x1_p, a_p,d_p
            Real (Kind=Kind(0.d0)), allocatable :: Mat(:,:), Mat_inv(:,:)
 
-           Integer :: ndim, L, L1, nc, i, i1,i2, L_f, LQ, n,m, nd1,nd2,nr, nnr1, nnr2, nnr, nr1, imj_1, imj_2
+           Integer :: L, L1, nc, i, i1,i2, L_f, LQ, n,m, nd1,nd2,nr, nnr1, nnr2, nnr, nr1, imj_1, imj_2
            Integer :: imj
-           Real    (Kind=Kind(0.d0)) :: Zero,pi, X
+           Real    (Kind=Kind(0.d0)) :: X
+           Real    (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
 
-           ndim = size(L1_p)
+           Integer, parameter :: ndim = 2
+           ! ndim = size(L1_p)  TODO: Generalize to 3D
            allocate (Latt%L2_p(ndim), Latt%L1_p(ndim), Latt%a1_p(ndim) , Latt%a2_p(ndim), &
                 &    Latt%b1_p(ndim), Latt%b2_p(ndim), Latt%BZ1_p(ndim), Latt%BZ2_p(ndim) )
            allocate (Latt%b1_perp_p(ndim), Latt%b2_perp_p(ndim) )
-           Zero = 1.D-5
            Latt%L1_p = L1_p
            Latt%L2_p = L2_p
            Latt%a1_p = a1_p
            Latt%a2_p = a2_p
+
+           if (present(nnlist_range_in)) then
+               nnlist_range = nnlist_range_in
+           else
+               nnlist_range = 1
+           endif
+
+            if (nnlist_range .lt. 1) then
+                write(error_unit,*) 'Make_lattice: nnlist_range_in has to be a positive integer.'
+                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
 
 
            !Compute the Reciprocal lattice vectors.
@@ -120,8 +150,6 @@
            Allocate ( BZ1_p(ndim), BZ2_p(ndim) )
            Allocate ( x_p(ndim),  x1_p(ndim), d_p(ndim),  a_p(ndim) )
 
-
-           pi   = acos(-1.d0)
 
            ! Setup the 2X2 matrix to determine  BZ1_p, BZ2_p
            Allocate ( Mat(2 , 2), Mat_inv( 2 , 2 ) )
@@ -134,10 +162,10 @@
            Mat_inv(2,2) =  Mat(1,1)/X
            Mat_inv(1,2) = -Mat(1,2)/X
            Mat_inv(2,1) = -Mat(2,1)/X
-           BZ1_p(1)      = 2.d0*pi*Mat_inv(1,1)
-           BZ1_p(2)      = 2.d0*pi*Mat_inv(2,1)
-           BZ2_p(1)      = 2.d0*pi*Mat_inv(1,2)
-           BZ2_p(2)      = 2.d0*pi*Mat_inv(2,2)
+           BZ1_p(1)      = twopi*Mat_inv(1,1)
+           BZ1_p(2)      = twopi*Mat_inv(2,1)
+           BZ2_p(1)      = twopi*Mat_inv(1,2)
+           BZ2_p(2)      = twopi*Mat_inv(2,2)
            Latt%BZ1_p = BZ1_p
            Latt%BZ2_p = BZ2_p
 
@@ -145,7 +173,7 @@
 
 
            ! K-space Quantization  from periodicity in L1_p and L2_p
-           X =  2.d0*pi / ( Iscalar(BZ1_p,L1_p) * Iscalar(BZ2_p,L2_p) -   &
+           X =  twopi / ( Iscalar(BZ1_p,L1_p) * Iscalar(BZ2_p,L2_p) -   &
                 &           Iscalar(BZ2_p,L1_p) * Iscalar(BZ1_p,L2_p)   )
            X = abs(X)
            b1_p = X*( Iscalar(BZ2_p,L2_p) * BZ1_p - Iscalar(BZ1_p,L2_p) * BZ2_p )
@@ -174,12 +202,12 @@
 
 
            ! Count the number of lattice points.
-           L      =   abs(nint ( Iscalar(Latt%BZ1_p,L1_p) / (2.d0*pi) ))
-           L1     =   abs(nint ( Iscalar(Latt%BZ2_p,L1_p) / (2.d0*pi) ))
+           L      =   abs(nint ( Iscalar(Latt%BZ1_p,L1_p) / twopi ))
+           L1     =   abs(nint ( Iscalar(Latt%BZ2_p,L1_p) / twopi ))
            if (L1 .gt. L) L = L1
-           L1     =   abs(nint ( Iscalar(Latt%BZ1_p,L2_p) / (2.d0*pi) ))
+           L1     =   abs(nint ( Iscalar(Latt%BZ1_p,L2_p) / twopi ))
            if (L1 .gt. L) L = L1
-           L1     =   abs(nint ( Iscalar(Latt%BZ2_p,L2_p) / (2.d0*pi) ))
+           L1     =   abs(nint ( Iscalar(Latt%BZ2_p,L2_p) / twopi ))
            if (L1 .gt. L) L = L1
            nc = 0
            do i1 = -L,L
@@ -275,19 +303,19 @@
            endif
 
            !Setup nnlist
-           Allocate ( Latt%nnlist(LQ,-1:1,-1:1) )
+           Allocate ( Latt%nnlist(LQ,-nnlist_range:nnlist_range,-nnlist_range:nnlist_range) )
 
            do nr = 1, Latt%N
-              do nd1 = -1,1
-                 do nd2 = -1,1
+              do nd1 = -nnlist_range,nnlist_range
+                 do nd2 = -nnlist_range,nnlist_range
                     d_p = dble(nd1)*a1_p + dble(nd2)*a2_p
                     x_p  = dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  + d_p
-                    call npbc(x1_p, x_p , Latt%L1_p, Latt%L2_p)
-                    call npbc(x_p , x1_p, Latt%L1_p, Latt%L2_p)
-                    call npbc(x1_p, x_p , Latt%L1_p, Latt%L2_p)
-                    call npbc(x_p , x1_p, Latt%L1_p, Latt%L2_p)
-                    nnr1 =  nint ( Iscalar(Latt%BZ1_p,x_p) / (2.d0*pi) )
-                    nnr2 =  nint ( Iscalar(Latt%BZ2_p,x_p) / (2.d0*pi) )
+                    do i = 1, max(2, nnlist_range+1)
+                       call npbc(x1_p, x_p , Latt%L1_p, Latt%L2_p)
+                       call npbc(x_p , x1_p, Latt%L1_p, Latt%L2_p)
+                    enddo
+                    nnr1 =  nint ( Iscalar(Latt%BZ1_p,x_p) / twopi )
+                    nnr2 =  nint ( Iscalar(Latt%BZ2_p,x_p) / twopi )
                     nnr  = Latt%invlist(nnr1,nnr2)
                     Latt%nnlist(nr,nd1,nd2) = nnr
                     if ( nnr < 1  .or.  nnr > Latt%N ) then
@@ -302,12 +330,16 @@
            enddo
 
            !Setup nnlistk
-           Allocate ( Latt%nnlistk(LQ,-1:1,-1:1) )
+           Allocate ( Latt%nnlistk(LQ,-nnlist_range:nnlist_range,-nnlist_range:nnlist_range) )
            do nr = 1, Latt%N
-              do nd1 = -1,1
-                 do nd2 = -1,1
+              do nd1 = -nnlist_range,nnlist_range
+                 do nd2 = -nnlist_range,nnlist_range
                     d_p = dble(nd1)*b1_p + dble(nd2)*b2_p
                     x_p  = dble(Latt%listk(nr,1))*Latt%b1_p + dble(Latt%listk(nr,2))*Latt%b2_p  + d_p
+                    do i = 1, max(2, nnlist_range+1)
+                       call npbc(x1_p, x_p , Latt%BZ1_p, Latt%BZ2_p)
+                       call npbc(x_p , x1_p, Latt%BZ1_p, Latt%BZ2_p)
+                    enddo
                     Latt%nnlistk(nr,nd1,nd2)  = Inv_K(x_p,Latt)
                  enddo
               enddo
@@ -322,8 +354,8 @@
                  d_p = x_p - x1_p
                  call npbc(x1_p  , d_p , Latt%L1_p, Latt%L2_p)
                  call npbc(d_p , x1_p, Latt%L1_p, Latt%L2_p)
-                 imj_1 =  nint ( Iscalar(Latt%BZ1_p,d_p) / (2.d0*pi) )
-                 imj_2 =  nint ( Iscalar(Latt%BZ2_p,d_p) / (2.d0*pi) )
+                 imj_1 =  nint ( Iscalar(Latt%BZ1_p,d_p) / twopi )
+                 imj_2 =  nint ( Iscalar(Latt%BZ2_p,d_p) / twopi )
                  imj   = Latt%invlist(imj_1,imj_2)
                  Latt%imj(nr,nr1) = imj
               enddo
@@ -356,10 +388,10 @@
            integer, dimension(:), intent(out) :: nr_p
 
            integer, dimension(:), allocatable :: x_p
-           Real (Kind=Kind(0.d0)) :: Zero, X
+           Real (Kind=Kind(0.d0)) :: X
+           Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
            Integer :: Ndim, i
 
-           Zero = 1.D-8
            nr_p = n_p
            ndim = size(n_p)
 
@@ -389,10 +421,10 @@
 
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p
 
-           Real (Kind=Kind(0.d0)) :: Zero, X
+           Real (Kind=Kind(0.d0)) :: X
+           Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
            Integer :: ndim, i
 
-           Zero = 1.D-8
            nr_p = n_p
            ndim = size(n_p)
            allocate(x_p(ndim))
@@ -422,10 +454,10 @@
 
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p
 
-           Real (Kind=Kind(0.d0)) :: Zero, X
+           Real (Kind=Kind(0.d0)) :: X
+           Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
            Integer :: ndim, i,  Del_N1, Del_N2
 
-           Zero = 1.D-8
            nr_p = n_p
            ndim = size(n_p)
            allocate(x_p(ndim))
@@ -467,7 +499,8 @@
            Type (Lattice) :: Latt
 
            Integer :: nkx, nky, nk
-           Real (Kind=Kind(0.d0)) :: XK1_P(2), XK2_P(2), Zero
+           Real (Kind=Kind(0.d0)) :: XK1_P(2), XK2_P(2)
+           Real (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
 
            call npbc(xk1_p, xk_p , Latt%BZ1_p, Latt%BZ2_p)
            call npbc(xk2_p, xk1_p, Latt%BZ1_p, Latt%BZ2_p)
@@ -477,7 +510,6 @@
            nk = Latt%Invlistk(nkx,nky)
 
            !Test
-           Zero  = 1.D-10
            XK1_P = Latt%listk(nk,1)*latt%b1_p + Latt%listk(nk,2)*latt%b2_p
            XK1_P = XK1_P - XK2_P
            if (Xnorm(XK1_P)  < Zero ) then
@@ -515,14 +547,11 @@
            Real (Kind=Kind(0.d0)) :: XR1_P(2), XR2_P(2)
 
            Integer :: n_1, n_2
-           Real (Kind=Kind(0.d0)) :: pi
-
-           pi = acos(-1.d0)
            call npbc(xr1_p, xr_p , Latt%L1_p, Latt%L2_p)
            call npbc(xr2_p, xr1_p, Latt%L1_p, Latt%L2_p)
 
-           n_1 =  nint ( Iscalar(Latt%BZ1_p,XR2_p) / (2.d0*pi) )
-           n_2 =  nint ( Iscalar(Latt%BZ2_p,XR2_p) / (2.d0*pi) )
+           n_1 =  nint ( Iscalar(Latt%BZ1_p,XR2_p) / twopi )
+           n_2 =  nint ( Iscalar(Latt%BZ2_p,XR2_p) / twopi )
            Inv_R  = Latt%invlist(n_1,n_2)
 
          end Function Inv_R

@@ -54,16 +54,15 @@
 
 
          Integer      :: Nunit, Norb, ierr
-         Integer      :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin, N_cov, N_Back
+         Integer      :: no, no1, n, m,  nbins, n_skip, nb, N_rebin, N_cov, N_Back
          real (Kind=Kind(0.d0)):: X, Y
          Complex (Kind=Kind(0.d0)), allocatable :: Phase(:)
          Type  (Mat_C), allocatable :: Bins (:,:), Bins_R(:,:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins0(:,:)
          Complex (Kind=Kind(0.d0)) :: Z, Xmean,Xerr, Xmean_r, Xerr_r
          Real (Kind=Kind(0.d0)) :: Xm,Xe
-         Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2) , XR1_p(2)
-         Complex (Kind=Kind(0.d0)), allocatable :: V_help(:), V_help_R(:)
-         Real (Kind=Kind(0.d0)) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
+         Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2)
+         Complex (Kind=Kind(0.d0)), allocatable :: V_help(:)
          Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
 
          Integer                :: L1, L2, I, N_auto, Ndim
@@ -72,7 +71,6 @@
          Integer , Dimension(:,:), allocatable  :: List, Invlist
          Type(Unit_cell)        :: Latt_Unit
          Character (len=64)     :: File_out
-
 
          NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 
@@ -101,7 +99,6 @@
 
 
          ! Determine the number of bins.
-         Pi = acos(-1.d0)
          Open ( Unit=10, File="ineq", status="unknown" )
          nbins = 0
          do
@@ -131,7 +128,7 @@
          endif
 
          ! Allocate  space
-         Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins),  V_help(Nbins), V_help_R(Nbins), Bins0(Nbins,Norb))
+         Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins),  V_help(Nbins), Bins0(Nbins,Norb))
          Do n = 1,Nunit
             do nb = 1,nbins
                Call Make_Mat(bins  (n,nb),Norb)
@@ -294,7 +291,6 @@
 !!$         Integer :: m
 !!$
 !!$         Zero = 1.D-4
-!!$         pi = acos(-1.d0)
 !!$         X1_p(1)  =  Xk_p(2,n)
 !!$         X1_p(2)  = -Xk_p(1,n)
 !!$         if (X1_p(1) < -pi + Zero )  X1_p(1) = X1_p(1) + 2.0*pi

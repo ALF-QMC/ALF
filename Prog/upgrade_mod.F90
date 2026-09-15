@@ -129,7 +129,7 @@ module upgrade_mod
         Integer ::  n,m,nf, nf_eff, i, Op_dim, op_dim_nf
         Complex (Kind=Kind(0.d0)) :: Z, D_Mat, myexp, s1, s2
 
-        Real    (Kind=Kind(0.d0)) :: Weight, tmp_r
+        Real    (Kind=Kind(0.d0)) :: Weight
         Complex (Kind=Kind(0.d0)) :: alpha, beta, g_loc
         Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: Mat, Delta
         Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: u, v

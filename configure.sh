@@ -12,6 +12,7 @@ Please choose one of the following MACHINEs:
  * SuperMUC-NG
  * JUWELS
  * FRITZ
+ * HELMA
 Possible MODEs are:
  * MPI (default)
  * noMPI
@@ -58,7 +59,7 @@ set_hdf5_flags()
   
   H5_major=1
   H5_minor=14
-  H5_patch=5
+  H5_patch=6
   H5_suff=""
   if [ -n "${ALF_HDF5_DIR+x}" ]; then
     printf "\nUsing custom HDF5 directory '%s'\n" "${ALF_HDF5_DIR}"
@@ -206,7 +207,10 @@ GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
 # uncomment the next line if you want to use additional openmp parallelization
 GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
 # GNUDEVFLAGS="-Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
-GNUDEVFLAGS="-Wconversion -Werror -Wno-error=cpp -fcheck=all -g -fbacktrace -fmax-errors=10"
+GNUDEVFLAGS="-Wconversion -fcheck=all -g -fbacktrace -fmax-errors=10"
+GNUDEVFLAGS="${GNUDEVFLAGS} -pedantic"
+# GNUDEVFLAGS="${GNUDEVFLAGS} -Wall -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=unused-dummy-argument -Wno-error=maybe-uninitialized"
+GNUDEVFLAGS="${GNUDEVFLAGS} -Werror -Wno-error=cpp"
 GNUUSEFULFLAGS="-std=f2008"
 
 # default optimization flags for PGI compiler
@@ -458,6 +462,26 @@ case $MACHINE in
       set_hdf5_flags "$INTELCC" ifort "$INTELCXX" || return 1
     fi
   ;;
+
+
+  #NHR@FAU Helma CPU cluster
+  HELMA)
+    module --force switch gpu-env/2025 cpu-env/2026
+    module load intel/2025.3.1
+    module load intelmpi/2021.17.0
+    module load mkl/2024.2.2
+
+    F90OPTFLAGS="$INTELLLVMOPTFLAGS"
+    F90USEFULFLAGS="$INTELLLVMUSEFULFLAGS"
+    ALF_FC="$INTELLLVMCOMPILER"
+    find_mkl_flag || return 1
+    LIB_BLAS_LAPACK="${INTELMKL}"
+    if [ "${HDF5_ENABLED}" = "1" ]; then
+      set_intelcc
+      set_intelcxx
+      set_hdf5_flags "$INTELCC" ifx "$INTELCXX" || return 1
+    fi
+  ;;
   #Default (unknown machine)
   *)
     if [ "$NO_FALLBACK" = "1" ]; then
@@ -512,6 +536,7 @@ if [ -n "${ALF_FLAGS_EXT+x}" ]; then
 fi
 
 ALF_FLAGS_QRREF="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
+ALF_FLAGS_QRREF="$(echo "$ALF_FLAGS_QRREF" | sed 's| -pedantic||')"
 # Modules need to know the programm configuration since entanglement needs MPI
 ALF_FLAGS_MODULES="${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_ANA="${F90USEFULFLAGS} ${F90OPTFLAGS} ${ALF_INC} ${ALF_FLAGS_EXT}"

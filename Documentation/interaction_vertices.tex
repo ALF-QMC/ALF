@@ -1,5 +1,5 @@
 % !TEX root = doc.tex
-% Copyright (c) 2017-2020 The ALF project.
+% Copyright (c) 2017-2026 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -202,3 +202,31 @@ Op_do%g      = -SQRT(CMPLX(DTAU*Jz/8.d0, 0.d0, kind(0.d0)))
 Op_do%type   = 2
 
 \end{lstlisting}
+
+
+\subsubsection{$J_a$-$J_b$ interaction}
+
+\begin{lstlisting}[style=fortran]
+Call Predefined_Int_SaSb(Op, a, b, I1_up, I2_up, I1_do, I2_do, J, dtau, gauge_phi)
+\end{lstlisting}
+
+Sets a spin-spin interaction term of the form $J S_a S_b$. Here, $a$ and $b$ are characters that can be \texttt{'x'}, \texttt{'y'} or \texttt{'z'}.
+
+The integers \texttt{I1\_up}, \texttt{I2\_up}, \texttt{I1\_do} and \texttt{I2\_do} are the indices of the sites involved in the interaction, namely of $c^\dagger_{i1,\uparrow}$, $c_{i2,\uparrow}$, $c^\dagger_{i1,\downarrow}$, $c_{i,\downarrow}$.
+
+The term includes a gauge factor $g$, which can possibly be used to alleviate the sign problem.
+The gauge factor is a pure phase factor, defined as $g = e^{i \phi}$ with $\phi = \mathtt{gauge\_phi} \cdot \pi$.
+
+The spin operators are represented in terms of fermionic operators as follows:
+$S^{\alpha}_i = \frac{1}{2}(c^\dagger_i \sigma^\alpha c_i)$.
+Here, $c^\dagger_i = (c^\dagger_{i,\uparrow}, c^\dagger_{i,\downarrow})$ is a spinor of fermionic creation operators and $\sigma^\alpha$ are the Pauli matrices.
+
+All in all, the interaction term is given by:
+\begin{align}
+  \hat{\mathcal{H}}_{V} = \frac{g |J|}{8} 
+  \left(S^a_i + \overline{g} \frac{J}{|J|} S^b_j\right)^2 = S^a_i S^b_j + const,
+\end{align}
+
+where the last equality  assumes that all charges fluctuations are frozen out, e.g. by a large Hubbard $U$.
+Thereby, $c^\dagger_{i,\uparrow} c_{i,\uparrow} + c^\dagger_{i,\downarrow} c_{i,\downarrow} = 1$.
+

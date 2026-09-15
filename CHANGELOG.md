@@ -1,14 +1,14 @@
 # Log of backward compatibility changes and critical bugs
 
 ### 2026-01-28 factors of pi in analytical continuation
-Author F. Assaad
-Merge request !257
+Author F. Assaad <br>
+Merge request [!257](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/257) | [GitHub](https://github.com/ALF-QMC/ALF/issues/587)
 
 In the file Green, produced by the MaxEnt wrapper,  the real part of G is now multiplied by a factor -1/pi. 
 
 ### 2026-01-27 Intel ifx compiler without `-heap-arrays 1024`
-Author: J. Schwab
-Merge request !234
+Author: J. Schwab <br>
+Merge request [!234](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/234) | [GitHub](https://github.com/ALF-QMC/ALF/issues/564)
 
 The Intel compiler ifx is no longer used with the option `-heap-arrays 1024`,
 since it produces some kind of memory leak.
@@ -19,8 +19,8 @@ This applies e.g. to the variable `GRC` in the subroutine `Obser`.
 ALF 2.6 released on 2025-11-05
 
 ### 2025-09-29 Renaming Delta_S0_global to Get_Delta_S0 global
-Author: J. Hofmann
-Merge request !213
+Author: J. Hofmann <br>
+Merge request [!213](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/213) | [GitHub](https://github.com/ALF-QMC/ALF/issues/296)
 
 The function `Delta_S0_global` has been renamed to `Get_Delta_S0_global` as the new function now returns $\Delta S_0$ instead of $\exp(\Delta S_0)$. In case your model is using global moves, we advice to adapt your code accordingly. A fallback to `Delta_S0_global` is used for the time being such that backward compatibility is maintained
 
@@ -28,15 +28,15 @@ The function `Delta_S0_global` has been renamed to `Get_Delta_S0_global` as the 
 1) Modify and rename your implementation of `Delta_S0_global`
 
 ### 2024-07-10 Fix: Lattice in data.h5: Mixup of Norb and N_coord
-Author: J. Schwab
-Merge request !204
+Author: J. Schwab <br>
+Merge request [!204](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/204) | [GitHub](https://github.com/ALF-QMC/ALF/issues/534)
 
 The lattice quantities `Norb` and `N_coord` were mistakenly mixed up in the HDF5 results file `data.h5`.
 This has been fixed and the script `Analysis/fix-latt.py` was added to repair existing result files.
 
 ### 2024-02-01  Implement new  function  $(F,A) = \int d \omega F(\omega) A(\omega)$ in the stochastic maxent.
-Author:  F. Assaad
-Merge  request !196
+Author:  F. Assaad <br>
+Merge  request [!196](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/196) | [GitHub](https://github.com/ALF-QMC/ALF/issues/526)
 
 1. Function F  is included in  parameter  list  of  the  stochastic maxent  routine
 
@@ -44,7 +44,7 @@ Merge  request !196
 ### 2024-01-25    Both  Classic MaxEnt  and  Stochastic  analytical continuation are  available <br>
 
 Author:  J.Schwab and F. Assaad   <br>
-Merge requests: !190 and !194
+Merge requests: [!190](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/190) | [GitHub](https://github.com/ALF-QMC/ALF/issues/520) and [!194](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/194) | [GitHub](https://github.com/ALF-QMC/ALF/issues/524)
 
 1. Both  approaches  allow  to  specify a  default model
 
@@ -55,8 +55,9 @@ Merge requests: !190 and !194
 
 ### 2023-08-14 Hubbard Stratonovich fields have been updated to be complex
 
-Author:  F. Assaad
-Merge request !176 
+Author:  F. Assaad <br>
+Merge request [!176](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/176) | [GitHub](https://github.com/ALF-QMC/ALF/issues/507)
+
 #### Breaking changes 
 
 1. `Fields\_mod.F90`
@@ -77,12 +78,12 @@ ALF 2.5 released on 2023-06-05
 ### 2023-05-09 Use a RUNNING file to avoid multiple instances running in the same directory 
 
 Author : J. Hofmann <br>
-Merge request !155
+Merge request [!155](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/155) | [GitHub](https://github.com/ALF-QMC/ALF/issues/486)
 
 ### 2023-03-13  Improved  support  for  automatic HDF5 cmplilation 
 
 Author : J. Schwab <br>
-Merge request !151
+Merge request [!151](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/151) | [GitHub](https://github.com/ALF-QMC/ALF/issues/482)
 
 
 
@@ -101,17 +102,17 @@ ALF 2.3 released on 2022-06-24
 ### 2022-06-13 Work-around for (likely) preprocessor bug
 
 Author : J.Schwab <br>
-Merge request !139
+Merge request [!139](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/139) | [GitHub](https://github.com/ALF-QMC/ALF/issues/470)
 
 ### 2022-03-21 Reset fields when no update is proposed in Global_Updates
 
 Author : A. Goetz <br>
-Merge request !136
+Merge request [!136](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/136) | [GitHub](https://github.com/ALF-QMC/ALF/issues/467)
 
 ### 2022-01-31 Write parameters to HDF5 file
 
 Author : J.Schwab <br>
-Merge request !117
+Merge request [!117](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/117) | [GitHub](https://github.com/ALF-QMC/ALF/issues/449)
 
 #### Breaking changes
 1) Parameters to be formulated in format for parsing as described in Sec. 5.6 of documentation.
@@ -122,7 +123,7 @@ Merge request !117
 ### 2021-12-08 Solves projector code runtime error
 
 Author :  F. Parisen Toldin <br>
-Merge request !129
+Merge request [!129](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/129) | [GitHub](https://github.com/ALF-QMC/ALF/issues/460)
 
 
 ---
@@ -133,7 +134,7 @@ ALF 2.2 released on 2021-12-07
 ### 2021-11-21 Implementing HDF5
 
 Author : J.Schwab <br>
-Merge request !120
+Merge request [!120](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/120) | [GitHub](https://github.com/ALF-QMC/ALF/issues/452)
 
 #### Breaking changes
 1) In script configure.sh: The argument DEVEL/DEVELOPMENT is no longer a MACHINE name, but an optional switch
@@ -145,7 +146,7 @@ Merge request !120
 ### 2021-11-21  Automatic computation of Hopping_Matrix_Type%Multiplicity
 
 Author : F. Parisen Toldin <br>
-Merge request !116
+Merge request [!116](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/116) | [GitHub](https://github.com/ALF-QMC/ALF/issues/448)
 
 #### Breaking changes
 1) Hopping_Matrix_Type%Multiplicity is now a private member, automatically initialized
@@ -154,7 +155,7 @@ Merge request !116
 ### 2021-11-21  Test the checkerboard decomposition
 
 Author : F. Parisen Toldin <br>
-Merge request !124
+Merge request [!124](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/124) | [GitHub](https://github.com/ALF-QMC/ALF/issues/456)
 
 
 
@@ -167,7 +168,7 @@ ALF 2.1 released on 2021-06-03
 ### 2021-03-22  Implementing Submodule Hamiltonians / All hamiltonians in one binary
 
 Author : J. Schwab <br>
-Merge request !107
+Merge request [!107](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/107) | [GitHub](https://github.com/ALF-QMC/ALF/issues/439)
 
 #### Breaking changes
 1) **In Hamiltonians** You will have to adapt your Hamiltonians to the Submodule structure
@@ -184,7 +185,7 @@ ALF 2.0 released on 2020-12-22
 ### 2020-11-16   Implementing  Langevin 
 
 Author : F.F. Assaad <br>
-Merge request !91 
+Merge request [!91](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/91)  | [GitHub](https://github.com/ALF-QMC/ALF/issues/424)
 
 #### Breaking changes
 1) **In Hamiltonians** 
@@ -211,7 +212,7 @@ e) Leapfrog_steps = 0 !  Number of leapfrog steps
 ### 2020-09-25   Embedding lattice information in observables 
 
 Author :  J. Schwab <br>
-Merge request !66 
+Merge request [!66](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/66) | [GitHub](https://github.com/ALF-QMC/ALF/issues/399)
 
 #### Breaking changes
 **In Hamiltonians** 

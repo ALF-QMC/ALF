@@ -213,7 +213,7 @@
         Type (Obser_Latt),    Intent(inout)   :: Obs
 
         ! Local
-        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
+        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj, nf
         Complex (Kind=Kind(0.d0)) :: Z
 
         If ( Size(List,1) .ne. Size(GR,1) .or. Size(List,2) .ne. 2 )   then
@@ -343,7 +343,7 @@
         Type (Obser_Latt),    Intent(inout)   :: Obs
 
         ! Local
-        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
+        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj, nf
         Complex (Kind=Kind(0.d0)) :: Z
 
 
@@ -406,7 +406,7 @@
         Type (Obser_Latt),    Intent(inout)   :: Obs
 
         ! Local
-        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
+        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj
         Complex (Kind=Kind(0.d0)) :: Z
 
         If ( Obs%File_Latt .ne. "SpinZ" )   then
@@ -467,7 +467,7 @@
         Type (Obser_Latt),    Intent(inout)   :: ObsZ, ObsXY, ObsXYZ
 
         ! Local
-        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
+        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj
         Complex (Kind=Kind(0.d0)) :: ZZ, ZXY
 
         If ( Size(List,1) .ne. Size(GT0,1) .or. Size(List,2) .ne. 2 )   then
@@ -615,7 +615,7 @@
         ! Local
         Complex  (Kind=Kind(0.d0))  ::  Z,  Z_tmp,  ZC  
         Integer  ::  N_FL, N,  I, J,  I1,  J1, nf
-        Real     (Kind=Kind(0.d0))  ::   Zero=1.0D-16
+        Real     (Kind=Kind(0.d0)), parameter :: Zero=1.0D-16
 
         If ( OP_Vint(1)%type  .ne. 2 )   then
            Write(error_unit,*) 'Predefined_Obs_V_Int  routine is   defined  fro  tpye  2  vertices.  '

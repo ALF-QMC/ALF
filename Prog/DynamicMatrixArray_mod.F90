@@ -100,12 +100,14 @@ end subroutine
 !> If out of space the vector grows.
 !>
 !> @param[inout] this the vector
-!> @param[in] itm the object that we like to store a pointer to.
+!> @param[inout] itm the object that we like to store a pointer to.
 !
 !--------------------------------------------------------------------
 subroutine DynamicMatrixArray_pushback(this, itm)
     class(DynamicMatrixArray) :: this
-    class(ContainerElementBase), intent(in), target :: itm !Type(...) has to match exactly, class(...) allows for polymorphism
+    ! INTENT(INOUT) required: flang rejects INTENT(IN) when a pointer to the dummy
+    ! argument is stored (this%data(...)%dat => itm). itm is not modified in this routine.
+    class(ContainerElementBase), intent(inout), target :: itm !Type(...) has to match exactly, class(...) allows for polymorphism
     type(OpTbasePtrWrapper), allocatable, dimension(:) :: temp
     integer :: i
 
