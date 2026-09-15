@@ -42,6 +42,27 @@ _PARAMS_GENERIC = OrderedDict([
                              'functions; 0 otherwise.',
                   'value': 1},
          'Max_Force': {'comment': 'Max Force for Langevin', 'value': 5.0},
+         'Propose_MALA': {'comment': 'For MALA updates', 'value': False},
+         'Max_Force_MALA_sequential': {'comment': 'Max Force for '
+                                                  'sequential MALA '
+                                                  'updates',
+                                      'value': 1.0},
+         'Delta_t_MALA_sequential': {'comment': 'Time step for '
+                                                'sequential MALA '
+                                                'updates',
+                                    'value': 0.1},
+         'Global_tau_MALA_moves': {'comment': 'For Global_tau_MALA_move',
+                                   'value': False},
+         'N_Global_tau_MALA': {'comment': 'Number of global tau MALA '
+                                          'moves that will be carried '
+                                          'out on a single time slice.',
+                               'value': 1},
+         'Delta_t_MALA_global_tau': {'comment': 'Time step for global '
+                                                'tau MALA updates',
+                                     'value': 0.1},
+         'Max_Force_MALA_global_tau': {'comment': 'Max Force for global '
+                                                  'tau MALA updates',
+                                       'value': 1.0},
          'N_global': {'comment': 'Number of global moves per sweep.',
                       'value': 1},
          'N_global_tau': {'comment': 'Number of global moves that will '
@@ -120,6 +141,10 @@ _PARAMS_GENERIC = OrderedDict([
          'Om_st': {'comment': 'Frequency range lower bound.',
                    'value': -10.0},
          'R': {'comment': '', 'value': 1.2},
+         'Stochastic': {'comment': 'If true, then stochastic MaxEnt is '
+                                   'used. If false, then classic '
+                                   'MaxEnt is used.',
+                        'value': True},
          'Tolerance': {'comment': '', 'value': 0.1},
          'alpha_st': {'comment': '', 'value': 1.0}})
     ])

@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2022 The ALF project
+!  Copyright (C) 2016 - 2026 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
