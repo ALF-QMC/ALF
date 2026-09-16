@@ -586,7 +586,7 @@
           endif
           ! Equal time correlators
           If ( N_FL == 2 ) Then
-             Allocate ( Obs_eq(5) )
+             Allocate ( Obs_eq(6) )
              Do I = 1,Size(Obs_eq,1)
                 select case (I)
                 case (1)
@@ -599,6 +599,8 @@
                    Filename = "SpinT"
                 case (5)
                    Filename = "Den"
+                case (6)
+                   Filename = "Pair"
                 case default
                    Write(6,*) ' Error in Alloc_obs '
                 end select
@@ -791,6 +793,7 @@
              Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(1) )
              Call Predefined_Obs_eq_SpinMz_measure ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
              Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(5) )
+             Call Predefined_Obs_eq_Pair_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(6) )
           else
              Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(1) )
              Call Predefined_Obs_eq_SpinSUN_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2) )
