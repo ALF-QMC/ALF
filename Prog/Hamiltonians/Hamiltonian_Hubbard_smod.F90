@@ -586,7 +586,7 @@
           endif
           ! Equal time correlators
           If ( N_FL == 2 ) Then
-             Allocate ( Obs_eq(5) )
+             Allocate ( Obs_eq(6) )
              Do I = 1,Size(Obs_eq,1)
                 select case (I)
                 case (1)

@@ -210,10 +210,10 @@
         Integer :: I, I1, J, J1, no_I, no_J, imj, N_FL
         Complex (Kind=Kind(0.d0)) :: Z
 
-        If ( Obs%File_Latt .ne. "Pair" ) then
-           Write(error_unit,*) 'Predefined_Obs_eq_Pair_measure: Wrong filename'
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
+      !   If ( Obs%File_Latt .ne. "Pair" ) then
+      !      Write(error_unit,*) 'Predefined_Obs_eq_Pair_measure: Wrong filename'
+      !      CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+      !   endif
 
         Obs%N        = Obs%N + 1
         Obs%Ave_sign = Obs%Ave_sign + real(ZS,kind(0.d0))
