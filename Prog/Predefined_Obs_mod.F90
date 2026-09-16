@@ -194,6 +194,65 @@
         endif
       End Subroutine Predefined_Obs_eq_SpinMz_measure
 
+!-------------------------------------------------------------------
+!> Measure the equal-time on-site pair correlator
+!> <b_i^dagger b_j>, with b_i^dagger = c_i,up^dagger c_i,down^dagger.
+!> This estimator is for N_FL=2 and N_SUN=1 and N_FL=1 and N_SUN=2.
+!-------------------------------------------------------------------
+      Subroutine Predefined_Obs_eq_Pair_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs )
+
+        Type (Lattice),       Intent(in)      :: Latt
+        Type (Unit_cell),     Intent(in)      :: Latt_unit
+        Integer,              Intent(In)      :: N_SUN, LIST(:,:)
+        Complex (Kind=Kind(0.d0)), Intent(In) :: GR(:,:,:), GRC(:,:,:), ZS, ZP
+        Type (Obser_Latt),    Intent(inout)   :: Obs
+
+        Integer :: I, I1, J, J1, no_I, no_J, imj, N_FL
+        Complex (Kind=Kind(0.d0)) :: Z
+
+        If ( Obs%File_Latt .ne. "Pair" ) then
+           Write(error_unit,*) 'Predefined_Obs_eq_Pair_measure: Wrong filename'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
+        Obs%N        = Obs%N + 1
+        Obs%Ave_sign = Obs%Ave_sign + real(ZS,kind(0.d0))
+
+      N_FL = Size(GR,3)
+      If ( N_FL == 2 .and. N_SUN == 1 ) Then
+         Do I1 = 1,Size(List,1) !For each unit cell
+            I = List(I1,1)
+            If (I > 0) then
+               no_I = List(I1,2)
+               Do J1 = 1,Size(List,1)
+                  J = List(J1,1)
+                  If (J > 0) then
+                     no_J = List(J1,2)
+                     imj = Latt%imj(I,J)
+                     Z = GRC(I1,J1,1) * GRC(I1,J1,2)
+                     Obs%Obs_Latt(imj,1,no_I,no_J) = Obs%Obs_Latt(imj,1,no_I,no_J) + Z*ZP*ZS
+                  endif
+               enddo
+            endif
+         enddo
+      else if ( N_FL == 1 .and. N_SUN == 2 ) then 
+         Do I1 = 1,Size(List,1) !For each unit cell
+            I = List(I1,1)
+            If (I > 0) then
+               no_I = List(I1,2)
+               Do J1 = 1,Size(List,1)
+                  J = List(J1,1)
+                  If (J > 0) then
+                     no_J = List(J1,2)
+                     imj = Latt%imj(I,J)
+                     Z = GRC(I1,J1,1) ** cmplx(dble(N_SUN), 0.d0, kind(0.d0))
+                     Obs%Obs_Latt(imj,1,no_I,no_J) = Obs%Obs_Latt(imj,1,no_I,no_J) + Z*ZP*ZS
+                  endif
+               enddo
+            endif
+         enddo
+      endif
+      End Subroutine Predefined_Obs_eq_Pair_measure
 
 !-------------------------------------------------------------------
 !> @author
