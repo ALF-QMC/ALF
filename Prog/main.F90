@@ -461,7 +461,7 @@ Program Main
 
       !   Sequential = .true.
         !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)
-        if ( get_Langevin() .or.  get_HMC()  ) then
+        if ( get_Langevin() .or.  get_HMC() ) then
            if ( get_Langevin() ) then
 #if defined(MPI)
                 if ( Irank_g == 0 ) then
@@ -488,7 +488,7 @@ Program Main
            endif
            Call Langevin_HMC%make(get_Langevin(), get_HMC() , get_MALA(), get_Delta_t_Langevin_HMC(), get_Max_Force(), get_Leapfrog_Steps())
         else
-           Call Langevin_HMC%set_Update_scheme(get_Langevin(), get_HMC(), .False. )
+           Call Langevin_HMC%set_Update_scheme(get_Langevin(), get_HMC(), .false. )
         endif
         if (get_MALA()) then
            Call Metropolis_Langevin%make(.False., .False., get_MALA(), get_Delta_t_MALA_global(), get_MAX_Force_MALA_global(), get_Leapfrog_Steps())
@@ -528,49 +528,53 @@ Program Main
            Write(50,*) '# of interacting Ops per time slice : ', Size(OP_V,1)
            If ( get_Propose_S0() ) &
                 &  Write(50,*) 'Propose Ising moves according to  bare Ising action'
-           If ( get_Propose_MALA() ) then
-              Write(50,*) 'Propose continuous moves according to  Langevin equation'
-              Write(50,*) 'Langevin del_t: ', get_Delta_t_MALA_sequential()
-              Write(50,*) 'Max Force MALA sequential : ', get_Max_Force_MALA_sequential()
-           Endif
-           If ( get_Global_moves() ) Then
-              Write(50,*) 'Global moves are enabled   '
-              Write(50,*) '# of global moves / sweep :', get_N_Global()
-           Endif
-            If ( get_Propose_MALA() ) then
-              Write(50,*) 'Propose continuous moves according to  Langevin equation'
-              Write(50,*) 'Langevin del_t: ', get_Delta_t_MALA_sequential()
-              Write(50,*) 'Max Force MALA sequential : ', get_Max_Force_MALA_sequential()
-           Endif
            if ( get_sequential() ) then
+               Write(50,*)  '-------  Space-sequential Time-sequential moves -------' 
+               Write(50,*) 'Nt_sequential_start: ', get_Nt_sequential_start()
+               Write(50,*) 'Nt_sequential_end  : ', get_Nt_sequential_end()
+               If (get_Propose_MALA()) then 
+                  Write(50,*) 'MALA Update          '
+                  Write(50,*) 'delta_t            : ', get_Delta_t_MALA_sequential() 
+                  Write(50,*) 'Max_force          : ', get_Max_Force_MALA_sequential()
+               endif
+            endif    
+            if ( get_Global_tau_moves() ) Then
+               Write(50,*)  '-------  Space-global     Time-sequential moves -------' 
                If ( get_Global_tau_MALA_moves() ) Then
-                  Write(50,*) 'Nt_sequential_start       : ', get_Nt_sequential_start()
-                  Write(50,*) 'Nt_sequential_end         : ', get_Nt_sequential_end()
-                  Write(50,*) 'N_Global_tau_MALA         : ', get_N_Global_tau_MALA()
-                  Write(50,*) 'Langevin del_t            : ', get_Delta_t_MALA_global_tau()
-                  Write(50,*) 'Max Force MALA global tau : ', get_Max_Force_MALA_global_tau()
-               Elseif ( get_Global_tau_moves() ) Then
-                  Write(50,*) 'Nt_sequential_start: ', get_Nt_sequential_start()
-                  Write(50,*) 'Nt_sequential_end  : ', get_Nt_sequential_end()
+                  Write(50,*) 'MALA'
+                  Write(50,*) 'N_Global_tau_MALA  : ', get_N_Global_tau_MALA()
+                  Write(50,*) 'delta_t            : ', get_Delta_t_MALA_global_tau()
+                  Write(50,*) 'Max_Force          : ', get_Max_Force_MALA_global_tau()
+               else  
+                  Write(50,*) 'Metropolis'
                   Write(50,*) 'N_Global_tau       : ', get_N_Global_tau()
-               else
-                  Write(50,*) 'Default sequential updating '
                endif
             endif
-           if ( get_Langevin() ) then
-              Write(50,*) 'Langevin del_t: ', get_Delta_t_Langevin_HMC()
-              Write(50,*) 'Max Force     : ', get_Max_Force()
-           endif
-           if ( get_HMC() ) then
-              Write(50,*) 'HMC del_t     : ', get_Delta_t_Langevin_HMC()
-              Write(50,*) 'Leapfrog_Steps: ', get_Leapfrog_steps()
-              Write(50,*) 'HMC_Sweeps:     ', get_N_HMC_sweeps()
-           endif
-           if ( get_MALA() ) then
-              Write(50,*) 'MALA global del_t  : ', get_Delta_t_MALA_global()
-              Write(50,*) 'MALA_Sweeps        : ', get_N_MALA_sweeps()
-              Write(50,*) 'Max Force MALA global     : ', get_MAX_Force_MALA_global()
-           endif
+            if ( get_Global_moves() .or. get_Langevin() .or. get_HMC() .or. get_MALA() ) then 
+               Write(50,*)  '-------  Space-global     Time-global     moves -------' 
+               if ( get_HMC() ) then
+                  Write(50,*) ' HMC '
+                  Write(50,*) 'Leapfrog_Steps    : ', get_Leapfrog_steps()
+                  Write(50,*) 'delta _t          : ', get_Delta_t_Langevin_HMC()
+                  Write(50,*) 'HMC_Sweeps        : ', get_N_HMC_sweeps()
+               endif
+               if ( get_MALA() ) then
+                  Write(50,*) 'User Defined MALA '
+                  Write(50,*) '# moves / sweep    : ', get_N_MALA_sweeps()
+                  Write(50,*) 'delta_t            : ', get_Delta_t_MALA_global()
+                  Write(50,*) 'Max_Force          : ', get_MAX_Force_MALA_global()
+               endif
+               If ( get_Global_moves() ) Then
+                  Write(50,*) 'User Defined Metropolis   '
+                  Write(50,*) '#  moves / sweep   :', get_N_Global()
+               Endif
+               if (get_Langevin() ) then
+                  Write(50,*) 'Langevin '     
+                  Write(50,*) 'delta_t            : ', get_Delta_t_Langevin_HMC()
+                  Write(50,*) 'Max_Force          : ', get_Max_Force()
+               endif
+            endif
+          
 
            !Write out info  for  amplitude and flip_protocol
            Toggle  = .false.

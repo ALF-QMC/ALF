@@ -667,7 +667,9 @@ module Control
         If (Irank_g == 0 ) then
 #endif
 
+
            Open (Unit=50,file=file1, status="unknown", position="append")
+           Write(50,*) '-------  Acceptance precision and timing  -------'
            If (NCG > 0 ) then
               XMEANG = XMEANG/dble(NCG)
               Write(50,*) ' Precision Green  Mean, Max : ', XMEANG, XMAXG
@@ -687,19 +689,19 @@ module Control
            Write(50,*) ' Acceptance Tempering       : ', ACC_Temp
 #endif
            If (ACC_Glob > 1.D-200 ) then
-              Write(50,*) ' Acceptance_Glob              : ', ACC_Glob
-              Write(50,*) ' Mean Phase diff Glob         : ', XMEANP_Glob
-              Write(50,*) ' Max  Phase diff Glob         : ', XMAXP_Glob
-              Write(50,*) ' Average cluster size         : ', size_clust_Glob
-              Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
+              Write(50,*) ' Glob Acceptance              : ', ACC_Glob
+              Write(50,*) ' Glob Mean Phase diff         : ', XMEANP_Glob
+              Write(50,*) ' Glob Max  Phase diff         : ', XMAXP_Glob
+              Write(50,*) ' Glob Average cluster size         : ', size_clust_Glob
+              Write(50,*) ' Glob Average accepted cluster size: ', size_clust_Glob_ACC
            endif
            if (str_to_upper(Global_update_scheme) == "LANGEVIN") &
                 &  Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
            
            if (str_to_upper(Global_update_scheme) == "HMC")   Then
-              Write(50,*) ' Acceptance_HMC              : ', ACC_HMC
-              Write(50,*) ' Mean Phase diff HMC         : ', XMEANP_HMC
-              Write(50,*) ' Max  Phase diff HMC         : ', XMAXP_HMC
+              Write(50,*) ' HMC Acceptance              : ', ACC_HMC
+              Write(50,*) ' HMC Mean Phase diff          : ', XMEANP_HMC
+              Write(50,*) ' HMC Max  Phase diff          : ', XMAXP_HMC
            Endif
 
            if (Force_Count_MALA_seq > 0)   Then
@@ -713,11 +715,11 @@ module Control
            Endif
 
            if (MALA)   Then
-              Write(50,*) ' MALA Force        Mean, Max : ', Force_mean_MALA_global,    Force_max_MALA_global
-              Write(50,*) ' MALA Force_0      Mean, Max : ', Force_0_mean_MALA_global,  Force_0_max_MALA_global
-              Write(50,*) ' Acceptance_MALA             : ', ACC_MALA
-              Write(50,*) ' Mean Phase diff MALA        : ', XMEANP_MALA
-              Write(50,*) ' Max  Phase diff MALA        : ', XMAXP_MALA
+              Write(50,*) ' Global MALA Force        Mean, Max : ', Force_mean_MALA_global,    Force_max_MALA_global
+              Write(50,*) ' Global MALA Force_0      Mean, Max : ', Force_0_mean_MALA_global,  Force_0_max_MALA_global
+              Write(50,*) ' Global Acceptance_MALA             : ', ACC_MALA
+              Write(50,*) ' Global Mean Phase diff MALA        : ', XMEANP_MALA
+              Write(50,*) ' Global Max  Phase diff MALA        : ', XMAXP_MALA
            Endif
            
            Write(50,*) ' CPU Time                   : ', Time

@@ -206,8 +206,8 @@ GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
 #GNUOPTFLAGS="-cpp -O0 -ffree-line-length-none"
 # uncomment the next line if you want to use additional openmp parallelization
 GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
-# GNUDEVFLAGS="-Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
-GNUDEVFLAGS="-Wconversion -fcheck=all -g -fbacktrace -fmax-errors=10"
+# GNUDEVFLAGS="-ffree-line-length-none -Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
+GNUDEVFLAGS="-ffree-line-length-none -Wconversion -fcheck=all -g -fbacktrace -fmax-errors=10"
 GNUDEVFLAGS="${GNUDEVFLAGS} -pedantic"
 # GNUDEVFLAGS="${GNUDEVFLAGS} -Wall -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=unused-dummy-argument -Wno-error=maybe-uninitialized"
 GNUDEVFLAGS="${GNUDEVFLAGS} -Werror -Wno-error=cpp"
@@ -253,7 +253,7 @@ while [ "$#" -gt "0" ]; do
     ;;
     DEVEL|DEVELOPMENT)
       #DEVEL="1"
-      GNUOPTFLAGS="$GNUOPTFLAGS $GNUDEVFLAGS"
+      GNUOPTFLAGS="$GNUDEVFLAGS"
       INTELOPTFLAGS="$INTELOPTFLAGS $INTELDEVFLAGS"
       INTELLLVMOPTFLAGS="$INTELLLVMOPTFLAGS $INTELLLVMDEVFLAGS"
       PGIOPTFLAGS="$PGIOPTFLAGS $PGIDEVFLAGS"

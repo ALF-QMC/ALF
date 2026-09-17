@@ -146,6 +146,7 @@
         procedure, nopass :: Global_move_tau 
         procedure, nopass :: Overide_global_tau_sampling_parameters
         procedure, nopass :: Global_move
+        procedure, nopass :: Global_MALA_move
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -1084,5 +1085,50 @@
 
 
    End Subroutine Global_move
+
+   !--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Specify a global Metropolis-adjusted langevin move.
+!>
+!> @details
+!> @param[out] Flip_length  Integer
+!> \verbatim
+!>  Number of flips stored in the first  Flip_length entries of the array Flip_values.
+!>  Has to be smaller than NDIM*Ltrot
+!> \endverbatim
+!> @param[out] Flip_list  Integer(Ndim,Ltrot)
+!> \verbatim
+!>  List of spins to be flipped: nsigma%f(Flip_list(1,1),Flip_list(1,2)) ... nsigma%f(Flip_list(Flip_Length,1),Flip_list(Flip_Length,2))
+!>  Note that Ndim = size(Op_V,1)
+!> \endverbatim
+!--------------------------------------------------------------------
+      Subroutine Global_MALA_move(Flip_list)
+
+         Implicit none
+         Integer                   , INTENT(OUT) :: Flip_list(:,:)
+
+         Logical, save              :: first_call=.True.
+         
+         Integer                    :: I, nt
+         
+         If  (first_call)    then
+            write(output_unit,*)
+            write(output_unit,*) "User implementation of Global_MALA_move is being called!"
+            write(output_unit,*) "Choose a random site and flip all the fields along the time direction"
+            write(output_unit,*)
+            first_call=.false.
+         endif
+
+         
+         Flip_list = 0
+         I = nranf(size(OP_V,1))
+         do nt = 1, Ltrot
+            Flip_list(I,nt) = 1
+         enddo 
+
+      end Subroutine Global_MALA_move
        
    end submodule ham_Hubbard_smod

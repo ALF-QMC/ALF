@@ -44,6 +44,8 @@
         use wrapul_mod
         use cgr1_mod
         Use iso_fortran_env, only: output_unit, error_unit
+        use Natural_Constants
+        Use, intrinsic :: IEEE_ARITHMETIC
 #ifdef MPI
         Use mpi
 #endif
@@ -56,10 +58,10 @@
         Public :: Langevin_HMC, Metropolis_Langevin, Langevin_HMC_type, Langevin_HMC_Reset_storage, calculate_Force
         
         enum, bind(c)
-           enumerator :: Scheme_none = 0
-           enumerator :: Scheme_Langevin = 1 
-           enumerator :: Scheme_HMC = 2
-           enumerator :: Scheme_MALA = 3
+           enumerator :: Scheme_none = 0       !  No global moves
+           enumerator :: Scheme_Langevin = 1   !  Global moves with Langevin 
+           enumerator :: Scheme_HMC =  2       !  Global moves with HMC
+           enumerator :: Scheme_MALA = 3       !  Global moves with MALA
         end enum
         Type Langevin_HMC_type
            private
@@ -367,6 +369,8 @@
         Integer,      allocatable :: Flip_list(:,:)
         Complex (Kind=Kind(0.d0))  :: Phase_array(N_FL)
 
+        Logical, parameter :: LOGICAL_DEBUG = .False.
+
         select case (this%scheme) !(trim(this%Update_scheme))
         case(Scheme_Langevin) !("Langevin")
            Calc_Obser_eq = .True.
@@ -660,24 +664,28 @@
            Delta_t_running_new = this%Delta_t_Langevin_HMC
            If (Xmax > this%Max_Force) Delta_t_running_new = this%Max_Force*this%Delta_t_Langevin_HMC/Xmax
 
-           t0_proposal_ratio = 1.d0
+           
+           log_T0_Proposal_ratio = 0.d0
            do n = 1, n1
               if (OP_V(n,1)%type == 3 ) then
                  do nt = 1, n2
                     if ( flip_list(n,nt) == 1 ) then
-                       t0_proposal_ratio = t0_proposal_ratio * sqrt(Delta_t_running_old/Delta_t_running_new) * &
-                         & exp(-0.25d0/Delta_t_running_new * (Abs(nsigma_old%f(n,nt) - nsigma%f(n,nt) + &
+                       log_T0_Proposal_ratio = log_t0_proposal_ratio  +  & 
+                         &  0.5d0 * log(Delta_t_running_old/Delta_t_running_new)  &
+                         & -0.25d0/Delta_t_running_new * (Abs(nsigma_old%f(n,nt) - nsigma%f(n,nt) + &
                          & Delta_t_running_new*(this%forces_0(n,nt) +  real( Phase*this%forces(n,nt),kind(0.d0)) &
-                         &   / Real(Phase,kind(0.d0))) )**2 ) + 0.25d0/Delta_t_running_old * ( &
+                         &   / Real(Phase,kind(0.d0))) )**2 )  & 
+                         & + 0.25d0/Delta_t_running_old * ( &
                          & Abs(nsigma%f(n,nt) - nsigma_old%f(n,nt) + Delta_t_running_old*(forces_0_old(n,nt) + &
-                         & real( phase_old*forces_old(n,nt),kind(0.d0)) / Real(phase_old,kind(0.d0)))  )**2 ) )
+                         & real( phase_old*forces_old(n,nt),kind(0.d0)) / Real(phase_old,kind(0.d0)))  )**2 ) 
                     endif
                  enddo
               endif
-           enddo
+           enddo 
+           
 
            Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
-                &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio)
+                &                          Det_vec_old, Det_vec_new, nsigma_old, log_T0_Proposal_ratio, Ratio)
            Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
 
 
@@ -696,6 +704,19 @@
            Z = Phase_old * Ratiotot/ABS(Ratiotot)
            Call Control_PrecisionP_MALA(Z,Phase)
            Call Control_upgrade_MALA(TOGGLE)
+           If (LOGICAL_DEBUG) then
+            if (Is_NaN_bits(real(Z,kind(0.d0))) .or. Is_NaN_bits(aimag(Z))) then
+               Write(6,*) 'Z is NaN'
+               Write(6,*) 'Z = ', Z
+               Write(6,*) 'N ', Det_vec_new
+               Write(6,*) 'O' , Det_vec_old
+               Write(6,*) 'T0', t0_proposal_ratio, log_T0_Proposal_ratio
+               Write(6,*) 'R', Ratiotot
+               Write(6,*) 'P', Phase_old
+               Write(6,*) 'R(N)', Ratio
+               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+           endif
 
            Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
 
@@ -1032,5 +1053,15 @@
         calculate_Force = force
 
       end function calculate_Force
+
+      Logical function Is_NaN_bits(X)
+        Implicit none
+        Real (Kind=Kind(0.d0)), intent(in) :: X
+        Integer (Kind=8) :: Ibits
+        Ibits = transfer(X, Ibits)
+        ! Double precision NaN: exponent bits all 1 (bits 52-62) and mantissa != 0
+        Is_NaN_bits = ( iand(Ibits, int(z'7FF0000000000000',8)) == int(z'7FF0000000000000',8) ) .and. &
+             &        ( iand(Ibits, int(z'000FFFFFFFFFFFFF',8)) /= 0 )
+      end function Is_NaN_bits
 
     end Module Langevin_HMC_mod
