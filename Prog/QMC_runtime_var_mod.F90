@@ -239,7 +239,7 @@ Module QMC_runtime_var
             endif
             if (Global_MALA_moves) then
                 write(output_unit,*) "Langevin mode does not allow MALA updates."
-                write(output_unit,*) "Overriding MALA=.True. from parameter files."
+                write(output_unit,*) "Overriding Global_MALA_moves=.True. from parameter files."
             endif
 
         end subroutine check_langevin_schemes_and_variables
@@ -272,7 +272,7 @@ Module QMC_runtime_var
             endif
 
             if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves .and. .not. Global_MALA_moves) then
-                write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, MALA, and"
+                write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, Global_MALA_moves, and"
                 write(output_unit,*) "Global_moves are all .False. in the parameter file."
             endif
 
