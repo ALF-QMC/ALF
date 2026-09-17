@@ -50,7 +50,8 @@ Predicting how efficient a certain Monte Carlo update scheme will turn out to be
 		Sequential time, global space           &      Metropolis, User defined            & \ref{sec:global_space} \\
 		Sequential time, global space           &      Metropolis assisted Langevin   & \ref{sec:global_space_mala} \\
 		Sequential space-time, global space     &      Combinations of moves          & \ref{sec:sequential_combination} \\
-		Global space-time, discrete            &      User defined            & \ref{sec:global_space_time} \\
+		Global space-time, discrete/continuous &      User defined, Metropolis            & \ref{sec:global_space_time_M} \\
+		Global space-time, continuous          &      User defined, Metropolis assisted Langevin            & \ref{sec:global_space_time_MALA} \\
 		Global space-time, continuous          &      Parallel tempering         & \ref{Parallel_tempering.sec} \\
 		Global space-time, continuous          &      Langevin dynamics         & \ref{sec:langevin} \\
 		Global space-time, continuous          &      Hybrid Monte Carlo                & \ref{sec:hmc} \\
@@ -188,7 +189,7 @@ End Subroutine Ham_Langevin_HMC_S0
 %------------------------------------------------------------
 
 \subsubsection{Time sequential, global in space updates.}
-\paragraph{User-defined global moves on a single time slice}
+\paragraph{User-defined global moves on a single time slice: Metropolis}
 \label{sec:global_space}
 This option allows one to carry out  user-defined global moves on a single time slice.  This option is enabled by setting the logical variable  \texttt{Global\_tau\_moves} to \texttt{.true.}.  Recall that the propagation over a time step $\Delta \tau$   (see Eq. \ref{Btau.eq}) can be  written as: 
 \begin{equation}
@@ -245,7 +246,7 @@ N_Global_tau = 1             ! Number of global moves will be set
 Here we randomly chose  a  vertex and update the field.
 
 %------------------------------------------------------------
-\paragraph{Metropolis assisted Langevin algorithm (MALA) on a single time slice}
+\paragraph{User defined global moves on a single time slice: MALA}
 \label{sec:global_space_mala}
 This option will carry out a global move on a single time slice using the Metropolis assisted Langevin algorithm.  To use this option, the 
 
@@ -303,8 +304,9 @@ Will carry out sequential single spin-flip moves on the first three operators of
 %------------------------------------------------------------
 %  
 
-\subsubsection{User specified global moves in space and time : Metropolis}
-\label{sec:global_space_time}
+\subsubsection{User specified global moves in space and time }
+\paragraph{Metropolis}
+\label{sec:global_space_time_M}
 The code allows for global updates as well. The user must then provide two additional functions \texttt{Global\_move} and \texttt{Get\_\-Delta\_\-S0\_\-global( Nsigma\_old )}.   
 
 The subroutine  \texttt{Global\_move(T0\_Proposal\_ratio,nsigma\_old,size\_clust)}  proposes  a global move. 
@@ -342,13 +344,34 @@ Subroutine Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
 end Subroutine Global_move
 \end{lstlisting}
 
-\subsubsection{User specified global moves in space and time : MALA}
-\begin{lstlisting}[style=fortran]
+\paragraph{MALA} 
+\label{sec:global_space_time_MALA}
+Generically,  user defined global moves have a poor acceptance rate. For continuous variables, one  can improve this by adopting the 
+Metropolis assisted Langevin algorithm (MALA).   
+Since the move is user defined, one has to provide a function that tags the fields that be updated during the global MALA move.
+This function is specified in the  Hamiltonian, and takes the following  form: 
+\begin{lstlisting}[style=fortran]   
+	 Subroutine Global_MALA_move(Flip_list)
+        Integer                   , INTENT(OUT) :: Flip_list(size(Op_V,1),Ltrot)
+		....
+		Flip_list(n,nt) = 1  ! Field will be updated
+		Flip_list(n,nt) = 0  ! Field will not be updated
+	    ....
+      end Subroutine Global_MALA_move
+\end{lstlisting}
+The default implementation sets all entries of the \texttt{Flip\_list} to unity. 
+
+To activate this type of move, one  needs to modify the following in the parameter file:
+
+\begin{lstlisting}[style=fortran]   
 &VAR_QMC
 ......
-Sequential       = .T.       ! Flag for sequential moves
-Propose_MALA     = .T.       ! For MALA updates 
-N_Global         = 6         ! Number of global moves in space and time
+Sequential              = .T.  ! Flag for sequential moves
+.......
+Global_MALA_moves       = .T.  ! Allows for global MALA updates
+N_Global_MALA_sweeps    = 1    ! Number of global MALA sweeps
+Delta_t_MALA_global     = 0.1  ! Time step for global MALA updates
+Max_Force_MALA_global   = 5.d0 ! Maximum force for global MALA updates
 ......
 /
 \end{lstlisting}
