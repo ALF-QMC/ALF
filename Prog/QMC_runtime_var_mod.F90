@@ -65,8 +65,8 @@ Module QMC_runtime_var
         Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
 
         !  Space for MALA moves.
-        Logical                      :: MALA, Propose_MALA, Global_tau_MALA_moves
-        Integer                      :: N_MALA_sweeps
+        Logical                      :: Global_MALA_moves, Sequential_MALA, Global_tau_MALA_moves
+        Integer                      :: N_Global_MALA_sweeps
         Integer                      :: N_Global_tau_MALA
         real  (kind=kind(0.d0))      :: MAX_Force_MALA_global, Max_Force_MALA_global_tau, Max_Force_MALA_sequential
         real  (kind=kind(0.d0))      :: Delta_t_MALA_sequential, Delta_t_MALA_global_tau, Delta_t_MALA_global
@@ -81,7 +81,7 @@ Module QMC_runtime_var
               &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
               &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
               &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude, &
-              &               MALA, Propose_MALA, N_MALA_sweeps, N_Global_tau_MALA, Global_tau_MALA_moves, &
+              &               Global_MALA_moves, Sequential_MALA, N_Global_MALA_sweeps, N_Global_tau_MALA, Global_tau_MALA_moves, &
               &               MAX_Force_MALA_global, Max_Force_MALA_global_tau, Max_Force_MALA_sequential, &
               &               Delta_t_MALA_sequential, Delta_t_MALA_global_tau, Delta_t_MALA_global
        
@@ -130,9 +130,9 @@ Module QMC_runtime_var
     public :: get_ham_name,          set_ham_name
     public :: get_mpi_per_parameter_set, set_mpi_per_parameter_set
     public :: get_Tempering_calc_det, set_Tempering_calc_det
-    public :: get_MALA,               set_MALA
-    public :: get_Propose_MALA,       set_Propose_MALA
-    public :: get_N_MALA_sweeps,      set_N_MALA_sweeps
+    public :: get_Global_MALA_moves, set_Global_MALA_moves
+    public :: get_Sequential_MALA,    set_Sequential_MALA
+    public :: get_N_Global_MALA_sweeps,      set_N_Global_MALA_sweeps
     public :: get_N_Global_tau_MALA,  set_N_Global_tau_MALA
     public :: get_Global_tau_MALA_moves, set_Global_tau_MALA_moves
     public :: get_MAX_Force_MALA_global,     set_MAX_Force_MALA_global
@@ -169,9 +169,9 @@ Module QMC_runtime_var
             Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
             Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
             settings_locked = .false.
-            Propose_MALA = .false.; Delta_t_MALA_sequential = 0.d0; Max_Force_MALA_sequential = 0.d0
+            Sequential_MALA = .false.; Delta_t_MALA_sequential = 0.d0; Max_Force_MALA_sequential = 0.d0
             Global_tau_MALA_moves = .false.; N_Global_tau_MALA = 0; Delta_t_MALA_global_tau = 0.d0
-            Max_Force_MALA_global_tau = 0.d0; MALA = .false.; N_MALA_sweeps = 1
+            Max_Force_MALA_global_tau = 0.d0; Global_MALA_moves = .false.; N_Global_MALA_sweeps = 1
             Delta_t_MALA_global = 0.d0; Max_Force_MALA_global = 0.d0
 
         end subroutine set_QMC_runtime_default_var
@@ -237,7 +237,7 @@ Module QMC_runtime_var
                 write(output_unit,*) "Langevin mode does not allow global tau MALA updates."
                 write(output_unit,*) "Overriding Global_tau_MALA_moves=.True. from parameter files."
             endif
-            if (MALA) then
+            if (Global_MALA_moves) then
                 write(output_unit,*) "Langevin mode does not allow MALA updates."
                 write(output_unit,*) "Overriding MALA=.True. from parameter files."
             endif
@@ -271,7 +271,7 @@ Module QMC_runtime_var
                 write(output_unit,*) "Sequential is set to .False. ."
             endif
 
-            if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves .and. .not. MALA) then
+            if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves .and. .not. Global_MALA_moves) then
                 write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, MALA, and"
                 write(output_unit,*) "Global_moves are all .False. in the parameter file."
             endif
@@ -574,35 +574,35 @@ Module QMC_runtime_var
         end subroutine set_ham_name
 
         ! MALA getters/setters
-        logical function get_MALA() result(val)
-            val = MALA
-        end function get_MALA
+        logical function get_Global_MALA_moves() result(val)
+            val = Global_MALA_moves
+        end function get_Global_MALA_moves
 
-        subroutine set_MALA(val)
+        subroutine set_Global_MALA_moves(val)
             logical, intent(in) :: val
-            call ensure_settings_unlocked("set_MALA")
-            MALA = val
-        end subroutine set_MALA
+            call ensure_settings_unlocked("set_Global_MALA_moves")
+            Global_MALA_moves = val
+        end subroutine set_Global_MALA_moves
 
-        logical function get_Propose_MALA() result(val)
-            val = Propose_MALA
-        end function get_Propose_MALA
+        logical function get_Sequential_MALA() result(val)
+            val = Sequential_MALA
+        end function get_Sequential_MALA
 
-        subroutine set_Propose_MALA(val)
+        subroutine set_Sequential_MALA(val)
             logical, intent(in) :: val
-            call ensure_settings_unlocked("set_Propose_MALA")
-            Propose_MALA = val
-        end subroutine set_Propose_MALA
+            call ensure_settings_unlocked("set_Sequential_MALA")
+            Sequential_MALA = val
+        end subroutine set_Sequential_MALA
 
-        integer function get_N_MALA_sweeps() result(val)
-            val = N_MALA_sweeps
-        end function get_N_MALA_sweeps
+        integer function get_N_Global_MALA_sweeps() result(val)
+            val = N_Global_MALA_sweeps
+        end function get_N_Global_MALA_sweeps
 
-        subroutine set_N_MALA_sweeps(val)
+        subroutine set_N_Global_MALA_sweeps(val)
             integer, intent(in) :: val
-            call ensure_settings_unlocked("set_N_MALA_sweeps")
-            N_MALA_sweeps = val
-        end subroutine set_N_MALA_sweeps
+            call ensure_settings_unlocked("set_N_Global_MALA_sweeps")
+            N_Global_MALA_sweeps = val
+        end subroutine set_N_Global_MALA_sweeps
 
         integer function get_N_Global_tau_MALA() result(val)
             val = N_Global_tau_MALA
@@ -726,9 +726,9 @@ Module QMC_runtime_var
             CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
             CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
             CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-            CALL MPI_BCAST(MALA                       ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-            CALL MPI_BCAST(Propose_MALA               ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-            CALL MPI_BCAST(N_MALA_sweeps              ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+            CALL MPI_BCAST(Global_MALA_moves          ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+            CALL MPI_BCAST(Sequential_MALA            ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+            CALL MPI_BCAST(N_Global_MALA_sweeps              ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
             CALL MPI_BCAST(N_Global_tau_MALA          ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
             CALL MPI_BCAST(Global_tau_MALA_moves      ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
             CALL MPI_BCAST(MAX_Force_MALA_global      ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)

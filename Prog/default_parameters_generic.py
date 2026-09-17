@@ -42,7 +42,7 @@ _PARAMS_GENERIC = OrderedDict([
                              'functions; 0 otherwise.',
                   'value': 1},
          'Max_Force': {'comment': 'Max Force for Langevin', 'value': 5.0},
-         'Propose_MALA': {'comment': 'For MALA updates', 'value': False},
+         'Sequential_MALA': {'comment': 'For MALA updates', 'value': False},
          'Max_Force_MALA_sequential': {'comment': 'Max Force for '
                                                   'sequential MALA '
                                                   'updates',
@@ -52,6 +52,8 @@ _PARAMS_GENERIC = OrderedDict([
                                                 'updates',
                                     'value': 0.1},
          'Global_tau_MALA_moves': {'comment': 'For Global_tau_MALA_move',
+                                   'value': False},
+         'Global_MALA_moves': {'comment': 'For Global (space-time) MALA updates',
                                    'value': False},
          'N_Global_tau_MALA': {'comment': 'Number of global tau MALA '
                                           'moves that will be carried '

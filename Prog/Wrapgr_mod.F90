@@ -83,7 +83,7 @@ Contains
 
 !--------------------------------------------------------------------
   SUBROUTINE WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
-             &        Propose_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
+             &        Sequential_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
              &        N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
 !--------------------------------------------------------------------
 !> @author 
@@ -101,7 +101,7 @@ Contains
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), allocatable ::  GR(:,:,:)
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) ::  PHASE
     INTEGER, INTENT(IN) :: NTAU
-    LOGICAL, INTENT(IN) :: Propose_S0, Propose_MALA
+    LOGICAL, INTENT(IN) :: Propose_S0, Sequential_MALA
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
     Real    (kind=Kind(0.d0)), intent(in) :: Delta_t_MALA_sequential, Delta_t_MALA_global_tau
     real    (kind=kind(0.d0)), intent(in) :: Max_Force_MALA_sequential, Max_Force_MALA_global_tau
@@ -133,7 +133,7 @@ Contains
        nf = 1
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
-       if (Propose_MALA .and. Op_V(n,nf)%type == 3) then
+       if (Sequential_MALA .and. Op_V(n,nf)%type == 3) then
           nsigma_st = nsigma%f(n,ntau1)
           phase_st = Phase
           Gr_st = Gr
@@ -164,7 +164,7 @@ Contains
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
           !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio
-          if (Propose_MALA .and. Op_V(n,1)%type == 3) then
+          if (Sequential_MALA .and. Op_V(n,1)%type == 3) then
              mode = "Intermediate"
           else
              mode = "Final"
@@ -181,7 +181,7 @@ Contains
           Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
        enddo
 
-       if (Propose_MALA .and. Op_V(n,1)%type == 3) then
+       if (Sequential_MALA .and. Op_V(n,1)%type == 3) then
           phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
           Call ham%Ham_Langevin_HMC_S0_single( force_0_new,n,ntau1)
           force_new = calculate_force(n,ntau1,GR)
@@ -232,7 +232,7 @@ Contains
 
 !--------------------------------------------------------------------    
   SUBROUTINE WRAPGRDO(GR,NTAU,PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
-             &        Propose_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
+             &        Sequential_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
              &        N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
 !--------------------------------------------------------------------
 !> @author 
@@ -252,7 +252,7 @@ Contains
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), allocatable :: GR(:,:,:)
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: PHASE
     Integer, INTENT(IN) :: NTAU
-    LOGICAL, INTENT(IN) :: Propose_S0, Propose_MALA
+    LOGICAL, INTENT(IN) :: Propose_S0, Sequential_MALA
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
     real    (kind=kind(0.d0)), intent(in) :: Delta_t_MALA_sequential, Delta_t_MALA_global_tau
     real    (kind=kind(0.d0)), intent(in) :: Max_Force_MALA_sequential, Max_Force_MALA_global_tau
@@ -288,7 +288,7 @@ Contains
 
     
     Do n =  Nt_sequential_end, Nt_sequential_start, -1
-       if (Propose_MALA .and. Op_V(n,1)%type == 3) then
+       if (Sequential_MALA .and. Op_V(n,1)%type == 3) then
           nsigma_st = nsigma%f(n,ntau)
           phase_st = phase
           force_old = calculate_force(n,ntau,Gr)
@@ -304,7 +304,7 @@ Contains
        nf = 1
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
-       if ( Propose_MALA .and. Op_V(n,nf)%type == 3)  then
+       if ( Sequential_MALA .and. Op_V(n,nf)%type == 3)  then
           Gr_st = Gr
           Call ham%Ham_Langevin_HMC_S0_single( force_0_old, n,ntau)
           call Control_MALA_sequential(force_old, force_0_old)
@@ -327,7 +327,7 @@ Contains
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
-          if (Propose_MALA .and. Op_V(n,1)%type == 3) then
+          if (Sequential_MALA .and. Op_V(n,1)%type == 3) then
              mode = "Intermediate"
              Call Upgrade2(GR,n,ntau,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
              phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))

@@ -414,7 +414,7 @@ Program Main
         Call Hop_mod_init
 
         IF (ABS(get_CPU_MAX()) > Zero ) call set_NBin(10000000)
-        If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Propose_MALA() ) then
+        If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA() ) then
            Call Wrapgr_alloc
         endif
         
@@ -478,7 +478,7 @@ Program Main
 #endif
                call set_sequential(.False.)
                call set_HMC(.False.)
-               call set_MALA(.False.)
+               call set_Global_MALA_moves(.False.)
                call set_Global_moves(.False.)
                call set_Global_tau_moves(.False.)
                call set_Global_tau_MALA_moves(.False.)
@@ -486,18 +486,18 @@ Program Main
               call set_N_exchange_steps(0)
 #endif
            endif
-           Call Langevin_HMC%make(get_Langevin(), get_HMC() , get_MALA(), get_Delta_t_Langevin_HMC(), get_Max_Force(), get_Leapfrog_Steps())
+           Call Langevin_HMC%make(get_Langevin(), get_HMC() , get_Global_MALA_moves(), get_Delta_t_Langevin_HMC(), get_Max_Force(), get_Leapfrog_Steps())
         else
            Call Langevin_HMC%set_Update_scheme(get_Langevin(), get_HMC(), .false. )
         endif
-        if (get_MALA()) then
-           Call Metropolis_Langevin%make(.False., .False., get_MALA(), get_Delta_t_MALA_global(), get_MAX_Force_MALA_global(), get_Leapfrog_Steps())
+        if (get_Global_MALA_moves()) then
+           Call Metropolis_Langevin%make(.False., .False., get_Global_MALA_moves(), get_Delta_t_MALA_global(), get_MAX_Force_MALA_global(), get_Leapfrog_Steps())
         else
-           Call Metropolis_Langevin%set_Update_scheme(.False., .False., get_MALA() )
+           Call Metropolis_Langevin%set_Update_scheme(.False., .False., get_Global_MALA_moves() )
         endif 
         Call check_update_schemes_compatibility()
 
-        if ( get_Propose_MALA() .or. get_Global_tau_MALA_moves() ) then
+        if ( get_Sequential_MALA() .or. get_Global_tau_MALA_moves() ) then
          Do n = 1,N_op
           if ( nsigma%t(n) /= 3 ) then
              write(output_unit,*)
@@ -532,7 +532,7 @@ Program Main
                Write(50,*)  '-------  Space-sequential Time-sequential moves -------' 
                Write(50,*) 'Nt_sequential_start: ', get_Nt_sequential_start()
                Write(50,*) 'Nt_sequential_end  : ', get_Nt_sequential_end()
-               If (get_Propose_MALA()) then 
+               If (get_Sequential_MALA()) then 
                   Write(50,*) 'MALA Update          '
                   Write(50,*) 'delta_t            : ', get_Delta_t_MALA_sequential() 
                   Write(50,*) 'Max_force          : ', get_Max_Force_MALA_sequential()
@@ -550,7 +550,7 @@ Program Main
                   Write(50,*) 'N_Global_tau       : ', get_N_Global_tau()
                endif
             endif
-            if ( get_Global_moves() .or. get_Langevin() .or. get_HMC() .or. get_MALA() ) then 
+            if ( get_Global_moves() .or. get_Langevin() .or. get_HMC() .or. get_Global_MALA_moves() ) then 
                Write(50,*)  '-------  Space-global     Time-global     moves -------' 
                if ( get_HMC() ) then
                   Write(50,*) ' HMC '
@@ -558,9 +558,9 @@ Program Main
                   Write(50,*) 'delta _t          : ', get_Delta_t_Langevin_HMC()
                   Write(50,*) 'HMC_Sweeps        : ', get_N_HMC_sweeps()
                endif
-               if ( get_MALA() ) then
+               if ( get_Global_MALA_moves() ) then
                   Write(50,*) 'User Defined MALA '
-                  Write(50,*) '# moves / sweep    : ', get_N_MALA_sweeps()
+                  Write(50,*) '# moves / sweep    : ', get_N_Global_MALA_sweeps()
                   Write(50,*) 'delta_t            : ', get_Delta_t_MALA_global()
                   Write(50,*) 'Max_Force          : ', get_MAX_Force_MALA_global()
                endif
@@ -581,7 +581,7 @@ Program Main
            Do n = 1,N_op
               if (nsigma%t(n) == 3 .or. nsigma%t(n) == 4)  Toggle = .true.
            Enddo
-           if ( Toggle .and. (.not.get_Propose_MALA()) ) then
+           if ( Toggle .and. (.not.get_Sequential_MALA()) ) then
               Write(50,*) 'Amplitude  for  t=3,4  vertices is  set to: ', get_Amplitude()
            endif
            Toggle  = .false.
@@ -763,10 +763,10 @@ Program Main
                  if (get_sequential() .and. str_to_upper(Langevin_HMC%get_Update_scheme()) /= "HMC" ) then
                     call Metropolis_Langevin%set_L_Forces(.False.)
                  endif
-                 Do n=1, get_N_MALA_sweeps()
+                 Do n=1, get_N_Global_MALA_sweeps()
                      Call Metropolis_Langevin%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
                           &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
-                     if (n /= get_N_MALA_sweeps()) then
+                     if (n /= get_N_Global_MALA_sweeps()) then
                         Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
                              &  get_LOBS_ST(), get_LOBS_EN(), .True. )
                         Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
@@ -809,7 +809,7 @@ Program Main
                     NTAU1 = NTAU + 1
                     CALL WRAPGRUP(GR,NTAU,PHASE,get_Propose_S0(), get_Nt_sequential_start(), get_Nt_sequential_end(), &    
                          &        get_N_Global_tau(), &
-                         &        get_Propose_MALA(), get_Delta_t_MALA_sequential(), get_Max_Force_MALA_sequential(), &
+                         &        get_Sequential_MALA(), get_Delta_t_MALA_sequential(), get_Max_Force_MALA_sequential(), &
                          &        get_N_Global_tau_MALA(), get_delta_t_MALA_global_tau(), get_Max_Force_MALA_global_tau())
                     
                     If (NTAU1 == Stab_nt(NST) ) then
@@ -871,7 +871,7 @@ Program Main
                     NTAU1 = NTAU - 1
                     CALL WRAPGRDO(GR,NTAU, PHASE,get_Propose_S0(),get_Nt_sequential_start(), get_Nt_sequential_end(), & 
                          &        get_N_Global_tau(), &
-                         &        get_Propose_MALA(), get_Delta_t_MALA_sequential(), get_Max_Force_MALA_sequential(), &
+                         &        get_Sequential_MALA(), get_Delta_t_MALA_sequential(), get_Max_Force_MALA_sequential(), &
                          &        get_N_Global_tau_MALA(), get_delta_t_MALA_global_tau(), get_Max_Force_MALA_global_tau())
                     IF (NTAU1.GE. get_LOBS_ST() .AND. NTAU1.LE. get_LOBS_EN() ) THEN
                        !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
@@ -1009,7 +1009,7 @@ Program Main
         DEALLOCATE(udvl, udvr, udvst)
         DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
         if (Projector) DEALLOCATE(WF_R, WF_L)
-        If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Propose_MALA()) then
+        If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA()) then
            Call Wrapgr_dealloc
         endif
         do nf = 1, N_FL
@@ -1027,7 +1027,7 @@ Program Main
         call deallocate_all_shared_memory
 #endif
 
-        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), get_MALA())
+        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), get_Global_MALA_moves())
 
 #if defined(MPI)
         If (Irank_g == 0 ) then

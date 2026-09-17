@@ -303,7 +303,7 @@ Will carry out sequential single spin-flip moves on the first three operators of
 %------------------------------------------------------------
 %  
 
-\subsubsection{User specified global moves in space and time}
+\subsubsection{User specified global moves in space and time : Metropolis}
 \label{sec:global_space_time}
 The code allows for global updates as well. The user must then provide two additional functions \texttt{Global\_move} and \texttt{Get\_\-Delta\_\-S0\_\-global( Nsigma\_old )}.   
 
@@ -342,7 +342,16 @@ Subroutine Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
 end Subroutine Global_move
 \end{lstlisting}
 
-
+\subsubsection{User specified global moves in space and time : MALA}
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+......
+Sequential       = .T.       ! Flag for sequential moves
+Propose_MALA     = .T.       ! For MALA updates
+N_Global         = 6         ! Number of global moves in space and time
+......
+/
+\end{lstlisting}
 % 
 
 %------------------------------------------------------------
