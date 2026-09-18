@@ -1033,7 +1033,7 @@
       Implicit none
       Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
 
-      N_Global_tau = Size(Op_V,1)
+      !  This is  just a placeholder  and  reproduces exactly  the base version of this subrotine.
 
    end Subroutine Overide_global_tau_sampling_parameters
        
@@ -1069,7 +1069,7 @@
       Integer :: nt, n
 
       If (.not.Continuous) then
-         Write(6,*) "Error: Global_move_tau_base is implemented only continuous HS fields. Please implement it or set Continuous = False in the input file. "
+         Write(6,*) "Error: Global_move_tau_base is implemented only for  continuous HS fields. Please implement it or set Continuous = .True. in the input file. "
          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif
       size_clust = Ltrot
