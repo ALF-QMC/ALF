@@ -311,6 +311,8 @@ Module QMC_runtime_var
                     write(error_unit,*) "Error: Global_tau_MALA_moves=.True. requires Max_Force_MALA_global_tau > 0."
                     CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
                 endif
+            else
+                N_Global_tau_MALA = 0
             endif
 
             if (Global_MALA_moves) then
@@ -322,6 +324,8 @@ Module QMC_runtime_var
                     write(error_unit,*) "Error: Global_MALA_moves=.True. requires MAX_Force_MALA_global > 0."
                     CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
                 endif
+            else
+                N_Global_MALA_sweeps = 0
             endif
 
         end subroutine check_MALA_variables_positive
