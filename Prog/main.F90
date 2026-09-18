@@ -496,6 +496,7 @@ Program Main
            Call Metropolis_Langevin%set_Update_scheme(.False., .False., get_Global_MALA_moves() )
         endif 
         Call check_update_schemes_compatibility()
+        Call check_MALA_variables_positive()
 
         if ( get_Sequential_MALA() .or. get_Global_tau_MALA_moves() ) then
          Do n = 1,N_op
