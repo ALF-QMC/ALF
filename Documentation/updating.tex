@@ -268,7 +268,8 @@ subroutine Global_MALA_move_tau(Flip_list, Flip_length,ntau)
     Integer                   , INTENT(OUT) :: Flip_list(:)
     Integer, INTENT(OUT) :: Flip_length
     Integer, INTENT(IN)  :: ntau
-      
+	!   Fields  nsigma%f(Flip_list(1),ntau) ... 
+	!           nsigma%f(Flip_list(Flip_Length),ntau) will be updated.
 end Subroutine Global_MALA_move_tau
 \end{lstlisting}
 Allows to  specify the list of field to be updated in the MALA move. By default, all the  field on  the time slice are visited and 
@@ -351,13 +352,13 @@ Metropolis assisted Langevin algorithm (MALA).
 Since the move is user defined, one has to provide a function that tags the fields that be updated during the global MALA move.
 This function is specified in the  Hamiltonian, and takes the following  form: 
 \begin{lstlisting}[style=fortran]   
-	 Subroutine Global_MALA_move(Flip_list)
-        Integer                   , INTENT(OUT) :: Flip_list(size(Op_V,1),Ltrot)
-		....
-		Flip_list(n,nt) = 1  ! Field will be updated
-		Flip_list(n,nt) = 0  ! Field will not be updated
-	    ....
-      end Subroutine Global_MALA_move
+Subroutine Global_MALA_move(Flip_list)
+	Integer                   , INTENT(OUT) :: Flip_list(size(Op_V,1),Ltrot)
+	....
+	Flip_list(n,nt) = 1  ! Field will be updated
+	Flip_list(n,nt) = 0  ! Field will not be updated
+	....
+end Subroutine Global_MALA_move
 \end{lstlisting}
 The default implementation sets all entries of the \texttt{Flip\_list} to unity. 
 

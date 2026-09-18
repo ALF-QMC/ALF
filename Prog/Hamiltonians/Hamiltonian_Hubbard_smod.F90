@@ -1007,10 +1007,6 @@
       Integer, INTENT(OUT) :: Flip_length
       Integer, INTENT(IN)  :: ntau
       
-      If (.not.Continuous) then
-         Write(6,*) "Error: Global_move_tau_base is implemented only continuous HS fields. Please implement it or set Continuous = False in the input file. "
-         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-      endif
       Flip_length = 1
       Flip_list(1) = nranf(Size(Op_V,1))
       Flip_value(1) = nsigma%flip(Flip_list(1),ntau)
