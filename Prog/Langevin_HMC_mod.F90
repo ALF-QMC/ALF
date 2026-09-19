@@ -582,6 +582,9 @@
            Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
            !if accepted 
            ! LATER (optimization idea) restore Phase, GR, udvr, udvl and don't reset storage
+
+           Deallocate ( Phase_Det_new, Det_vec_new, Phase_Det_old, Det_vec_old )
+
         case(Scheme_MALA) !("MALA")
 
            n1 = size(nsigma%f,1)
@@ -591,8 +594,8 @@
            nsigma_old%t = nsigma%t
            Phase_old    = Phase
 
-           Allocate ( Phase_Det_new(N_FL_eff), Det_vec_new(NDIM,N_FL_eff))
-           Allocate ( Phase_Det_old(N_FL_eff), Det_vec_old(NDIM,N_FL_eff))
+           Allocate ( Phase_Det_new(N_FL), Det_vec_new(NDIM,N_FL))
+           Allocate ( Phase_Det_old(N_FL), Det_vec_old(NDIM,N_FL))
            Allocate ( Forces_old(n1,n2)  , Forces_0_old(n1,n2) )
            Allocate ( Flip_list(Size(nsigma%f,1),size(nsigma%f,2)) )
 

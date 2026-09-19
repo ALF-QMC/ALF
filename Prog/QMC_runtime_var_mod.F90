@@ -95,6 +95,7 @@ Module QMC_runtime_var
     public :: check_langevin_schemes_and_variables
     public :: check_update_schemes_compatibility
     public :: check_MALA_variables_positive
+    public :: check_compatibility_reconstruct_greens_function
 #ifdef MPI
     public :: broadcast_QMC_runtime_var
 #endif
@@ -177,6 +178,37 @@ Module QMC_runtime_var
 
         end subroutine set_QMC_runtime_default_var
 
+
+        subroutine  check_compatibility_reconstruct_greens_function
+
+            implicit none
+
+            if (Sequential_MALA) then
+                write(error_unit,*) "Error: reconstruction of the Green function is not supported (at present) for this update: Sequential_MALA."
+                CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+
+            if (Global_tau_MALA_moves) then
+                write(error_unit,*) "Error: reconstruction of the Green function is not supported (at present) for this update: Global_tau_MALA_moves."
+                CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+
+            if (Global_MALA_moves) then
+                write(error_unit,*) "Error: reconstruction of the Green function is not supported (at present) for this update: Global_MALA_moves."
+                CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+
+            if (Langevin) then
+                write(error_unit,*) "Error: reconstruction of the Green function is not supported (at present) for this update: Langevin."
+                CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+
+            if (HMC) then
+                write(error_unit,*) "Error: reconstruction of the Green function is not supported (at present) for this update: HMC."
+                CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+
+        end subroutine check_compatibility_reconstruct_greens_function
 
         subroutine set_default_values_measuring_interval(Thtrot, Ltrot, Projector)
 

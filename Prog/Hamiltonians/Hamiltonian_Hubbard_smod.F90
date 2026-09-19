@@ -147,6 +147,9 @@
         procedure, nopass :: Overide_global_tau_sampling_parameters
         procedure, nopass :: Global_move
         procedure, nopass :: Global_MALA_move
+        procedure, nopass :: weight_reconstruction
+        procedure, nopass :: GR_reconstruction
+        procedure, nopass :: GRT_reconstruction
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -190,6 +193,7 @@
       Type (Unit_cell),     target :: Latt_unit
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      INTEGER :: nf_calc, nf_reconst
 
     contains
       
@@ -271,6 +275,7 @@
 
           ! Setup the Bravais lattice
           Call  Ham_Latt
+          Write(6,*) 'Ndim: ', Ndim, size(latt%imj,1), size(latt%imj,2)
 
           ! Setup the hopping / single-particle part
           Call  Ham_Hop
@@ -280,6 +285,14 @@
 
           ! Setup the trival wave function, in case of a projector approach
           if (Projector) Call Ham_Trial()
+
+          !!!!!   This piece of code allows for  reconstruction of the Green function 
+          !!!!!!  Beware:  This is model dependent.
+          !allocate(Calc_Fl(N_FL))
+          !nf_calc=2
+          !nf_reconst=1
+          !Calc_Fl(nf_calc)=.True.
+          !Calc_Fl(nf_reconst)=.False.
 
 #ifdef MPI
           If (Irank_g == 0) then
@@ -1126,5 +1139,105 @@
          enddo 
 
       end Subroutine Global_MALA_move
+
+!--------------------------------------------------------------------
+!> @brief
+!> Reconstructs dependent flavors of the configuration's weight.
+!> @details
+!> This has to be overloaded in the Hamiltonian submodule.
+!--------------------------------------------------------------------
+      subroutine weight_reconstruction(weight)
+         implicit none
+         complex (Kind=Kind(0.d0)), Intent(inout) :: weight(:)
+
+         weight(nf_reconst) = conjg(Weight(nf_calc))  
+
+      end subroutine weight_reconstruction
+
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reconstructs dependent flavors of equal time Greens function
+!> @details
+!> This has to be overloaded in the Hamiltonian submodule.
+!> @param [INOUT] Gr   Complex(:,:,:)
+!> \verbatim
+!>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
+!> \endverbatim
+!-------------------------------------------------------------------
+      subroutine GR_reconstruction(GR)
+
+         Implicit none
+
+         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
+         Integer :: I,J,imj
+         real (kind=kind(0.d0)) :: X, ZZ
+
+         If  (Ham_U  >= 0.d0)  then 
+            Do J = 1,Ndim
+               Do I = 1,Ndim
+                  X=-1.0
+                  imj = latt%imj(I,J)
+                  if (mod(Latt%list(imj,1)+Latt%list(imj,2),2)==0) X=1.d0
+                  !  write(*,*) Latt%list(I,:),Latt%list(J,:),mod(Latt%list(imj,1)+Latt%list(imj,2),2), X
+                  ZZ=0.d0
+                  if (I==J) ZZ=1.d0
+                  GR(I,J,nf_reconst) = ZZ - X*GR(J,I,nf_calc)
+               Enddo
+            Enddo
+         else
+            Do J = 1,Ndim
+               Do I = 1,Ndim
+                  GR(I,J,nf_reconst) = Conjg(GR(I,J,nf_calc))
+               Enddo
+            Enddo
+         Endif
+      end Subroutine GR_reconstruction
+
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reconstructs dependent flavors of time displaced Greens function G0T and GT0
+!> @details
+!> This has to be overloaded in the Hamiltonian submodule.
+!> @param [INOUT] GT0, G0T,  Complex(:,:,:)
+!> \verbatim
+!>  Green functions:
+!>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
+!>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
+!> \endverbatim
+!-------------------------------------------------------------------
+      Subroutine GRT_reconstruction(GT0, G0T)
+         Implicit none
+
+         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
+         Integer :: I,J,imj
+         real (kind=kind(0.d0)) :: X
+
+         If (Ham_U >= 0.d0)  then
+            Do J = 1,Latt%N
+               Do I = 1,Latt%N
+                  X=-1.0
+                  imj = latt%imj(I,J)
+                  if (mod(Latt%list(imj,1)+Latt%list(imj,2),2)==0) X=1.d0
+                  G0T(I,J,nf_reconst) = -X*conjg(GT0(J,I,nf_calc))
+                  GT0(I,J,nf_reconst) = -X*conjg(G0T(J,I,nf_calc))
+               enddo
+            enddo
+         else
+            Do J = 1,Latt%N
+               Do I = 1,Latt%N
+                  G0T(I,J,nf_reconst) = conjg(G0T(I,J,nf_calc))
+                  GT0(I,J,nf_reconst) = conjg(GT0(I,J,nf_calc))
+               enddo
+            enddo
+         endif
+      end Subroutine GRT_reconstruction
        
    end submodule ham_Hubbard_smod
