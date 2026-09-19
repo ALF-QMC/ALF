@@ -156,11 +156,9 @@ Contains
           Hs_New =   nsigma%flip(n,ntau1)
        Endif
        S0_ratio          = ham%S0(n,ntau1, Hs_New )
-       if ( Propose_S0 ) then
-          If ( Op_V(n,nf)%type == 1)  then
-             T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
-             T0_Proposal_ratio = 1.d0/S0_ratio
-          endif
+       if ( Propose_S0 .and.   Op_V(n,nf)%type == 1)   then
+          T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
+          T0_Proposal_ratio = 1.d0/S0_ratio
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
           !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio
@@ -319,11 +317,9 @@ Contains
           HS_new            = nsigma%flip(n,ntau)
        endif
        S0_ratio          = ham%S0(n,ntau,HS_new)
-       if ( Propose_S0 ) then
-          If ( Op_V(n,nf)%type == 1)  then
-             T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
-             T0_Proposal_ratio = 1.d0/S0_ratio
-          endif
+       if ( Propose_S0 .and.   Op_V(n,nf)%type == 1)   then
+           T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
+           T0_Proposal_ratio = 1.d0/S0_ratio
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
