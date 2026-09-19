@@ -44,6 +44,8 @@
         use wrapul_mod
         use cgr1_mod
         Use iso_fortran_env, only: output_unit, error_unit
+        use Natural_Constants
+        Use, intrinsic :: IEEE_ARITHMETIC
 #ifdef MPI
         Use mpi
 #endif
@@ -53,12 +55,13 @@
 
         Private
         
-        Public :: Langevin_HMC, Langevin_HMC_type, Langevin_HMC_Reset_storage
+        Public :: Langevin_HMC, Metropolis_Langevin, Langevin_HMC_type, Langevin_HMC_Reset_storage, calculate_Force
         
         enum, bind(c)
-           enumerator :: Scheme_none = 0
-           enumerator :: Scheme_Langevin = 1 
-           enumerator :: Scheme_HMC = 2
+           enumerator :: Scheme_none = 0       !  No global moves
+           enumerator :: Scheme_Langevin = 1   !  Global moves with Langevin 
+           enumerator :: Scheme_HMC =  2       !  Global moves with HMC
+           enumerator :: Scheme_MALA = 3       !  Global moves with MALA
         end enum
         Type Langevin_HMC_type
            private
@@ -85,7 +88,7 @@
            procedure  ::    calc_Forces          => Langevin_HMC_Forces
         end type Langevin_HMC_type
 
-        Type (Langevin_HMC_type) :: Langevin_HMC
+        Type (Langevin_HMC_type) :: Langevin_HMC, Metropolis_Langevin
 
            
       Contains
@@ -115,7 +118,7 @@
         COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:,:,:) :: GR, GR_Tilde
         Integer, intent(in),  dimension(:), allocatable :: Stab_nt
         Integer, intent(in) :: LOBS_ST, LOBS_EN
-        Logical, intent(in) :: Calc_Obser_eq 
+        Logical, intent(in) :: Calc_Obser_eq
         
 
         !Local
@@ -353,6 +356,7 @@
         !Local
         Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf, nf_eff
         Real    (Kind=Kind(0.d0)) :: X, Xmax,E_kin_old, E_kin_new,log_T0_Proposal_ratio, weight, cluster_size
+        Real    (Kind=Kind(0.d0)) :: T0_proposal_ratio, delta_t_running_old, delta_t_running_new
         Logical                   :: Calc_Obser_eq, toggle
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
@@ -360,7 +364,12 @@
         Type    (Fields)           :: nsigma_old
         Character (Len=64)         :: storage
         Complex (Kind=Kind(0.d0))  :: Ratio(2), Phase_old, Ratiotot,Phase_new, Z
+        Complex (Kind=Kind(0.d0)), allocatable  :: Forces_old  (:,:)
+        Real    (Kind=Kind(0.d0)), allocatable  :: Forces_0_old(:,:)
+        Integer,      allocatable :: Flip_list(:,:)
         Complex (Kind=Kind(0.d0))  :: Phase_array(N_FL)
+
+        Logical, parameter :: LOGICAL_DEBUG = .False.
 
         select case (this%scheme) !(trim(this%Update_scheme))
         case(Scheme_Langevin) !("Langevin")
@@ -573,6 +582,152 @@
            Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
            !if accepted 
            ! LATER (optimization idea) restore Phase, GR, udvr, udvl and don't reset storage
+
+           Deallocate ( Phase_Det_new, Det_vec_new, Phase_Det_old, Det_vec_old )
+
+        case(Scheme_MALA) !("MALA")
+
+           n1 = size(nsigma%f,1)
+           n2 = size(nsigma%f,2)
+           call nsigma_old%make(n1, n2)
+           nsigma_old%f = nsigma%f
+           nsigma_old%t = nsigma%t
+           Phase_old    = Phase
+
+           Allocate ( Phase_Det_new(N_FL), Det_vec_new(NDIM,N_FL))
+           Allocate ( Phase_Det_old(N_FL), Det_vec_old(NDIM,N_FL))
+           Allocate ( Forces_old(n1,n2)  , Forces_0_old(n1,n2) )
+           Allocate ( Flip_list(Size(nsigma%f,1),size(nsigma%f,2)) )
+
+           storage = "Full"
+           If ( .not. this%L_Forces) then
+             Call Compute_Fermion_Det(Phase_det_old,Det_Vec_old, udvl, udvst, Stab_nt, storage)
+           else
+             Det_vec_old = this%Det_vec_old
+             Phase_det_old = this%Phase_det_old
+           endif
+
+           Calc_Obser_eq = .false.
+           If ( .not. this%L_Forces) then
+              Call this%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+              &  LOBS_ST, LOBS_EN, Calc_Obser_eq )
+           endif
+           Call ham%Ham_Langevin_HMC_S0( this%Forces_0)
+           forces_old   = this%Forces
+           forces_0_old = this%Forces_0
+           
+           call ham%Global_MALA_move(Flip_list)
+
+           call Control_MALA_Global(forces_old, forces_0_old, flip_list)
+
+           Xmax = 0.d0
+           do n = 1,n1
+              do nt = 1,n2
+                 if ( flip_list(n,nt) == 1 ) then
+                    X = abs(Real(this%Forces  (n,nt), Kind(0.d0)))
+                    if (X > Xmax) Xmax = X
+                    X = abs(Real(this%Forces_0(n,nt), Kind(0.d0)))
+                    if (X > Xmax) Xmax = X
+                 endif
+              enddo
+           enddo
+           Delta_t_running_old = this%Delta_t_Langevin_HMC
+           If (Xmax > this%Max_Force) Delta_t_running_old = this%Max_Force*this%Delta_t_Langevin_HMC/Xmax
+
+           do n = 1, n1
+              if (OP_V(n,1)%type == 3 ) then
+                 do nt = 1, n2
+                    if ( flip_list(n,nt) == 1 ) then
+                       nsigma%f(n,nt)   = nsigma%f(n,nt)  -  ( this%Forces_0(n,nt) +  &
+                            &  real( Phase*this%Forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_running_old + &
+                            &  sqrt( 2.d0 * Delta_t_running_old) * rang_wrap()
+                    endif
+                 enddo
+              endif
+           enddo
+
+           Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+           Call Compute_Fermion_Det(Phase_det_new,Det_Vec_new, udvl, udvst, Stab_nt, storage)
+           Call this%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                   &  LOBS_ST, LOBS_EN, Calc_Obser_eq )
+           Call ham%Ham_Langevin_HMC_S0( this%Forces_0)
+           call Control_MALA_Global(this%forces, this%forces_0, flip_list)
+
+           Xmax = 0.d0
+           do n = 1,n1
+              do nt = 1,n2
+                 if ( flip_list(n,nt) == 1 ) then
+                    X = abs(Real(this%Forces  (n,nt), Kind(0.d0)))
+                    if (X > Xmax) Xmax = X
+                    X = abs(Real(this%Forces_0(n,nt), Kind(0.d0)))
+                    if (X > Xmax) Xmax = X
+                 endif
+              enddo
+           enddo
+           Delta_t_running_new = this%Delta_t_Langevin_HMC
+           If (Xmax > this%Max_Force) Delta_t_running_new = this%Max_Force*this%Delta_t_Langevin_HMC/Xmax
+
+           
+           log_T0_Proposal_ratio = 0.d0
+           do n = 1, n1
+              if (OP_V(n,1)%type == 3 ) then
+                 do nt = 1, n2
+                    if ( flip_list(n,nt) == 1 ) then
+                       log_T0_Proposal_ratio = log_t0_proposal_ratio  +  & 
+                         &  0.5d0 * log(Delta_t_running_old/Delta_t_running_new)  &
+                         & -0.25d0/Delta_t_running_new * (Abs(nsigma_old%f(n,nt) - nsigma%f(n,nt) + &
+                         & Delta_t_running_new*(this%forces_0(n,nt) +  real( Phase*this%forces(n,nt),kind(0.d0)) &
+                         &   / Real(Phase,kind(0.d0))) )**2 )  & 
+                         & + 0.25d0/Delta_t_running_old * ( &
+                         & Abs(nsigma%f(n,nt) - nsigma_old%f(n,nt) + Delta_t_running_old*(forces_0_old(n,nt) + &
+                         & real( phase_old*forces_old(n,nt),kind(0.d0)) / Real(phase_old,kind(0.d0)))  )**2 ) 
+                    endif
+                 enddo
+              endif
+           enddo 
+           
+
+           Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
+                &                          Det_vec_old, Det_vec_new, nsigma_old, log_T0_Proposal_ratio, Ratio)
+           Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
+
+
+           TOGGLE = .false.
+           if ( Weight > ranf_wrap() )  Then
+              TOGGLE = .true.
+              this%Det_vec_old   = Det_vec_new
+              this%Phase_Det_old = Phase_det_new
+           else
+              this%Det_vec_old   = Det_vec_old
+              this%Phase_Det_old = Phase_det_old
+              nsigma%t = nsigma_old%t
+              nsigma%f = nsigma_old%f
+           endif
+
+           Z = Phase_old * Ratiotot/ABS(Ratiotot)
+           Call Control_PrecisionP_MALA(Z,Phase)
+           Call Control_upgrade_MALA(TOGGLE)
+           If (LOGICAL_DEBUG) then
+            if (Is_NaN_bits(real(Z,kind(0.d0))) .or. Is_NaN_bits(aimag(Z))) then
+               Write(6,*) 'Z is NaN'
+               Write(6,*) 'Z = ', Z
+               Write(6,*) 'N ', Det_vec_new
+               Write(6,*) 'O' , Det_vec_old
+               Write(6,*) 'T0', t0_proposal_ratio, log_T0_Proposal_ratio
+               Write(6,*) 'R', Ratiotot
+               Write(6,*) 'P', Phase_old
+               Write(6,*) 'R(N)', Ratio
+               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+           endif
+
+           Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+
+           deallocate ( Phase_Det_new, Det_vec_new )
+           deallocate ( Phase_Det_old, Det_vec_old )
+           deallocate ( Forces_old   , Forces_0_old)
+           deallocate ( Flip_list )
+
         case default
            WRITE(error_unit,*) 'Unknown Global_update_scheme ', trim(this%Update_scheme) 
            WRITE(error_unit,*) 'Global_update_scheme is Langevin or HMC'
@@ -592,7 +747,7 @@
 !--------------------------------------------------------------------
 
       
-      SUBROUTINE  Langevin_HMC_setup(this,Langevin,HMC, Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps )
+      SUBROUTINE  Langevin_HMC_setup(this,Langevin,HMC, MALA, Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps )
 
         Implicit none
 
@@ -601,7 +756,7 @@
 
         class (Langevin_HMC_type) :: this
 
-        Logical                  , Intent(in)   :: Langevin, HMC
+        Logical                  , Intent(in)   :: Langevin, HMC, MALA
         Integer                  , Intent(in)   :: Leapfrog_steps
         Real    (Kind=Kind(0.d0)), Intent(in)   :: Delta_t_Langevin_HMC, Max_Force
 
@@ -678,6 +833,26 @@
            this%Delta_t_running      =  1.0d0
          !   WRITE(error_unit,*) 'HMC  step is not yet implemented'
          !   CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        elseif (MALA) then
+           Nr = size(nsigma%f,1)
+           Nt = size(nsigma%f,2)
+           Do i = 1, Nr
+              if ( nsigma%t(i) /= 3 ) then
+                 write(output_unit,*)
+                 WRITE(output_unit,*) 'Warning:    Not all fields are of type 3.'
+                 WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated in MALA updates.'
+                 write(output_unit,*)
+                 exit
+              endif
+           enddo
+           Allocate ( this%Forces(Nr,Nt),  this%Forces_0(Nr,Nt) )
+           Allocate ( this%Det_vec_old(NDIM,N_FL), this%Phase_Det_old(N_FL) )
+           this%Update_scheme        =  "MALA"
+           this%scheme               =  Scheme_MALA
+           this%Delta_t_Langevin_HMC =  Delta_t_Langevin_HMC
+           this%Max_Force            =  Max_Force
+           this%L_Forces             = .False.
+           this%Delta_t_running      =  1.0d0
         else
            this%Update_scheme        =  "None"
         endif
@@ -735,6 +910,9 @@
            Deallocate ( this%Det_vec_old, this%Phase_Det_old )
          !   WRITE(error_unit,*) 'HMC  step is not yet implemented'
          !   CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        case(Scheme_MALA)
+           Deallocate ( this%Forces, this%Forces_0 )
+           Deallocate ( this%Det_vec_old, this%Phase_Det_old )
         case default
         end select
       end SUBROUTINE Langevin_HMC_clear
@@ -797,12 +975,12 @@
 !> @brief
 !>       Sets the update_scheme
 !--------------------------------------------------------------------
-      subroutine Langevin_HMC_set_Update_scheme(this, Langevin, HMC )
+      subroutine Langevin_HMC_set_Update_scheme(this, Langevin, HMC, MALA )
         Implicit none
         
         class (Langevin_HMC_type) :: this
         
-        Logical, intent(in) :: Langevin, HMC
+        Logical, intent(in) :: Langevin, HMC, MALA
 
         If (Langevin) then
            this%Update_scheme        =  "Langevin"
@@ -810,6 +988,9 @@
         elseif (HMC)  then
            this%Update_scheme        =  "HMC"
            this%scheme               =  Scheme_HMC
+        elseif (MALA) then
+           this%Update_scheme        =  "MALA"
+           this%scheme               =  Scheme_MALA
         else
            this%Update_scheme        =  "None"
            this%scheme               =  Scheme_none
@@ -832,5 +1013,58 @@
         Real(Kind=Kind(0.d0)) :: Langevin_HMC_get_Delta_t_running
         Langevin_HMC_get_Delta_t_running = this%Delta_t_running
       end function Langevin_HMC_get_Delta_t_running
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!>       Returns Force for a given operator n and time slice ntau
+!--------------------------------------------------------------------
+      function calculate_Force(n,ntau,gr)
+        Implicit none
+        
+        complex(Kind=Kind(0.d0)) :: calculate_Force
+        integer, intent(in) :: n, ntau
+        Complex (Kind=Kind(0.d0)), intent(in), dimension(:,:,:) :: Gr
+
+        integer :: nf_eff, nf, i, j
+        Complex (Kind=Kind(0.d0)) :: Z(N_FL), Z1, g_loc, force
+
+        force = cmplx(0.d0, 0.d0, kind(0.d0))
+        If (Op_V(n,1)%type == 3) then
+           Z = cmplx(0.d0,0.d0,Kind(0.d0))
+           Do nf_eff = 1, N_Fl_eff
+              nf=Calc_FL_map(nf_eff)
+              do I = 1,size(OP_V(n,nf)%P,1)
+                 do J = 1,size(OP_V(n,nf)%P,1)
+                    Z1 =  cmplx(0.d0,0.d0,Kind(0.d0))
+                    if ( I == J ) Z1 = cmplx(1.d0,0.d0,Kind(0.d0))
+                    Z(nf)  = Z(nf) +  Op_V(n,nf)%O(I,J) * ( Z1 - Gr(Op_V(n,nf)%P(J),Op_V(n,nf)%P(I), nf) )
+                 Enddo
+              Enddo
+              Z(nf)  = Z(nf) + Op_V(n,nf)%alpha
+           Enddo
+           if (reconstruction_needed) call ham%weight_reconstruction(Z)
+           Do nf = 1, N_Fl
+              g_loc = Op_V(n,nf)%g
+              if (Op_V(n,nf)%get_g_t_alloc() ) g_loc = Op_V(n,nf)%g_t(ntau)
+              force =  force - g_loc * Z(nf) * cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0))
+           Enddo
+        endif
+      
+        calculate_Force = force
+
+      end function calculate_Force
+
+      Logical function Is_NaN_bits(X)
+        Implicit none
+        Real (Kind=Kind(0.d0)), intent(in) :: X
+        Integer (Kind=8) :: Ibits
+        Ibits = transfer(X, Ibits)
+        ! Double precision NaN: exponent bits all 1 (bits 52-62) and mantissa != 0
+        Is_NaN_bits = ( iand(Ibits, int(z'7FF0000000000000',8)) == int(z'7FF0000000000000',8) ) .and. &
+             &        ( iand(Ibits, int(z'000FFFFFFFFFFFFF',8)) /= 0 )
+      end function Is_NaN_bits
 
     end Module Langevin_HMC_mod

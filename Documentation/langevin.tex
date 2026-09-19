@@ -173,6 +173,25 @@ $ 112$, whereas at $ \delta \tl = 0.01$ it grew to $524$.    In both cases the a
 
 Controlling Langevin dynamics when the action has logarithmic divergences is a challenge, and it is not a given that the results are satisfactory.  For our specific problem we can solve this issue by considering open boundary conditions. Following an argument put forward in \cite{Assaad07}, we can show, using world lines, that the determinant is always positive.   In this case the  action does not  have logarithmic divergences and the Langevin dynamics works beautifully well, see Fig.~\ref{Langevin.fig}. 
 
+Practically to start the Langevin dynamic run the user will  have to provide the  function
+\begin{lstlisting}[style=fortran]
+Subroutine Ham_Langevin_HMC_S0(Forces_0)
+  Real (Kind=Kind(0.d0)), Intent(inout), allocatable :: Forces_0(:,:)
+  ! Forces_0(n,nt) = \frac{\partial S_0}{\partial s_{n,\tau}}.  
+  ! Here n is the index of the field in the operator list and nt is the time slice.	
+End Subroutine Ham_Langevin_HMC_S0
+\end{lstlisting} 
+and  in the parameter file chose the option: 
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+......
+Langevin             = .T.    ! Langevin update
+Delta_t_Langevin_HMC = 0.01   ! Default time step for Langevin and HMC updates.
+Max_Force            = 5.0    ! Max Force for  Langevin
+......
+/
+\end{lstlisting}
+
 \begin{figure}[H]
         \begin{center}
                 \includegraphics[scale=0.9,clip]{Langevin.pdf}

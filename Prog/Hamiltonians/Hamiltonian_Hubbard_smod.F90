@@ -143,6 +143,13 @@
         procedure, nopass :: S0
         procedure, nopass :: Ham_Langevin_HMC_S0
         procedure, nopass :: Get_Delta_S0_global
+        procedure, nopass :: Global_move_tau 
+        procedure, nopass :: Overide_global_tau_sampling_parameters
+        procedure, nopass :: Global_move
+        procedure, nopass :: Global_MALA_move
+        procedure, nopass :: weight_reconstruction
+        procedure, nopass :: GR_reconstruction
+        procedure, nopass :: GRT_reconstruction
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -186,6 +193,7 @@
       Type (Unit_cell),     target :: Latt_unit
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      INTEGER :: nf_calc, nf_reconst
 
     contains
       
@@ -276,6 +284,14 @@
 
           ! Setup the trival wave function, in case of a projector approach
           if (Projector) Call Ham_Trial()
+
+          !!!!!   This piece of code allows for  reconstruction of the Green function 
+          !!!!!!  Beware:  This is model dependent.
+          !allocate(Calc_Fl(N_FL))
+          !nf_calc=2
+          !nf_reconst=1
+          !Calc_Fl(nf_calc)=.True.
+          !Calc_Fl(nf_reconst)=.False.
 
 #ifdef MPI
           If (Irank_g == 0) then
@@ -956,5 +972,279 @@
             ! S0 = exp( (-Hs_new**2  + nsigma%f(n,nt)**2 ) /2.d0 ) 
 
      end Function Get_Delta_S0_global
-        
-    end submodule ham_Hubbard_smod
+
+   !--------------------------------------------------------------------
+   !> @author
+   !> ALF Collaboration
+   !>
+   !> @brief
+   !> Specify a global move on a given time slice tau.
+   !>
+   !> @details
+   !> @param[in] ntau Integer
+   !> \verbatim
+   !>  Time slice
+   !> \endverbatim
+   !> @param[out] T0_Proposal_ratio, Real
+   !> \verbatim
+   !>  T0_Proposal_ratio = T0( sigma_new -> sigma ) /  T0( sigma -> sigma_new)
+   !> \endverbatim
+   !> @param[out] S0_ratio, Real
+   !> \verbatim
+   !>  S0_ratio = e^( S_0(sigma_new) ) / e^( S_0(sigma) )
+   !> \endverbatim
+   !> @param[out] Flip_length  Integer
+   !> \verbatim
+   !>  Number of flips stored in the first  Flip_length entries of the array Flip_values.
+   !>  Has to be smaller than NDIM
+   !> \endverbatim
+   !> @param[out] Flip_list  Integer(Ndim)
+   !> \verbatim
+   !>  List of spins to be flipped: nsigma%f(Flip_list(1),ntau) ... nsigma%f(Flip_list(Flip_Length),ntau)
+   !>  Note that Ndim = size(Op_V,1)
+   !> \endverbatim
+   !> @param[out] Flip_value  Real(Ndim)
+   !> \verbatim
+   !>  Flip_value(:)= nsigma%flip(Flip_list(:),ntau)
+   !>  Note that Ndim = size(Op_V,1)
+   !> \endverbatim
+   !--------------------------------------------------------------------
+   Subroutine Global_move_tau(T0_Proposal_ratio, S0_ratio, &
+         &                     Flip_list, Flip_length,Flip_value,ntau)
+
+      Implicit none
+      Real (Kind = Kind(0.d0)),   INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
+      Integer                   , INTENT(OUT) :: Flip_list(:)
+      Complex (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
+      Integer, INTENT(OUT) :: Flip_length
+      Integer, INTENT(IN)  :: ntau
+      
+      Flip_length = 1
+      Flip_list(1) = nranf(Size(Op_V,1))
+      Flip_value(1) = nsigma%flip(Flip_list(1),ntau)
+      T0_Proposal_ratio = 1.d0
+      S0_ratio = S0(Flip_list(1),ntau,Flip_value(1))
+      
+      
+   end Subroutine Global_move_tau
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> This routine allows to user to  determine the global_tau sampling parameters at run time
+!> It is especially usefull if these parameters are dependent on other parameters.
+!>
+!> @details
+!> \endverbatim
+!--------------------------------------------------------------------
+   Subroutine Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end, &
+                    &        N_Global_tau, N_Global_tau_MALA)
+
+      Implicit none
+      Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
+
+      !  This is  just a placeholder  and  reproduces exactly  the base version of this subrotine.
+
+   end Subroutine Overide_global_tau_sampling_parameters
+       
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Global moves
+!>
+!> @details
+!>  This routine generates a
+!>  global update  and returns the propability T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)
+!> @param [IN] nsigma_old,  Type(Fields)
+!> \verbatim
+!>  Old configuration. The new configuration is stored in nsigma.
+!> \endverbatim
+!> @param [OUT]  T0_Proposal_ratio Real
+!> \verbatimam
+!>  T0_Proposal_ratio  =  T0( sigma_new -> sigma_old ) /  T0( sigma_old -> sigma_new)
+!> \endverbatim
+!> @param [OUT]  Size_clust Real
+!> \verbatim
+!>  Size of cluster that will be flipped.
+!> \endverbatim
+   Subroutine Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
+
+      Implicit none
+      Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
+      Type (Fields),  Intent(IN)  :: nsigma_old
+
+      Integer :: nt, n
+      Logical, save :: first_call = .True.
+
+      If (Continuous) then
+         If (first_call) then
+            write(output_unit,*)
+            write(output_unit,*) "User implementation of Global_move is being called!"
+            write(output_unit,*) "Choose a random site and flip all the fields along the time direction"
+            write(output_unit,*)
+            first_call = .false.
+         endif
+         size_clust = Ltrot
+         n  = nranf(Size(Op_V,1))
+         do nt = 1,Ltrot
+            nsigma%f(n,nt)   = -nsigma_old%f(n,nt)
+         enddo
+         T0_Proposal_ratio = 1
+      else
+         write(error_unit, *) 'Global_move not implemented'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif 
+
+
+   End Subroutine Global_move
+
+   !--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Specify a global Metropolis-adjusted langevin move.
+!>
+!> @details
+!> @param[out] Flip_length  Integer
+!> \verbatim
+!>  Number of flips stored in the first  Flip_length entries of the array Flip_values.
+!>  Has to be smaller than NDIM*Ltrot
+!> \endverbatim
+!> @param[out] Flip_list  Integer(Ndim,Ltrot)
+!> \verbatim
+!>  List of spins to be flipped: nsigma%f(Flip_list(1,1),Flip_list(1,2)) ... nsigma%f(Flip_list(Flip_Length,1),Flip_list(Flip_Length,2))
+!>  Note that Ndim = size(Op_V,1)
+!> \endverbatim
+!--------------------------------------------------------------------
+      Subroutine Global_MALA_move(Flip_list)
+
+         Implicit none
+         Integer                   , INTENT(OUT) :: Flip_list(:,:)
+
+         Logical, save              :: first_call=.True.
+         
+         Integer                    :: I, nt
+         
+         If  (first_call)    then
+            write(output_unit,*)
+            write(output_unit,*) "User implementation of Global_MALA_move is being called!"
+            write(output_unit,*) "Choose a random site and flip all the fields along the time direction"
+            write(output_unit,*)
+            first_call=.false.
+         endif
+
+         
+         Flip_list = 0
+         I = nranf(size(OP_V,1))
+         do nt = 1, Ltrot
+            Flip_list(I,nt) = 1
+         enddo 
+
+      end Subroutine Global_MALA_move
+
+!--------------------------------------------------------------------
+!> @brief
+!> Reconstructs dependent flavors of the configuration's weight.
+!> @details
+!> This has to be overloaded in the Hamiltonian submodule.
+!--------------------------------------------------------------------
+      subroutine weight_reconstruction(weight)
+         implicit none
+         complex (Kind=Kind(0.d0)), Intent(inout) :: weight(:)
+
+         weight(nf_reconst) = conjg(Weight(nf_calc))  
+
+      end subroutine weight_reconstruction
+
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reconstructs dependent flavors of equal time Greens function
+!> @details
+!> This has to be overloaded in the Hamiltonian submodule.
+!> @param [INOUT] Gr   Complex(:,:,:)
+!> \verbatim
+!>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
+!> \endverbatim
+!-------------------------------------------------------------------
+      subroutine GR_reconstruction(GR)
+
+         Implicit none
+
+         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
+         Integer :: I,J,imj
+         real (kind=kind(0.d0)) :: X, ZZ
+
+         If  (Ham_U  >= 0.d0)  then 
+            Do J = 1,Ndim
+               Do I = 1,Ndim
+                  X=-1.0
+                  imj = latt%imj(I,J)
+                  if (mod(Latt%list(imj,1)+Latt%list(imj,2),2)==0) X=1.d0
+                  !  write(*,*) Latt%list(I,:),Latt%list(J,:),mod(Latt%list(imj,1)+Latt%list(imj,2),2), X
+                  ZZ=0.d0
+                  if (I==J) ZZ=1.d0
+                  GR(I,J,nf_reconst) = ZZ - X*GR(J,I,nf_calc)
+               Enddo
+            Enddo
+         else
+            Do J = 1,Ndim
+               Do I = 1,Ndim
+                  GR(I,J,nf_reconst) = Conjg(GR(I,J,nf_calc))
+               Enddo
+            Enddo
+         Endif
+      end Subroutine GR_reconstruction
+
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reconstructs dependent flavors of time displaced Greens function G0T and GT0
+!> @details
+!> This has to be overloaded in the Hamiltonian submodule.
+!> @param [INOUT] GT0, G0T,  Complex(:,:,:)
+!> \verbatim
+!>  Green functions:
+!>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
+!>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
+!> \endverbatim
+!-------------------------------------------------------------------
+      Subroutine GRT_reconstruction(GT0, G0T)
+         Implicit none
+
+         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
+         Integer :: I,J,imj
+         real (kind=kind(0.d0)) :: X
+
+         If (Ham_U >= 0.d0)  then
+            Do J = 1,Latt%N
+               Do I = 1,Latt%N
+                  X=-1.0
+                  imj = latt%imj(I,J)
+                  if (mod(Latt%list(imj,1)+Latt%list(imj,2),2)==0) X=1.d0
+                  G0T(I,J,nf_reconst) = -X*conjg(GT0(J,I,nf_calc))
+                  GT0(I,J,nf_reconst) = -X*conjg(G0T(J,I,nf_calc))
+               enddo
+            enddo
+         else
+            Do J = 1,Latt%N
+               Do I = 1,Latt%N
+                  G0T(I,J,nf_reconst) = conjg(G0T(I,J,nf_calc))
+                  GT0(I,J,nf_reconst) = conjg(GT0(I,J,nf_calc))
+               enddo
+            enddo
+         endif
+      end Subroutine GRT_reconstruction
+       
+   end submodule ham_Hubbard_smod

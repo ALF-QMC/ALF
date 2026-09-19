@@ -54,9 +54,23 @@ Max_Force           = 5.0   ! Max Force for  Langevin
 
 HMC                 = .F.   ! HMC update
 N_HMC_sweeps        = 1     ! # of HMC updates between  sequential ones
-Leapfrog_steps      = 0     ! Number of leapfrog iterations
+Leapfrog_steps      = 1     ! Number of leapfrog iterations
 
 Amplitude           = 1.d0  ! For update of  type=3,4  fields
+
+Sequential_MALA           = .F.  ! Squential MALA updates. Requires continuous fields
+Delta_t_MALA_sequential   = 0.1d0 ! Time step for sequential MALA updates
+Max_Force_MALA_sequential = 1.d0 ! Maximum force for sequential MALA updates
+
+Global_tau_MALA_moves     = .F.  ! Allows for global tau MALA updates
+N_Global_tau_MALA         = 1    ! Number of global tau MALA moves
+Delta_t_MALA_global_tau   = 0.1d0 ! Time step for global tau MALA updates
+Max_Force_MALA_global_tau = 1.d0 ! Maximum force for global tau MALA updates
+
+Global_MALA_moves         = .F.  ! Allows for global MALA updates
+N_Global_MALA_sweeps      = 1    ! Number of global MALA sweeps
+Delta_t_MALA_global       = 0.1d0 ! Time step for global MALA updates
+Max_Force_MALA_global     = 1.d0 ! Maximum force for global MALA updates
 /
 
 &VAR_errors                !! Variables for analysis programs
