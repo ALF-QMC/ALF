@@ -698,7 +698,7 @@ module Control
            if (str_to_upper(Global_update_scheme) == "LANGEVIN") &
                 &  Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
            
-           if ( NC_Phase_HMC  > 0 ) Then
+           if ( NC_Phase_HMC  > 0) Then
               Write(50,*) ' HMC Acceptance              : ', ACC_HMC
               Write(50,*) ' HMC Mean Phase diff          : ', XMEANP_HMC/Real(NC_Phase_HMC,kind=Kind(0.d0))
               Write(50,*) ' HMC Max  Phase diff          : ', XMAXP_HMC
@@ -718,7 +718,7 @@ module Control
               Write(50,*) ' Global MALA Force        Mean, Max : ', Force_mean_MALA_global,    Force_max_MALA_global
               Write(50,*) ' Global MALA Force_0      Mean, Max : ', Force_0_mean_MALA_global,  Force_0_max_MALA_global
               Write(50,*) ' Global Acceptance_MALA             : ', ACC_MALA
-              Write(50,*) ' Global Mean Phase diff MALA        : ', XMEANP_MALA/Real(Force_Count_MALA_global,kind=Kind(0.d0))
+              Write(50,*) ' Global Mean Phase diff MALA        : ', XMEANP_MALA/Real(NC_Phase_MALA,kind=Kind(0.d0))
               Write(50,*) ' Global Max  Phase diff MALA        : ', XMAXP_MALA
            Endif
            

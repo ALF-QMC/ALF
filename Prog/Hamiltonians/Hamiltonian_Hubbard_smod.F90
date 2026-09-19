@@ -275,7 +275,6 @@
 
           ! Setup the Bravais lattice
           Call  Ham_Latt
-          Write(6,*) 'Ndim: ', Ndim, size(latt%imj,1), size(latt%imj,2)
 
           ! Setup the hopping / single-particle part
           Call  Ham_Hop
@@ -1095,6 +1094,9 @@
             nsigma%f(n,nt)   = -nsigma_old%f(n,nt)
          enddo
          T0_Proposal_ratio = 1
+      else
+         write(error_unit, *) 'Global_move not implemented'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
       endif 
 
 
