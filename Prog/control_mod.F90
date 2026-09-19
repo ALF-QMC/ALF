@@ -547,7 +547,7 @@ module Control
            Force_mean_MALA_gtau   = Force_mean_MALA_gtau/real(Force_Count_MALA_gtau,kind(0.d0))
            Force_0_mean_MALA_gtau = Force_0_mean_MALA_gtau/real(Force_Count_MALA_gtau,kind(0.d0))
         endif
-        If (MALA) then
+        If (Force_Count_MALA_global > 0) then
            Force_mean_MALA_global   = Force_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
            Force_0_mean_MALA_global = Force_0_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
         endif
@@ -698,9 +698,9 @@ module Control
            if (str_to_upper(Global_update_scheme) == "LANGEVIN") &
                 &  Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
            
-           if (str_to_upper(Global_update_scheme) == "HMC")   Then
+           if ( NC_Phase_HMC  > 0 ) Then
               Write(50,*) ' HMC Acceptance              : ', ACC_HMC
-              Write(50,*) ' HMC Mean Phase diff          : ', XMEANP_HMC
+              Write(50,*) ' HMC Mean Phase diff          : ', XMEANP_HMC/Real(NC_Phase_HMC,kind=Kind(0.d0))
               Write(50,*) ' HMC Max  Phase diff          : ', XMAXP_HMC
            Endif
 
@@ -714,11 +714,11 @@ module Control
               Write(50,*) ' Global tau MALA Force_0 Mean, Max : ', Force_0_mean_MALA_gtau, Force_0_max_MALA_gtau
            Endif
 
-           if (MALA)   Then
+           if (Force_Count_MALA_global > 0)   Then
               Write(50,*) ' Global MALA Force        Mean, Max : ', Force_mean_MALA_global,    Force_max_MALA_global
               Write(50,*) ' Global MALA Force_0      Mean, Max : ', Force_0_mean_MALA_global,  Force_0_max_MALA_global
               Write(50,*) ' Global Acceptance_MALA             : ', ACC_MALA
-              Write(50,*) ' Global Mean Phase diff MALA        : ', XMEANP_MALA
+              Write(50,*) ' Global Mean Phase diff MALA        : ', XMEANP_MALA/Real(Force_Count_MALA_global,kind=Kind(0.d0))
               Write(50,*) ' Global Max  Phase diff MALA        : ', XMAXP_MALA
            Endif
            
