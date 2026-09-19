@@ -506,7 +506,6 @@ Program Main
              WRITE(output_unit,*) 'Warning:    Not all fields are of type 3.'
              WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated with MALA updates.'
              write(output_unit,*)
-             exit
            exit
           endif
          enddo

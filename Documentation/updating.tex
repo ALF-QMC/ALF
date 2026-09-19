@@ -158,18 +158,18 @@ where $T_0(C \rightarrow C')$ is the probability to propose the move $C \rightar
 \begin{equation}
 	T_0(C \rightarrow C') = \frac{1}{\sqrt{2 \pi \delta t}} e^{-\frac{(s_{n,\tau}' - s_{n,\tau} + \frac{\partial S}{\partial s_{n,\tau}} \delta t)^2}{2 \delta t}}.
 \end{equation}
-The user can control the time step $\delta t$ by setting the variable \texttt{Delta\_t\_MALA\_sequential} in the input file.  The maximum value of the force $\frac{\partial S}{\partial s_{n,\tau}}$ is controlled by the variable \texttt{Max\_Force\_MALA\_sequential}, which is used to avoid proposing moves with very low acceptance.  The force is then defined as $\text{sign}(\frac{\partial S}{\partial s_{n,\tau}}) \text{min}(\left|\frac{\partial S}{\partial s_{n,\tau}}\right|, \texttt{Max\_Force\_MALA\_sequential})$.
-
+The user can control the time step $\delta t$ by setting the variable \texttt{Delta\_t\_MALA\_sequential} in the input file.  
+We use an adaptive time-step  capped by the variable:\texttt{Max\_Force\_MALA\_sequential}.  Let $F_{max}$  be the maximum value of the force at any give simulation time, then the effective time step is given by $\delta t_{eff} = \delta_t * \text{min}(1, \frac{\texttt{Max\_Force\_MALA\_sequential}}{F_{max}})$.
 
 \begin{lstlisting}[style=fortran]
 &VAR_QMC
 ......
-Sequential           = .T.       ! Flag for sequential moves
-Propose_S0           = .F.       ! Whether to propose moves according to e^{-S0}
-Amplitude            = 0.5D0     ! Amplitude of the box distribution
-Sequential_MALA         = .true.    ! MALA sequential moves for continuous fields
-Max_Force_MALA_sequential  = 1.0 ! Maximum value of the force 
-Delta_t_MALA_sequential    = 0.1 ! Time step for the MALA 
+Sequential                 = .T.   ! Flag for sequential moves
+Propose_S0                 = .F.   ! Whether to propose moves according to e^{-S0}
+Amplitude                  = 0.5D0 ! Amplitude of the box distribution
+Sequential_MALA            = .T.   ! MALA sequential moves for continuous fields
+Max_Force_MALA_sequential  = 1.0   ! Maximum value of the force 
+Delta_t_MALA_sequential    = 0.1   ! Time step for the MALA 
 ......
 /
 \end{lstlisting}
@@ -229,7 +229,8 @@ the global moves on a single time slice, which are set in the input file.
 \begin{lstlisting}[style=fortran]
 Subroutine Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,&
                                         &         N_Global_tau, N_Global_tau_MALA)
-	Integer, Intent(OUT) :: N_Global_tau, Nt_sequential_start, Nt_sequential_end
+	Integer, Intent(INOUT) :: N_Global_tau, Nt_sequential_start, Nt_sequential_end, &
+                                        & N_Global_tau_MALA
 end Subroutine Overide_global_tau_sampling_parameters
 \end{lstlisting}
 %------------------------------------------------------------

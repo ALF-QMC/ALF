@@ -1072,25 +1072,30 @@
 !> \verbatim
 !>  Size of cluster that will be flipped.
 !> \endverbatim
-!-------------------------------------------------------------------
    Subroutine Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
 
       Implicit none
       Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
       Type (Fields),  Intent(IN)  :: nsigma_old
-      
-      Integer :: nt, n
 
-      If (.not.Continuous) then
-         Write(6,*) "Error: Global_move_tau_base is implemented only for  continuous HS fields. Please implement it or set Continuous = .True. in the input file. "
-         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-      endif
-      size_clust = Ltrot
-      n  = nranf(Size(Op_V,1))
-      do nt = 1,Ltrot
-         nsigma%f(n,nt)   = -nsigma_old%f(n,nt)
-      enddo
-      T0_Proposal_ratio = 1
+      Integer :: nt, n
+      Logical, save :: first_call = .True.
+
+      If (Continuous) then
+         If (first_call) then
+            write(output_unit,*)
+            write(output_unit,*) "User implementation of Global_move is being called!"
+            write(output_unit,*) "Choose a random site and flip all the fields along the time direction"
+            write(output_unit,*)
+            first_call = .false.
+         endif
+         size_clust = Ltrot
+         n  = nranf(Size(Op_V,1))
+         do nt = 1,Ltrot
+            nsigma%f(n,nt)   = -nsigma_old%f(n,nt)
+         enddo
+         T0_Proposal_ratio = 1
+      endif 
 
 
    End Subroutine Global_move
