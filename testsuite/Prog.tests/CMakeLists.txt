@@ -37,16 +37,29 @@ add_executable(32-Op-validate-1x1-fail 32-Op-validate-1x1-fail.F90)
 add_executable(33-Op-equal 33-Op-equal.F90)
 add_executable(34-Op-V-symm-pass 34-Op-V-symm-pass.F90)
 add_executable(35-Op-V-symm-fail 35-Op-V-symm-fail.F90)
+add_executable(36-delayed-panels 36-delayed-panels.F90)
+add_executable(37-delayed-wrap 37-delayed-wrap.F90)
+add_executable(38-delayed-update 38-delayed-update.F90)
+add_executable(40-delayed-depth-cap 40-delayed-depth-cap.F90)
+add_executable(41-delayed-alloc-fail 41-delayed-alloc-fail.F90)
+add_executable(42-delayed-probe-pick 42-delayed-probe-pick.F90)
+add_executable(43-delayed-probe-log 43-delayed-probe-log.F90)
 # set(operatorparts 1-copy-sel-rows 2-copy-sel-columns 3-opmult 4-opmultct 5-FillExpOps 6-opexpmult-1 6-opexpmult-2 7-opexpmultct-1 7-opexpmultct-2 9-Op-Phase 10-Op-mmultL 11-Op-mmultR 13-Op-Wrapup 14-Op-Wrapdo 21-Op-make 22-sl-mat-mults)
-set(operatorparts 9-Op-Phase 10-Op-mmultL 11-Op-mmultR 13-Op-Wrapup 14-Op-Wrapdo 21-Op-make 22-sl-mat-mults 26-Test-Polymorphic-Fortran 27-Op-mmultL-m1.F90 28-Op-validate 29-Op-validate-hermitian-fail 30-Op-validate-type-fail 31-Op-validate-projector-fail 32-Op-validate-1x1-fail 33-Op-equal 34-Op-V-symm-pass 35-Op-V-symm-fail)
+set(operatorparts 9-Op-Phase 10-Op-mmultL 11-Op-mmultR 13-Op-Wrapup 14-Op-Wrapdo 21-Op-make 22-sl-mat-mults 26-Test-Polymorphic-Fortran 27-Op-mmultL-m1.F90 28-Op-validate 29-Op-validate-hermitian-fail 30-Op-validate-type-fail 31-Op-validate-projector-fail 32-Op-validate-1x1-fail 33-Op-equal 34-Op-V-symm-pass 35-Op-V-symm-fail 37-delayed-wrap)
 set(cgr2_2tests 16-get-blocks 17-solve-extended-system)
 #set(cgr2_1tests 8-scalematrix-1 8-scalematrix-2)
 set(cgr1tests 15-cgr 20-qdrp 23-cgrp)
 set(udvstatetests 18-ul-update-matrices 19-ur-update-matrices 24-udv 25-assign-UDV-state)
-set(progtests ${operatorparts} ${cgr1tests} ${cgr2_1tests} ${cgr2_2tests} ${udvstatetests})
+set(delayedtests 36-delayed-panels 38-delayed-update 40-delayed-depth-cap 41-delayed-alloc-fail 42-delayed-probe-pick 43-delayed-probe-log)
+set(progtests ${operatorparts} ${delayedtests} ${cgr1tests} ${cgr2_1tests} ${cgr2_2tests} ${udvstatetests})
 
 
 foreach(iter ${operatorparts})
+target_link_libraries(${iter} ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/Operator_mod.o ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/Fields_mod.o)
+endforeach(iter)
+
+foreach(iter ${delayedtests})
+target_link_libraries(${iter} ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/delayed_update_mod.o)
 target_link_libraries(${iter} ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/Operator_mod.o ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/Fields_mod.o)
 endforeach(iter)
 
@@ -136,3 +149,41 @@ add_test(33-Op-equal 33-Op-equal)
 add_test(34-Op-V-symm-pass 34-Op-V-symm-pass)
 add_test(35-Op-V-symm-fail 35-Op-V-symm-fail)
 set_tests_properties(35-Op-V-symm-fail PROPERTIES WILL_FAIL TRUE)
+
+add_test(36-delayed-panels 36-delayed-panels)
+# delay_alloc is a no-op without this, and every assertion in the test would then
+# pass vacuously; the test checks the depth on entry and refuses if it is unset.
+set_tests_properties(36-delayed-panels PROPERTIES ENVIRONMENT "ALF_DELAY_K=8")
+
+add_test(37-delayed-wrap 37-delayed-wrap)
+
+add_test(38-delayed-update 38-delayed-update)
+# Same reason as 36, and the same depth: the test's step count is chosen against
+# k = 8 so that every rank both flushes and ends holding a partial panel.
+set_tests_properties(38-delayed-update PROPERTIES ENVIRONMENT "ALF_DELAY_K=8")
+
+# One run per ALF_DELAY_K, each passing the depth delay_resolve should return at
+# the test's Ndim = 16 and whether delay_log should report a cap: huge(0), which
+# overflowed kmax + dmax before the cap, one past Ndim, Ndim itself, and a depth
+# below it, which must pass through untouched.
+foreach(case "huge;2147483647;16;1" "above;17;16;1" "at;16;16;0" "below;9;9;0")
+  list(GET case 0 name)
+  list(GET case 1 request)
+  list(GET case 2 expected)
+  list(GET case 3 capped)
+  add_test(40-delayed-depth-cap-${name} 40-delayed-depth-cap ${expected} ${capped})
+  set_tests_properties(40-delayed-depth-cap-${name} PROPERTIES ENVIRONMENT "ALF_DELAY_K=${request}")
+endforeach()
+
+# Passes on the guard's own message, not on the exit status: the runtime's
+# generic abort would also exit non-zero, and must not count as a pass.
+add_test(41-delayed-alloc-fail 41-delayed-alloc-fail)
+set_tests_properties(41-delayed-alloc-fail PROPERTIES
+                     PASS_REGULAR_EXPRESSION "delay_alloc: cannot allocate the panels")
+
+add_test(42-delayed-probe-pick 42-delayed-probe-pick)
+
+# The real probe, so the choice it makes is the machine's; the test checks only
+# what holds either way.
+add_test(43-delayed-probe-log 43-delayed-probe-log)
+set_tests_properties(43-delayed-probe-log PROPERTIES ENVIRONMENT "ALF_DELAY_K=auto")

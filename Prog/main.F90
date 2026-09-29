@@ -130,6 +130,7 @@ Program Main
         Use Global_mod
         Use UDV_State_mod
         Use Wrapgr_mod
+        Use delayed_update_mod, only: delay_log
         Use Fields_mod
         Use WaveFunction_mod
         use entanglement_mod
@@ -414,7 +415,7 @@ Program Main
         If (get_N_Global_tau() > 0) then
            Call Wrapgr_alloc
         endif
-        
+
 #if defined(HDF5)
 #if defined(TEMPERING)
         write(file_dat,'(A,I0,A)') "Temp_",igroup,"/data.h5"
@@ -486,6 +487,27 @@ Program Main
            Call Langevin_HMC%set_Update_scheme(get_Langevin(), get_HMC() )
         endif
         Call check_update_schemes_compatibility()
+
+        ! Unlike GR_ST above, this does not follow N_Global_tau: the delayed
+        ! update's panels serve the sequential vertex loop, which runs on every
+        ! slice whether or not global-in-tau moves are enabled. It does follow
+        ! Sequential, which Langevin turns off just above -- there is then no
+        ! such loop, and Ndim*(k+dmax) per flavour would be held for nothing.
+        ! Placed here rather than beside Wrapgr_alloc because that is the first
+        ! point at which Sequential is final. No-op when the delay is off.
+        If ( get_sequential() ) then
+           Call Wrapgr_delay_alloc
+           ! Rank-guarded here rather than inside the module, which is
+           ! deliberately free of MPI and so cannot decide for itself whether to
+           ! print. One line when the delay is off, the probe's curve when it ran.
+#ifdef MPI
+           If ( Irank == 0 ) then
+#endif
+              Call delay_log(6)
+#ifdef MPI
+           endif
+#endif
+        endif
 
 #if defined(MPI)
         if ( Irank_g == 0 ) then
@@ -925,6 +947,7 @@ Program Main
         If (get_N_Global_tau() > 0) then
            Call Wrapgr_dealloc
         endif
+        Call Wrapgr_delay_dealloc
         do nf = 1, N_FL
           do n = 1, size(OP_V,1)
             call Op_clear(Op_V(n,nf),Op_V(n,nf)%N)

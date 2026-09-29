@@ -1,0 +1,55 @@
+! Global-in-tau moves beside sequential ones. Z2_Matter overrides the sampling
+! window: its ham_TZ2 vertices stay in the sequential loop, where the delay is
+! open, and ham_T /= 0 adds Latt%N/4 global moves per slice. Those go through
+! Wrapgr_Random_update and Wrapgr_PlaceGR, which call delay_assert_inactive, so
+! this is the one set that reaches the assertion: a factored region left open
+! into the global moves stops the run instead of passing silently. The Hubbard
+! and tV sets beside this one never enable global moves of any kind.
+!
+! Beta is well below the class default of 10 to keep the run short.
+
+&VAR_ham_name
+ham_name = "Z2_Matter"
+/
+
+&VAR_lattice
+L1           = 4
+L2           = 4
+Lattice_type = "Square"
+Model        = "Z2_Matter"
+/
+
+&VAR_QMC
+Nwrap                = 5
+NSweep               = 2
+NBin                 = 1
+Ltau                 = 0
+LOBS_ST              = 0
+LOBS_EN              = 0
+CPU_MAX              = 0.0
+Propose_S0           = .F.
+Global_moves         = .F.
+Global_tau_moves     = .T.
+Sequential           = .T.
+Langevin             = .F.
+HMC                  = .F.
+/
+
+&VAR_errors
+n_skip  = 1
+N_rebin = 1
+/
+
+&VAR_Z2_Matter
+ham_T    = 1.d0
+ham_TZ2  = 1.d0
+ham_chem = 0.d0
+ham_U    = 0.d0
+Ham_J    = 1.d0
+Ham_K    = 1.d0
+Ham_h    = 1.d0
+Ham_g    = 1.d0
+Dtau     = 0.1d0
+Beta     = 1.d0
+/
+! slash terminates namelist statement - DO NOT REMOVE

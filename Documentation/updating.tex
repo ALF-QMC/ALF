@@ -52,7 +52,117 @@ This default updating scheme can be overruled by, e.g., setting \texttt{Global\_
 It is also worth noting that this type of sequential spin-flip updating does not satisfy detailed balance, but rather the more fundamental stationarity condition \cite{Sokal89}. 
 
 
-% 
+%
+%------------------------------------------------------------
+\subsubsection{Delayed (rank-$k$) updates}
+\label{sec:delayed}
+%------------------------------------------------------------
+%
+Consider the sequential updates of the auxiliary fields. Each accepted update
+applies a rank-$d$ update to the whole Green's function, where $d$ is
+\texttt{Op\%N\_non\_zero} (Sec.~\ref{sec:op}), the number of non-vanishing
+eigenvalues of a non-diagonal vertex operator and $N$ for a diagonal one;
+$d \le N$, the operator dimension. That update makes one
+full pass over the Green's function: it streams $N_{\mathrm{dim}}^2$ complex
+entries to carry out $\mathcal{O}(d \, N_{\mathrm{dim}}^2)$ floating-point
+operations. For large $N_{\mathrm{dim}}$ these updates become bound by memory
+bandwidth rather than by arithmetic, which degrades performance in most
+typical use cases. To alleviate this, we can exploit the fact that at the level
+of the individual proposals we do not require the updated Green's function to
+be stored as a full matrix. During the update of a vertex the Green's
+function is held in the eigenbasis of the vertex operator on its support,
+with the eigenvectors of non-vanishing eigenvalue ordered first. Denote by
+$\bm{P}_d$ the first $d$ rows of $\bm{P}$ (Sec.~\ref{sec:op}), which pick
+out those $d$ eigenmodes. We then only need the $d \times d$ block
+$\bm{P}_d G \bm{P}_d^{T}$ to form the acceptance ratio, and, on subsequent
+acceptance of a proposal, the $d$ rows $\bm{P}_d G$ and $d$ columns
+$G \bm{P}_d^{T}$.
+Therefore, following Ref.~\cite{Sun2024}, we can hold the Green's function in a
+``factorized'' form
+\begin{equation}
+  G = G_{\text{stale}} + X Y^{T},
+  \qquad X, Y \in \mathbb{C}^{N_{\mathrm{dim}} \times k},
+\end{equation}
+where $k$ is a chosen ``delay depth''.
+The block is reconstructed on every proposal, at a cost of
+$\mathcal{O}(d^2 k)$, and the rows and columns only on acceptance, at
+$\mathcal{O}(N_{\mathrm{dim}} d k)$; the accepted update then appends $d$
+columns to the ``panels'' $X$ and $Y$. Once the panels hold $k$ or more
+columns they are flushed into $G_{\text{stale}}$ with a single matrix--matrix
+product. Since an append can cross $k$ by up to $d - 1$ columns before that
+flush, the panels are allocated $k + d_{\max}$ columns wide, with $d_{\max}$
+the largest rank among the model's vertices.
+
+We choose the factorized region to span only a single time slice's sequential
+vertex loop: \texttt{Wrapgr\_mod} opens it just before that loop and closes it
+-- flushing any partial panel -- immediately after. The hopping propagators,
+the stabilization, measurements, global updates and any time-displaced
+calculations are therefore always handed an ordinary Green's function. Between
+two vertex updates the Green's function is conjugated with the vertex operator,
+which acts as $G \rightarrow L \, G \, R$ with $L$ and $R$ equal to the identity
+outside the support of the operator. Since
+\begin{equation}
+  L \left( G_{\text{stale}} + X Y^{T} \right) R
+  = \left( L \, G_{\text{stale}} \, R \right)
+  + \left( L X \right) \left( R^{T} Y \right)^{T},
+\end{equation}
+the conjugation passes through the factorization and is applied to the panels
+by \texttt{Op\_Wrap\_panels}, a subroutine mirroring the logic of
+\texttt{Op\_Wrapup} and \texttt{Op\_Wrapdo}.
+
+It should be noted that whilst the delayed scheme is algebraically equivalent
+to the immediate one, it is not bit-for-bit identical: floating-point
+arithmetic is not associative, so different depths $k$ round differently. The
+acceptance ratios still agree to rounding error, so both schemes accept the
+same updates and write an identical \texttt{confout}. The one exception is a
+Metropolis
+``near-tie'': a proposal whose acceptance ratio falls within rounding of the
+random number it is compared against. Such near-ties occur in any run; two
+runs at different depths can simply resolve one of them differently, and the
+chains then branch and decorrelate (while remaining valid samples of the same
+distribution). At a given depth and for a given executable, every Markov chain
+is still reproducible; under \texttt{auto} (see below) the depth, and with it
+the resolution of a near-tie, can differ between runs.
+
+The delayed update is selected by the environment variable
+\texttt{ALF\_DELAY\_K}:
+\begin{itemize}
+  \item unset or \texttt{0} -- disabled (default);
+  \item a positive integer -- the depth $k$ is fixed at that value, capped at
+    $N_{\mathrm{dim}}$;
+  \item \texttt{auto} -- the benefit of delaying is measured at start-up with a
+    synthetic probe. The candidates are chosen from
+    $k \in \{8,\allowbreak 16,\allowbreak 32,\allowbreak 64,\allowbreak
+    128,\allowbreak 256\}$, restricted to those not exceeding
+    $N_{\mathrm{dim}}$; for each of them the cost of one flush and one panel
+    reconstruction is timed at the $N_{\mathrm{dim}}$ of the model at hand.
+    The immediate update itself is also timed, as one rank-$d$ update of the
+    Green's function at the largest operator rank $d$ of the model. Unless the
+    cheapest candidate beats the immediate update by more than 5\%, the
+    immediate update is kept and the delay stays off. Otherwise the largest
+    candidate within 5\% of the cheapest cost is taken (since overestimating
+    the delay depth typically yields better performance). The result is
+    therefore explicitly sensitive to the machine and to the loaded BLAS /
+    LAPACK library. Should the measurement fail, or the candidates' costs all
+    lie within 5\% of one another, the closed form below is used instead, and
+    the \texttt{info} file then reports \texttt{formula};
+  \item \texttt{formula} -- an approximate closed form
+    $k \approx \sqrt{2 N_{\mathrm{dim}}}$ is used, clamped to $[8, 256]$ and
+    never exceeding $N_{\mathrm{dim}}$; for $N_{\mathrm{dim}} < 8$ it gives 0
+    and the delay stays off. It minimises the memory traffic per accepted
+    update, $d N_{\mathrm{dim}} k$ for the panel reconstructions plus
+    $2 d N_{\mathrm{dim}}^2 / k$ for the flush, assuming both are
+    bandwidth-bound at equal cost per byte.
+\end{itemize}
+
+The chain's delay depth and how it was arrived at
+(\texttt{off}, \texttt{fixed}, \texttt{probe} or \texttt{formula}) are written
+to each run's \texttt{info} file as \texttt{Delay depth} and
+\texttt{Delay depth from}; a depth of 0 from \texttt{probe} means that
+\texttt{auto} found the immediate update faster. In addition, the delay
+setting is written to standard output at start-up, including, whenever the
+probe ran, its measured costs.
+%
 %------------------------------------------------------------
 \subsubsection{Sampling of $e^{-S_0}$}
 \label{sec:S0}
