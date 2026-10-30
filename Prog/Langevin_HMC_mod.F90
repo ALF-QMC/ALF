@@ -44,8 +44,6 @@
         use wrapul_mod
         use cgr1_mod
         Use iso_fortran_env, only: output_unit, error_unit
-        use Natural_Constants
-        Use, intrinsic :: IEEE_ARITHMETIC
 #ifdef MPI
         Use mpi
 #endif
@@ -356,7 +354,7 @@
         !Local
         Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf, nf_eff
         Real    (Kind=Kind(0.d0)) :: X, Xmax,E_kin_old, E_kin_new,log_T0_Proposal_ratio, weight, cluster_size
-        Real    (Kind=Kind(0.d0)) :: T0_proposal_ratio, delta_t_running_old, delta_t_running_new
+        Real    (Kind=Kind(0.d0)) :: delta_t_running_old, delta_t_running_new
         Logical                   :: Calc_Obser_eq, toggle
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
@@ -368,8 +366,6 @@
         Real    (Kind=Kind(0.d0)), allocatable  :: Forces_0_old(:,:)
         Integer,      allocatable :: Flip_list(:,:)
         Complex (Kind=Kind(0.d0))  :: Phase_array(N_FL)
-
-        Logical, parameter :: LOGICAL_DEBUG = .False.
 
         select case (this%scheme) !(trim(this%Update_scheme))
         case(Scheme_Langevin) !("Langevin")
@@ -707,19 +703,6 @@
            Z = Phase_old * Ratiotot/ABS(Ratiotot)
            Call Control_PrecisionP_MALA(Z,Phase)
            Call Control_upgrade_MALA(TOGGLE)
-           If (LOGICAL_DEBUG) then
-            if (Is_NaN_bits(real(Z,kind(0.d0))) .or. Is_NaN_bits(aimag(Z))) then
-               Write(6,*) 'Z is NaN'
-               Write(6,*) 'Z = ', Z
-               Write(6,*) 'N ', Det_vec_new
-               Write(6,*) 'O' , Det_vec_old
-               Write(6,*) 'T0', t0_proposal_ratio, log_T0_Proposal_ratio
-               Write(6,*) 'R', Ratiotot
-               Write(6,*) 'P', Phase_old
-               Write(6,*) 'R(N)', Ratio
-               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-            endif
-           endif
 
            Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
 
@@ -1056,15 +1039,5 @@
         calculate_Force = force
 
       end function calculate_Force
-
-      Logical function Is_NaN_bits(X)
-        Implicit none
-        Real (Kind=Kind(0.d0)), intent(in) :: X
-        Integer (Kind=8) :: Ibits
-        Ibits = transfer(X, Ibits)
-        ! Double precision NaN: exponent bits all 1 (bits 52-62) and mantissa != 0
-        Is_NaN_bits = ( iand(Ibits, int(z'7FF0000000000000',8)) == int(z'7FF0000000000000',8) ) .and. &
-             &        ( iand(Ibits, int(z'000FFFFFFFFFFFFF',8)) /= 0 )
-      end function Is_NaN_bits
 
     end Module Langevin_HMC_mod

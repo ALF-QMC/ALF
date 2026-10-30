@@ -249,14 +249,18 @@ Here we randomly chose  a  vertex and update the field.
 %------------------------------------------------------------
 \paragraph{User defined global moves on a single time slice: MALA}
 \label{sec:global_space_mala}
-This option will carry out a global move on a single time slice using the Metropolis assisted Langevin algorithm.  To use this option, the 
+This option will carry out a global move on a single time slice using the Metropolis assisted Langevin algorithm.  To use this option, the
+flag \texttt{Global\_tau\_MALA\_moves} has to be set in the parameter file; it does not require \texttt{Global\_tau\_moves}.
+Both  global moves on a time slice can be combined, in which case the Metropolis moves are carried out first.
+As for the Metropolis variant, the sequential moves are restricted to the range \texttt{Nt\_sequential\_start} to \texttt{Nt\_sequential\_end}, and only fields of type 3 are updated.
+\texttt{N\_Global\_tau\_MALA} has to be at least one.
 
 \begin{lstlisting}[style=fortran]
 &VAR_QMC
 ......
 Sequential              = .T.       ! Flag for sequential moves
 Global_tau_MALA_moves   = .T.       ! Global MALA moves on a single time slice
-N_Global_tau_MALA       = 1         ! Number of global MALA moves will be set 
+N_Global_tau_MALA       = 1         ! Number of global MALA moves per time slice
 Delta_t_MALA_global_tau =  0.1      ! Time step for the MALA global-tau move 
 Max_Force_MALA_global_tau = 1.0     ! Maximum force for the MALA global-tau move 
 ......

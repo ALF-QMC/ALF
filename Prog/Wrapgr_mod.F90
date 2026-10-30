@@ -114,7 +114,11 @@ Contains
     real    (kind=kind(0.d0)) :: force_0_old, force_0_new, weight
     real    (kind=kind(0.d0)) :: delta_t_running_old, Xmax, Delta_t_running_new
     Character (Len=64)        :: Mode
-    Logical                   :: Acc, toggle1
+    Logical                   :: Acc, toggle1, L_MALA
+
+    ! Only used for MALA fields, where they are set before use.
+    phase_st  = cmplx(1.d0,0.d0,kind(0.d0))
+    nsigma_st = cmplx(0.d0,0.d0,kind(0.d0))
 
     ! Wrap up, upgrade ntau1.  with B^{1}(tau1)
     NTAU1 = NTAU + 1
@@ -124,6 +128,7 @@ Contains
        CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf, ntau1 )
     Enddo
     Do n = Nt_sequential_start,Nt_sequential_end
+       L_MALA = Sequential_MALA .and. Op_V(n,1)%type == 3
        Do nf_eff = 1, N_FL_eff
           nf=Calc_Fl_map(nf_eff)
           HS_Field =  nsigma%f(n,ntau1)
@@ -133,7 +138,7 @@ Contains
        nf = 1
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
-       if (Sequential_MALA .and. Op_V(n,nf)%type == 3) then
+       if (L_MALA) then
           nsigma_st = nsigma%f(n,ntau1)
           phase_st = Phase
           Gr_st = Gr
@@ -156,13 +161,13 @@ Contains
           Hs_New =   nsigma%flip(n,ntau1)
        Endif
        S0_ratio          = ham%S0(n,ntau1, Hs_New )
-       if ( Propose_S0 .and.   Op_V(n,nf)%type == 1)   then
+       if ( Propose_S0 .and.   Op_V(n,1)%type == 1)   then
           T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
           T0_Proposal_ratio = 1.d0/S0_ratio
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
           !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio
-          if (Sequential_MALA .and. Op_V(n,1)%type == 3) then
+          if (L_MALA) then
              mode = "Intermediate"
           else
              mode = "Final"
@@ -179,7 +184,7 @@ Contains
           Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
        enddo
 
-       if (Sequential_MALA .and. Op_V(n,1)%type == 3) then
+       if (L_MALA) then
           phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
           Call ham%Ham_Langevin_HMC_S0_single( force_0_new,n,ntau1)
           force_new = calculate_force(n,ntau1,GR)
@@ -263,7 +268,11 @@ Contains
     real    (kind=kind(0.d0)) :: force_0_old, force_0_new, weight
     real    (kind=kind(0.d0)) :: delta_t_running_old, Xmax, Delta_t_running_new
     Character (Len=64)        :: Mode
-    Logical                   :: Acc, toggle1
+    Logical                   :: Acc, toggle1, L_MALA
+
+    ! Only used for MALA fields, where they are set before use.
+    phase_st  = cmplx(1.d0,0.d0,kind(0.d0))
+    nsigma_st = cmplx(0.d0,0.d0,kind(0.d0))
 
     m         = Size(OP_V,1)
     If ( N_Global_tau > 0 ) then 
@@ -286,7 +295,8 @@ Contains
 
     
     Do n =  Nt_sequential_end, Nt_sequential_start, -1
-       if (Sequential_MALA .and. Op_V(n,1)%type == 3) then
+       L_MALA = Sequential_MALA .and. Op_V(n,1)%type == 3
+       if (L_MALA) then
           nsigma_st = nsigma%f(n,ntau)
           phase_st = phase
           force_old = calculate_force(n,ntau,Gr)
@@ -302,7 +312,7 @@ Contains
        nf = 1
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
-       if ( Sequential_MALA .and. Op_V(n,nf)%type == 3)  then
+       if (L_MALA)  then
           Gr_st = Gr
           Call ham%Ham_Langevin_HMC_S0_single( force_0_old, n,ntau)
           call Control_MALA_sequential(force_old, force_0_old)
@@ -317,13 +327,13 @@ Contains
           HS_new            = nsigma%flip(n,ntau)
        endif
        S0_ratio          = ham%S0(n,ntau,HS_new)
-       if ( Propose_S0 .and.   Op_V(n,nf)%type == 1)   then
+       if ( Propose_S0 .and.   Op_V(n,1)%type == 1)   then
            T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
            T0_Proposal_ratio = 1.d0/S0_ratio
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
-          if (Sequential_MALA .and. Op_V(n,1)%type == 3) then
+          if (L_MALA) then
              mode = "Intermediate"
              Call Upgrade2(GR,n,ntau,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
              phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
@@ -627,13 +637,13 @@ Contains
 
     ! Space for local variables
     Integer                   :: n, Flip_length, nf, nf_eff, N_Type, ng_c, Flip_count
-    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal,S0_ratio, force_0
+    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, S0_ratio, force_0
     COMPLEX (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New, Phase_st
     Logical                   :: Acc
     Character (Len=64)        :: Mode
     Integer,      allocatable :: Flip_list(:)
     Complex (Kind=Kind(0.d0)), allocatable :: Flip_value(:), Flip_value_st(:), forces_old(:), forces_new(:)
-    Real    (Kind=Kind(0.d0)) :: Zero = 10D-8, weight
+    Real    (Kind=Kind(0.d0)) :: weight
     real    (kind=kind(0.d0)), allocatable :: Forces_0_old(:), Forces_0_new(:)
     Real    (Kind=Kind(0.d0)) :: X, Xmax, delta_t_running_old, Delta_t_running_new
 
@@ -819,7 +829,7 @@ Contains
     ! Local
     integer :: swaps            ! number of swaps made in one pass
     integer :: nc               ! loop variable
-    integer :: temp, n          ! temporary holder for making swap
+    integer :: temp             ! temporary holder for making swap
     integer :: length
 
     !Check if all fields are continuous and remove non-continuous fields from flip_list
