@@ -152,10 +152,6 @@ _PARAMS_GENERIC = OrderedDict([
          'Om_st': {'comment': 'Frequency range lower bound.',
                    'value': -10.0},
          'R': {'comment': '', 'value': 1.2},
-         'Stochastic': {'comment': 'If true, then stochastic MaxEnt is '
-                                   'used. If false, then classic '
-                                   'MaxEnt is used.',
-                        'value': True},
          'Tolerance': {'comment': '', 'value': 0.1},
          'alpha_st': {'comment': '', 'value': 1.0}})
     ])
