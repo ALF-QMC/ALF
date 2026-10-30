@@ -59,8 +59,8 @@ _PARAMS_GENERIC = OrderedDict([
                                           'moves that will be carried '
                                           'out on a single time slice.',
                                'value': 1},
-         'N_Global_MALA_sweeps': {'comment': 'Number of global tau MALA '
-                                          'moves that will be carried out',
+         'N_Global_MALA_sweeps': {'comment': 'Number of global (space-'
+                                          'time) MALA sweeps',
                                'value': 1},
          'Delta_t_MALA_global_tau': {'comment': 'Time step for global '
                                                 'tau MALA updates',

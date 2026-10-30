@@ -94,7 +94,7 @@ Module QMC_runtime_var
     public :: set_default_values_measuring_interval
     public :: check_langevin_schemes_and_variables
     public :: check_update_schemes_compatibility
-    public :: check_MALA_variables_positive
+    public :: check_MALA_variables
     public :: check_compatibility_reconstruct_greens_function
 #ifdef MPI
     public :: broadcast_QMC_runtime_var
@@ -171,9 +171,9 @@ Module QMC_runtime_var
             Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
             Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
             settings_locked = .false.
-            Sequential_MALA = .false.; Delta_t_MALA_sequential = 0.d0; Max_Force_MALA_sequential = 1.d0
-            Global_tau_MALA_moves = .false.; N_Global_tau_MALA = 0; Delta_t_MALA_global_tau = 0.1d0
-            Max_Force_MALA_global_tau = 1.d0; Global_MALA_moves = .false.; N_Global_MALA_sweeps = 0
+            Sequential_MALA = .false.; Delta_t_MALA_sequential = 0.1d0; Max_Force_MALA_sequential = 1.d0
+            Global_tau_MALA_moves = .false.; N_Global_tau_MALA = 1; Delta_t_MALA_global_tau = 0.1d0
+            Max_Force_MALA_global_tau = 1.d0; Global_MALA_moves = .false.; N_Global_MALA_sweeps = 1
             Delta_t_MALA_global = 0.1d0; Max_Force_MALA_global = 1.d0
 
         end subroutine set_QMC_runtime_default_var
@@ -288,11 +288,6 @@ Module QMC_runtime_var
                 write(output_unit,*) "Sequential is set to .False. ."
             endif
 
-            if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves) then
-                write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, and"
-                write(output_unit,*) "Global_moves are all .False. in the parameter file."
-            endif
-
             if ( Sequential .and. Nt_sequential_end < Nt_sequential_start ) then
                 write(output_unit,*) "Warning: Nt_sequential_end is smaller than Nt_sequential_start"
             endif
@@ -317,9 +312,12 @@ Module QMC_runtime_var
         !--------------------------------------------------------------------
         !> @brief
         !> Ensures that, whenever a MALA-type update is enabled, its
-        !> associated Delta_t and Max_Force parameters are strictly positive.
+        !> associated Delta_t and Max_Force parameters are strictly positive
+        !> and its number of updates is at least one. Counts of disabled
+        !> global tau schemes are set to zero.
+        !> Has to be called before the settings are locked.
         !--------------------------------------------------------------------
-        subroutine check_MALA_variables_positive()
+        subroutine check_MALA_variables()
 
             implicit none
 
@@ -343,9 +341,15 @@ Module QMC_runtime_var
                     write(error_unit,*) "Error: Global_tau_MALA_moves=.True. requires Max_Force_MALA_global_tau > 0."
                     CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
                 endif
+                if (N_Global_tau_MALA < 1) then
+                    write(error_unit,*) "Error: Global_tau_MALA_moves=.True. requires N_Global_tau_MALA >= 1."
+                    CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+                endif
             else
-                N_Global_tau_MALA = 0
+                call set_N_Global_tau_MALA(0)
             endif
+
+            if (.not. Global_tau_moves) call set_N_Global_tau(0)
 
             if (Global_MALA_moves) then
                 if (Delta_t_MALA_global <= 0.d0) then
@@ -356,11 +360,15 @@ Module QMC_runtime_var
                     write(error_unit,*) "Error: Global_MALA_moves=.True. requires MAX_Force_MALA_global > 0."
                     CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
                 endif
+                if (N_Global_MALA_sweeps < 1) then
+                    write(error_unit,*) "Error: Global_MALA_moves=.True. requires N_Global_MALA_sweeps >= 1."
+                    CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+                endif
             else
-                N_Global_MALA_sweeps = 0
+                call set_N_Global_MALA_sweeps(0)
             endif
 
-        end subroutine check_MALA_variables_positive
+        end subroutine check_MALA_variables
 
 
         subroutine lock_QMC_runtime_settings()

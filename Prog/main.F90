@@ -317,7 +317,9 @@ Program Main
         leap_frog_bulk = .false.
         Call ham%Ham_set()
         Call Validate_Ham_Variables()
-        If ( allocated(Calc_Fl)) call check_compatibility_reconstruct_greens_function()
+        If ( allocated(Calc_Fl) ) then
+           if ( any(.not. Calc_Fl) ) call check_compatibility_reconstruct_greens_function()
+        endif
         ! Test  if  user  has  specified  correct  array  size  for time dependent Hamiltonians
         N_op = Size(OP_V,1)
         do n = 1, N_op
@@ -376,7 +378,7 @@ Program Main
         
         Call set_default_values_measuring_interval(Thtrot, Ltrot, Projector)
 
-        If ( .not. get_Global_tau_moves() )  then
+        If ( .not. ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) )  then
            ! This  corresponds to the default updating scheme
            call set_Nt_sequential_start(1)
            call set_Nt_sequential_end(Size(OP_V,1))
@@ -496,8 +498,8 @@ Program Main
         else
            Call Metropolis_Langevin%set_Update_scheme(.False., .False., get_Global_MALA_moves() )
         endif 
+        Call check_MALA_variables()
         Call check_update_schemes_compatibility()
-        Call check_MALA_variables_positive()
 
         if ( get_Sequential_MALA() .or. get_Global_tau_MALA_moves() ) then
          Do n = 1,N_op
@@ -539,16 +541,17 @@ Program Main
                   Write(50,*) 'Max_force          : ', get_Max_Force_MALA_sequential()
                endif
             endif    
-            if ( get_Global_tau_moves() ) Then
+            if ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) Then
                Write(50,*)  '-------  Space-global     Time-sequential moves -------' 
+               If ( get_Global_tau_moves() ) Then
+                  Write(50,*) 'Metropolis'
+                  Write(50,*) 'N_Global_tau       : ', get_N_Global_tau()
+               endif
                If ( get_Global_tau_MALA_moves() ) Then
                   Write(50,*) 'MALA'
                   Write(50,*) 'N_Global_tau_MALA  : ', get_N_Global_tau_MALA()
                   Write(50,*) 'delta_t            : ', get_Delta_t_MALA_global_tau()
                   Write(50,*) 'Max_Force          : ', get_Max_Force_MALA_global_tau()
-               else  
-                  Write(50,*) 'Metropolis'
-                  Write(50,*) 'N_Global_tau       : ', get_N_Global_tau()
                endif
             endif
             if ( get_Global_moves() .or. get_Langevin() .or. get_HMC() .or. get_Global_MALA_moves() ) then 
@@ -761,9 +764,14 @@ Program Main
               endif
 
               If (  str_to_upper(Metropolis_Langevin%get_Update_scheme()) == "MALA" )  then
-                 if (get_sequential() .and. str_to_upper(Langevin_HMC%get_Update_scheme()) /= "HMC" ) then
+                 ! The stored forces and determinants are only valid if no other update
+                 ! has changed the configuration since they were computed.
+                 if ( get_sequential() .or. get_Global_moves() .or. get_HMC() .or. get_Langevin() ) then
                     call Metropolis_Langevin%set_L_Forces(.False.)
                  endif
+#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
+                 IF (MOD(NSW,get_N_Tempering_frequency()) == 0) call Metropolis_Langevin%set_L_Forces(.False.)
+#endif
                  Do n=1, get_N_Global_MALA_sweeps()
                      Call Metropolis_Langevin%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
                           &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
@@ -1028,7 +1036,8 @@ Program Main
         call deallocate_all_shared_memory
 #endif
 
-        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), get_Global_MALA_moves())
+        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), get_Global_MALA_moves(), &
+             &              get_Sequential_MALA(), get_Global_tau_MALA_moves())
 
 #if defined(MPI)
         If (Irank_g == 0 ) then

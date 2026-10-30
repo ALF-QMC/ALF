@@ -484,7 +484,7 @@ module Control
       End Subroutine Control_PrecisionP_MALA
 
 
-      Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA)
+      Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA, MALA_seq, MALA_gtau)
 #ifdef MPI
         Use mpi
 #endif
@@ -492,7 +492,7 @@ module Control
 
         Integer, Intent(IN) :: Group_Comm
         Character (Len = 64), Intent(IN) :: Global_update_scheme
-        Logical, intent(in) :: MALA
+        Logical, intent(in) :: MALA, MALA_seq, MALA_gtau
                 
 
         Character (len=64) :: file1
@@ -500,6 +500,7 @@ module Control
         Real (Kind=Kind(0.d0)) :: Acc_MALA
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
+        Integer (Kind=Kind(0.d0)) :: N
         Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
 
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
@@ -560,7 +561,8 @@ module Control
            CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
            Force_max= X
         endif
-        If (Force_Count_MALA_seq > 0)  then
+        ! Collectives are guarded by parameters, which are identical on all ranks.
+        If (MALA_seq)  then
            X = 0.d0
            CALL MPI_REDUCE(Force_mean_MALA_seq,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
            Force_mean_MALA_seq= X/dble(Isize_g)
@@ -572,7 +574,7 @@ module Control
            CALL MPI_REDUCE(Force_0_max_MALA_seq,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
            Force_0_max_MALA_seq= X
         endif
-        If (Force_Count_MALA_gtau > 0)  then
+        If (MALA_gtau)  then
            X = 0.d0
            CALL MPI_REDUCE(Force_mean_MALA_gtau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
            Force_mean_MALA_gtau= X/dble(Isize_g)
@@ -595,6 +597,24 @@ module Control
            Force_0_mean_MALA_global= X/dble(Isize_g)
            CALL MPI_REDUCE(Force_0_max_MALA_global,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
            Force_0_max_MALA_global= X
+           X = 0.d0
+           CALL MPI_REDUCE(XMEANP_MALA,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           XMEANP_MALA = X
+           CALL MPI_REDUCE(XMAXP_MALA,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           XMAXP_MALA = X
+           N = 0
+           CALL MPI_REDUCE(NC_Phase_MALA,N,1,MPI_INTEGER8,MPI_SUM, 0,Group_Comm,IERR)
+           NC_Phase_MALA = N
+        endif
+        If (str_to_upper(Global_update_scheme) == "HMC")  then
+           X = 0.d0
+           CALL MPI_REDUCE(XMEANP_HMC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           XMEANP_HMC = X
+           CALL MPI_REDUCE(XMAXP_HMC,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           XMAXP_HMC = X
+           N = 0
+           CALL MPI_REDUCE(NC_Phase_HMC,N,1,MPI_INTEGER8,MPI_SUM, 0,Group_Comm,IERR)
+           NC_Phase_HMC = N
         endif
         X = 0.d0
         CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
