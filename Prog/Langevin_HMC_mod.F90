@@ -65,6 +65,7 @@
            private
            Integer                                 :: scheme
            Character (Len=64)                      :: Update_scheme
+           ! When true, cached fermionic forces and determinants describe the current nsigma.
            Logical                                 :: L_Forces
            Real    (Kind=Kind(0.d0))               :: Delta_t_running, Delta_t_Langevin_HMC, Max_Force
            Integer                                 :: Leapfrog_Steps
@@ -698,6 +699,8 @@
               this%Phase_Det_old = Phase_det_old
               nsigma%t = nsigma_old%t
               nsigma%f = nsigma_old%f
+              this%Forces   = forces_old
+              this%Forces_0 = forces_0_old
            endif
 
            Z = Phase_old * Ratiotot/ABS(Ratiotot)

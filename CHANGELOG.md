@@ -22,6 +22,12 @@ It changes the following for existing code and runs:
 3. Fix: in the `info` file, the HMC mean phase difference was not normalized by the number of
    measurements. With MPI, the mean and maximal phase differences of HMC and MALA are now
    averaged over all ranks instead of being reported for rank 0 only.
+4. Fix: global MALA with `Sequential=.false.` and `Ltau=1` now measures equal-time
+   observables after the acceptance/rejection decision, including the restored configuration
+   on rejection. Previously these observables could contain NaNs. Rejected MALA proposals
+   now restore their cached forces, and HMC invalidates its cache between sweeps when
+   combined with global MALA, preventing reuse of forces or determinants from another
+   configuration.
 
 #### Optional changes
 1) Hamiltonians with continuous fields can override `Ham_Langevin_HMC_S0_single`, which returns

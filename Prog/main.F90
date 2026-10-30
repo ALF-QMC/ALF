@@ -732,7 +732,8 @@ Program Main
               endif
 
               If (  str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" )  then
-                 if ( get_sequential() ) call Langevin_HMC%set_L_Forces(.False.)
+                 ! A preceding MALA sweep may have changed both the forces and determinants.
+                 if ( get_sequential() .or. get_Global_MALA_moves() ) call Langevin_HMC%set_L_Forces(.False.)
                  Do n=1, get_N_HMC_sweeps()
                      !  Carry out a Langevin update and calculate equal time observables.
                      Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
@@ -783,9 +784,17 @@ Program Main
                      endif
                  enddo
 
-                 !Do time-displaced measurements if needed, else set Calc_Obser_eq=.True. for the very first leapfrog ONLY
+                 ! Measure only after the MALA acceptance/rejection decision and storage reset.
                  If ( .not. get_sequential() ) then
                     IF ( get_Ltau() == 1 ) then
+                       ! Tau_m/Tau_p measure equal-time observables only for Langevin/HMC.
+                       ! Without HMC, measure the retained MALA configuration here, including
+                       ! the restored old configuration after a rejected proposal.
+                       if ( .not. get_HMC() ) then
+                          Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                               &  get_LOBS_ST(), get_LOBS_EN(), .True. )
+                          Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                       endif
                        If (Projector) then
                           NST = 0
                           Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
