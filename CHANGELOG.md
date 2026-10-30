@@ -1,5 +1,33 @@
 # Log of backward compatibility changes and critical bugs
 
+### 2026-10-30 MALA updates: new argument of `Overide_global_tau_sampling_parameters`
+Author: A. Goetz, F. Assaad <br>
+[GitHub](https://github.com/ALF-QMC/ALF/pull/592) | [Issue](https://github.com/ALF-QMC/ALF/issues/305)
+
+This merge introduces Metropolis adjusted Langevin (MALA) updates for continuous fields
+(`Sequential_MALA`, `Global_tau_MALA_moves`, `Global_MALA_moves`; see the documentation).
+It changes the following for existing code and runs:
+
+1. The subroutine `Overide_global_tau_sampling_parameters` has an additional argument,
+   `N_Global_tau_MALA`. Hamiltonians that override this routine have to adapt the signature,
+   otherwise they will not compile:
+   ```fortran
+   Subroutine Overide_global_tau_sampling_parameters(Nt_sequential_start, Nt_sequential_end, &
+        &                                            N_Global_tau, N_Global_tau_MALA)
+     Integer, Intent(INOUT) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
+   ```
+2. Langevin, HMC and all MALA updates now stop with an error if the Hamiltonian requests the
+   reconstruction of the Green function (`Calc_Fl` with at least one entry `.false.`).
+   Previously, Langevin and HMC also stopped, but later in the setup.
+3. Fix: in the `info` file, the HMC mean phase difference was not normalized by the number of
+   measurements. With MPI, the mean and maximal phase differences of HMC and MALA are now
+   averaged over all ranks instead of being reported for rank 0 only.
+
+#### Optional changes
+1) Hamiltonians with continuous fields can override `Ham_Langevin_HMC_S0_single`, which returns
+   the bosonic force of a single field. Otherwise the base implementation computes all bosonic
+   forces for each single-field MALA update, which is slower for larger systems.
+
 ### 2026-01-28 factors of pi in analytical continuation
 Author F. Assaad <br>
 Merge request [!257](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/merge_requests/257) | [GitHub](https://github.com/ALF-QMC/ALF/issues/587)
