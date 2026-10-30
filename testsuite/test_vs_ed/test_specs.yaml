@@ -92,3 +92,90 @@ hubbard_T0_chain:
     - <<: *hubbard_T0_chain_parameter1
       dtau: 0.2
       Nwrap: 5
+
+# MALA updates for continuous fields. Statistical errors with continuous
+# fields are larger than with discrete ones, hence the looser max_delta.
+hubbard_finT_chain_MALA_sequential:
+  environments: &mala_environments
+    Bookworm:
+      image: ghcr.io/alf-qmc/alf-container/pyalf-requirements/bookworm
+      variables: {MACHINE: GNU}
+    macGNU:
+      tags: ['macos']
+      variables: {MACHINE: GNU}
+  ham_name: "Hubbard"
+  ed_energy: -1.47261997
+  max_sigma: 3
+  max_delta: 0.01
+  sim_dicts:
+    - &hubbard_finT_chain_MALA_sequential_parameter1
+      <<: *hubbard_finT_chain_parameter1
+      Continuous: true
+      Sequential_MALA: true
+    - <<: *hubbard_finT_chain_MALA_sequential_parameter1
+      dtau: 0.1
+      Nwrap: 15
+    - <<: *hubbard_finT_chain_MALA_sequential_parameter1
+      dtau: 0.14285714285714285
+      Nwrap: 10
+    - <<: *hubbard_finT_chain_MALA_sequential_parameter1
+      dtau: 0.18181818181818182
+      Nwrap: 8
+    - <<: *hubbard_finT_chain_MALA_sequential_parameter1
+      dtau: 0.2
+      Nwrap: 5
+
+hubbard_finT_chain_MALA_global_tau:
+  environments: *mala_environments
+  ham_name: "Hubbard"
+  ed_energy: -1.47261997
+  max_sigma: 3
+  max_delta: 0.01
+  sim_dicts:
+    - &hubbard_finT_chain_MALA_global_tau_parameter1
+      <<: *hubbard_finT_chain_parameter1
+      Continuous: true
+      Global_tau_MALA_moves: true
+      N_Global_tau_MALA: 1
+      Nt_sequential_start: 0
+      Nt_sequential_end: -1
+    - <<: *hubbard_finT_chain_MALA_global_tau_parameter1
+      dtau: 0.1
+      Nwrap: 15
+    - <<: *hubbard_finT_chain_MALA_global_tau_parameter1
+      dtau: 0.14285714285714285
+      Nwrap: 10
+    - <<: *hubbard_finT_chain_MALA_global_tau_parameter1
+      dtau: 0.18181818181818182
+      Nwrap: 8
+    - <<: *hubbard_finT_chain_MALA_global_tau_parameter1
+      dtau: 0.2
+      Nwrap: 5
+
+# Global (space-time) MALA mixes slowly on its own: smoke test with a loose bound.
+hubbard_finT_chain_MALA_global:
+  environments: *mala_environments
+  ham_name: "Hubbard"
+  ed_energy: -1.47261997
+  max_sigma: 3
+  max_delta: 0.05
+  sim_dicts:
+    - &hubbard_finT_chain_MALA_global_parameter1
+      <<: *hubbard_finT_chain_parameter1
+      Continuous: true
+      Sequential: false
+      Global_MALA_moves: true
+      N_Global_MALA_sweeps: 1
+      NBin: 500
+    - <<: *hubbard_finT_chain_MALA_global_parameter1
+      dtau: 0.1
+      Nwrap: 15
+    - <<: *hubbard_finT_chain_MALA_global_parameter1
+      dtau: 0.14285714285714285
+      Nwrap: 10
+    - <<: *hubbard_finT_chain_MALA_global_parameter1
+      dtau: 0.18181818181818182
+      Nwrap: 8
+    - <<: *hubbard_finT_chain_MALA_global_parameter1
+      dtau: 0.2
+      Nwrap: 5

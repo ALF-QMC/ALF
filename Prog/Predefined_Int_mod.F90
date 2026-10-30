@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2026 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -130,14 +130,12 @@
         
         Op_up%P(1)   =  I
         Op_up%O(1,1) =  cmplx(1.d0  ,0.d0, kind(0.D0))
-        Op_up%alpha  =  cmplx(0.d0, 0.d0, kind(0.D0))
         Op_up%g      =  SQRT(CMPLX(DTAU*U/2.d0, 0.D0, kind(0.D0))) 
         Op_up%alpha  =  cmplx(-0.5d0,0.d0, kind(0.D0))
         Op_up%type   =  2
 
         Op_do%P(1)   =  I
         Op_do%O(1,1) =  cmplx(1.d0  ,0.d0, kind(0.D0))
-        Op_do%alpha  =  cmplx(0.d0, 0.d0, kind(0.D0))
         Op_do%g      = -SQRT(CMPLX(DTAU*U/2.d0, 0.D0, kind(0.D0))) 
         Op_do%alpha  =  cmplx(-0.5d0,0.d0, kind(0.D0))
         Op_do%type   =  2
@@ -170,13 +168,13 @@
         
         Op_up%P(1)   =  I
         Op_up%O(1,1) =  cmplx(1.d0  ,0.d0, kind(0.D0))
-        Op_up%alpha  =  cmplx(0.d0, 0.d0, kind(0.D0))
+        Op_up%alpha  =  cmplx(-0.5d0,0.d0, kind(0.D0))
         Op_up%g      =  SQRT(CMPLX(DTAU*U, 0.D0, kind(0.D0))) 
         Op_up%type   =  3
 
         Op_do%P(1)   =  I
         Op_do%O(1,1) =  cmplx(1.d0  ,0.d0, kind(0.D0))
-        Op_do%alpha  =  cmplx(0.d0, 0.d0, kind(0.D0))
+        Op_do%alpha  =  cmplx(-0.5d0,0.d0, kind(0.D0))
         Op_do%g      = -SQRT(CMPLX(DTAU*U, 0.D0, kind(0.D0))) 
         Op_do%type   =  3
 

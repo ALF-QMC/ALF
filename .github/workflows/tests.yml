@@ -66,6 +66,34 @@ jobs:
           args: GNU ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
 
   # ======================
+  # MALA regressions
+  # ======================
+  mala_regressions:
+    name: MALA measurements and caches (GNU serial)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build: [optimized, debug]
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/trixie
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build and test
+        shell: bash
+        env:
+          BUILD: ${{ matrix.build }}
+          OMP_NUM_THREADS: '1'
+        run: |
+          if [ "$BUILD" = debug ]; then
+            export ALF_FLAGS_EXT='-O0 -fno-fast-math -g -fcheck=all -ffpe-trap=invalid,zero,overflow'
+          fi
+          . ./configure.sh GNU noMPI
+          make -j2 all
+          cmake -S testsuite -B testsuite/tests -DALF_MALA_TESTS=ON
+          cmake --build testsuite/tests -j2
+          ctest --test-dir testsuite/tests --output-on-failure
+
+  # ======================
   # Valgrind
   # ======================
   valgrind_gnu_trixie:
