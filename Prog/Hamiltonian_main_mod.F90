@@ -894,7 +894,7 @@
 
           Implicit none
 
-          Real (Kind=Kind(0.d0)), Intent(inout) :: Force_0
+          Real (Kind=Kind(0.d0)), Intent(out)   :: Force_0
           integer , intent(in)                  :: n, nt
 
           logical, save                         :: first_call=.True.

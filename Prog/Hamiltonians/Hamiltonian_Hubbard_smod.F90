@@ -142,6 +142,7 @@
         procedure, nopass :: ObserT
         procedure, nopass :: S0
         procedure, nopass :: Ham_Langevin_HMC_S0
+        procedure, nopass :: Ham_Langevin_HMC_S0_single
         procedure, nopass :: Get_Delta_S0_global
         procedure, nopass :: Global_move_tau 
         procedure, nopass :: Overide_global_tau_sampling_parameters
@@ -926,6 +927,27 @@
           enddo
           
         end Subroutine Ham_Langevin_HMC_S0
+
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!>   Force_0  = \partial S_0 / \partial s(n,nt)  for a single field.
+!>   Has to be consistent with Ham_Langevin_HMC_S0.
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_HMC_S0_single(Force_0,n,nt)
+
+          Implicit none
+
+          Real (Kind=Kind(0.d0)), Intent(out) :: Force_0
+          Integer, Intent(in)                 :: n, nt
+
+          Force_0 = 0.d0
+          if (OP_V(n,1)%type == 3 ) Force_0 = real(nsigma%f(n,nt), kind(0.d0))
+
+        end Subroutine Ham_Langevin_HMC_S0_single
 
 
 !--------------------------------------------------------------------
