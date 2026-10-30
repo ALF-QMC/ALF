@@ -583,17 +583,17 @@ Contains
         if (Op%g_t_alloc) then
             do I=1,Op%N
                 if ( cop == 'c' .or. cop =='C' ) then
-                   call ZSCAL(N1,conjg(exp(sign*nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I))),Mat(1,Op%P(I)),1)
+                   call ALF_ZSCAL(N1,conjg(exp(sign*nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I))),Mat(1,Op%P(I)),1)
                 else
-                   call ZSCAL(N1,exp(sign*nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(1,Op%P(I)),1)
+                   call ALF_ZSCAL(N1,exp(sign*nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(1,Op%P(I)),1)
                 endif
             enddo
         else
             do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
-                call ZSCAL(N1,conjg(Op%E_exp(I,sp)),Mat(1,Op%P(I)),1)
+                call ALF_ZSCAL(N1,conjg(Op%E_exp(I,sp)),Mat(1,Op%P(I)),1)
              else
-                call ZSCAL(N1,Op%E_exp(I,sp),Mat(1,Op%P(I)),1)
+                call ALF_ZSCAL(N1,Op%E_exp(I,sp),Mat(1,Op%P(I)),1)
              endif
           enddo
         endif
@@ -609,9 +609,9 @@ Contains
        if ( Op%diag ) then
           do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
-                call ZSCAL(N1,conjg(exp(sign*nsigma_single%phi(1,1)*g_loc*Op%E(I))),Mat(1,Op%P(I)),1)
+                call ALF_ZSCAL(N1,conjg(exp(sign*nsigma_single%phi(1,1)*g_loc*Op%E(I))),Mat(1,Op%P(I)),1)
              else
-                call ZSCAL(N1,exp(sign*nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(1,Op%P(I)),1)
+                call ALF_ZSCAL(N1,exp(sign*nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(1,Op%P(I)),1)
              endif
           enddo
        else
@@ -677,17 +677,17 @@ Contains
         if (op%g_t_alloc) then
             do I=1,Op%N
                 if ( cop == 'c' .or. cop =='C' ) then
-                    call ZSCAL(N2,conjg(exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I))),Mat(Op%P(I),1),N1)
+                    call ALF_ZSCAL(N2,conjg(exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I))),Mat(Op%P(I),1),N1)
                 else
-                    call ZSCAL(N2,exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(Op%P(I),1),N1)
+                    call ALF_ZSCAL(N2,exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(Op%P(I),1),N1)
                 endif
             enddo
         else
             do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
-                call ZSCAL(N2,conjg(Op%E_exp(I,sp)),Mat(Op%P(I),1),N1)
+                call ALF_ZSCAL(N2,conjg(Op%E_exp(I,sp)),Mat(Op%P(I),1),N1)
              else
-                call ZSCAL(N2,Op%E_exp(I,sp),Mat(Op%P(I),1),N1)
+                call ALF_ZSCAL(N2,Op%E_exp(I,sp),Mat(Op%P(I),1),N1)
              endif
             
             enddo
@@ -704,9 +704,9 @@ Contains
        if ( Op%diag ) then
           do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
-                call ZSCAL(N2,conjg(exp(nsigma_single%phi(1,1)*g_loc*Op%E(I))),Mat(Op%P(I),1),N1)
+                call ALF_ZSCAL(N2,conjg(exp(nsigma_single%phi(1,1)*g_loc*Op%E(I))),Mat(Op%P(I),1),N1)
              else
-                call ZSCAL(N2,exp(nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(Op%P(I),1),N1)
+                call ALF_ZSCAL(N2,exp(nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(Op%P(I),1),N1)
              endif
           enddo
        else
@@ -767,17 +767,17 @@ Contains
           if(Op%diag) then
             if (op%g_t_alloc) then
                 do I=1,Op%N
-                    call ZSCAL(Ndim,exp( nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(Op%P(I),1),Ndim)
+                    call ALF_ZSCAL(Ndim,exp( nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(Op%P(I),1),Ndim)
                 enddo
                 do I=1,Op%N
-                    call ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(1,Op%P(I)),1)
+                    call ALF_ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(1,Op%P(I)),1)
                 enddo
             else
              do I=1,Op%N
-                call ZSCAL(Ndim,Op%E_Exp(I,sp),Mat(Op%P(I),1),Ndim)
+                call ALF_ZSCAL(Ndim,Op%E_Exp(I,sp),Mat(Op%P(I),1),Ndim)
              enddo
              do I=1,Op%N
-                call ZSCAL(Ndim,Op%E_Exp(I,-sp),Mat(1,Op%P(I)),1)
+                call ALF_ZSCAL(Ndim,Op%E_Exp(I,-sp),Mat(1,Op%P(I)),1)
              enddo
             endif
           else
@@ -812,10 +812,10 @@ Contains
         if (op%g_t_alloc) g_loc = Op%g_t(nt)
           if(Op%diag) then
              do I=1,Op%N
-                call ZSCAL(Ndim,exp( nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(Op%P(I),1),Ndim)
+                call ALF_ZSCAL(Ndim,exp( nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(Op%P(I),1),Ndim)
              enddo
              do I=1,Op%N
-                call ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(1,Op%P(I)),1)
+                call ALF_ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(1,Op%P(I)),1)
              enddo
           else
              Do i = 1,Op%N
@@ -884,17 +884,17 @@ Contains
           if(Op%diag) then
              if (op%g_t_alloc) then
                 do I=1,Op%N
-                   call ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(Op%P(I),1),Ndim)
+                   call ALF_ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(Op%P(I),1),Ndim)
                 enddo
                 do I=1,Op%N
-                   call ZSCAL(Ndim,exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(1,Op%P(I)),1)
+                   call ALF_ZSCAL(Ndim,exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(1,Op%P(I)),1)
                 enddo
              else
                 do I=1,Op%N
-                   call ZSCAL(Ndim,Op%E_Exp(I,-sp),Mat(Op%P(I),1),Ndim)
+                   call ALF_ZSCAL(Ndim,Op%E_Exp(I,-sp),Mat(Op%P(I),1),Ndim)
                 enddo
                 do I=1,Op%N
-                   call ZSCAL(Ndim,Op%E_Exp(I, sp),Mat(1,Op%P(I)),1)
+                   call ALF_ZSCAL(Ndim,Op%E_Exp(I, sp),Mat(1,Op%P(I)),1)
                 enddo
              endif
           else
@@ -928,10 +928,10 @@ Contains
           if (op%g_t_alloc) g_loc = Op%g_t(nt)
           if(Op%diag) then
              do I=1,Op%N
-                call ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(Op%P(I),1),Ndim)
+                call ALF_ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(Op%P(I),1),Ndim)
              enddo
              do I=1,Op%N
-                call ZSCAL(Ndim,exp( nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(1,Op%P(I)),1)
+                call ALF_ZSCAL(Ndim,exp( nsigma_single%phi(1,1)*g_loc*Op%E(I)),Mat(1,Op%P(I)),1)
              enddo
           else
              Do n = 1,Op%N

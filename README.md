@@ -145,6 +145,8 @@ Alternatively, one could use [this Docker image](https://hub.docker.com/r/alfcol
   See the example directory [Scripts_and_Parameters_files/Start/](Scripts_and_Parameters_files/Start/).
 4. **Run ALF.out** created during the compilation in folder [Prog/](Prog/). Be sure that you current working directory is the one that contains `seeds` and `parameters`.
 
+**Intel GPUs**: With the `configure.sh` option `GPU` (requires the `ifx` compiler, e.g. `source configure.sh IntelLLVM MPI GPU`), BLAS and LAPACK calls above a per-routine size threshold are offloaded to the GPU. The thresholds are set via environment variables such as `ALF_GPU_THRESH_ZGEMM=1024` and can be determined with the benchmark in [Benchmarks/](Benchmarks/). See the documentation for details.
+
 ## Quick start
 
 The following lines cover the minimal steps of fulfilling the prerequisites (on a Debian-based system), obtaining the source code, compiling the program, running a simulation and analyzing the results.

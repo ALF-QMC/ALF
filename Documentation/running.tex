@@ -96,6 +96,7 @@ Related auxiliary directories, object files and executables can be removed by ex
 			\textbf{\texttt{OTHER SWITCHES}} &  \\\midrule
 			\texttt{Devel}  &  Compile with additional flags for development and debugging\\
 			\texttt{HDF5}  &  Compile with HDF5 -- automatically downloads and installs HDF5 if not present\\
+			\texttt{GPU}  &  Offload large BLAS/LAPACK calls to Intel GPUs (requires \texttt{ifx} and oneMKL, see below)\\
 			\texttt{NO-INTERACTIVE} & Do not ask for user confirmation during execution of this script\\
 			\vspace{7pt}\\
 			
@@ -108,6 +109,15 @@ Related auxiliary directories, object files and executables can be removed by ex
 		\caption{Available arguments for the script \texttt{configure.sh}, called before compilation of the package: predefined machines, parallelization modes, and stabilization schemes (see also Sec.~\ref{sec:optimize}).} \label{table:configureHPC}
 	\end{center}
 \end{table}
+
+With the switch \texttt{GPU}, which requires the \texttt{ifx} compiler (e.g.\ \texttt{source configure.sh IntelLLVM MPI GPU}), BLAS and LAPACK calls can be offloaded to Intel GPUs using OpenMP and oneMKL. All BLAS and LAPACK calls of ALF go through wrappers \texttt{ALF\_<ROUTINE>} (module \texttt{alf\_linalg\_mod} in \path{Libraries/Modules}), which offload a call only if its size is at least the threshold of the routine, since small calls are faster on the CPU. The threshold $N$ is given as the size of an equivalent square problem, i.e., a call is offloaded if its work is at least $N^3$ (BLAS level 3 and LAPACK), $N^2$ (BLAS level 2) or $N$ (BLAS level 1). A negative threshold, the default, means that the routine is never offloaded. The threshold of, e.g., \texttt{ZGEMM} can be set at compile time via \texttt{ALF\_FLAGS\_EXT="-DALF\_GPU\_THRESH\_ZGEMM=1024"} and at runtime via the environment variable \texttt{ALF\_GPU\_THRESH\_ZGEMM=1024}, which takes precedence. The environment variable \texttt{ALF\_GPU\_OFFLOAD=0} disables offloading. Suitable thresholds for a given machine are determined by the benchmark in \path{Benchmarks}:
+
+\vspace{-\baselineskip}
+\begin{lstlisting}[style=bash,morekeywords={make}]
+cd $ALF_DIR/Benchmarks && make
+./gpu_linalg_bench.out [NMAX [ROUTINE ...]]
+\end{lstlisting}
+It compares CPU and GPU timings, including the data transfer of each call, for sizes up to \texttt{NMAX} and prints the recommended thresholds. Run it with the number of MPI processes per GPU and OpenMP threads intended for production runs.
 
 A suite of tests for individual parts of the code (subroutines, functions, operations, etc.) is available at the directory \path{testsuite}. The tests can be run by executing the following sequence of commands (the script \path{configure.sh} sets environment variables as described above):
 

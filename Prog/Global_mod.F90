@@ -870,10 +870,11 @@ Module Global_mod
               enddo
               alpha=1.d0
               beta=0.d0
-              CALL ZGEMM('C','N',N_part,N_part,N_size,alpha,udvl(nf_eff)%U(1,1),N_size,WF_R(nf)%P(1,1),N_size,beta,TP(1,1),N_part)
+              CALL ALF_ZGEMM('C','N',N_part,N_part,N_size,alpha,udvl(nf_eff)%U(1,1),N_size,WF_R(nf)%P(1,1),N_size, &
+                   &         beta,TP(1,1),N_part)
               ! ZGETRF computes an LU factorization of a general M-by-N matrix A
               ! using partial pivoting with row interchanges.
-              call ZGETRF(N_part, N_part, TP(1,1), N_part, ipiv, info)
+              call ALF_ZGETRF(N_part, N_part, TP(1,1), N_part, ipiv, info)
               Z=1.d0
               Do J=1,N_part
                  if (ipiv(J).ne.J) then
@@ -926,7 +927,8 @@ Module Global_mod
            Call  UDV_WRAP(TP,udvlocal%U, D, udvlocal%V, NCON )
            Z  = DET_C(udvlocal%V, N_size) ! Det destroys its argument
            !         Call MMULT(TP, udvl%U, udvlocal%U)
-           CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl(nf_eff)%U(1,1), N_size, udvlocal%U(1,1), N_size, beta, TP, N_size)
+           CALL ALF_ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl(nf_eff)%U(1,1), N_size, udvlocal%U(1,1), N_size, &
+                &         beta, TP, N_size)
            Z1 = Det_C(TP, N_size)
            Phase_det(nf_eff)   = Z*Z1/ABS(Z*Z1)
 #if !defined(STABLOG)

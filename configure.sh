@@ -27,6 +27,7 @@ Possible STABs are:
 Further optional arguments: 
   Devel: Compile with additional flags for development and debugging
   HDF5: Compile with HDF5
+  GPU: Offload large BLAS/LAPACK calls to Intel GPUs via OpenMP (requires ifx and oneMKL)
   NO-INTERACTIVE: Do not ask for user confirmation during excution of this script
   NO-FALLBACK: Do not use a fallback option in case of an unknown/no machine,
                but instead return with value 1
@@ -130,6 +131,21 @@ check_libs()
     fi
 }
 
+check_gpu()
+{
+    FC="$1" FLAGS="$2" LIBS="$3"
+    # Compile in $tmpdir, since the test creates module files
+    if ! (cd "$tmpdir" && sh -c "$FC $FLAGS $ALF_DIR/check_gpu.f90 $LIBS -o $tmpdir/check_gpu.out"); then
+        printf "${RED}\n==== Error: Compiling GPU offload test with <%s %s %s> failed. ====${NC}\n\n" "$FC" "$FLAGS" "$LIBS" 1>&2
+        rm -r "$tmpdir"
+        printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
+        return 1
+    fi
+    # No GPU on e.g. a login node is not fatal, ALF will then run all calls on the CPU.
+    "$tmpdir/check_gpu.out" || \
+      printf "${RED}Warning: GPU offload test did not pass on this machine. Calls will run on the CPU where no GPU is found.${NC}\n" 1>&2
+}
+
 check_python()
 {
     if ! command -v python3 > /dev/null; then
@@ -199,6 +215,9 @@ INTELLLVMOPTFLAGS="-cpp -O3 -fp-model=fast=2 -no-prec-div -static -xHost -unroll
 # INTELLLVMOPTFLAGS="${INTELLLVMOPTFLAGS} -qopenmp"
 INTELLLVMDEVFLAGS="-warn all -check all,nouninit -g -traceback"
 INTELLLVMUSEFULFLAGS="-std08"
+# flags for offloading BLAS/LAPACK calls to Intel GPUs (only with ifx), see GPU option
+INTELGPUFLAGS="-fiopenmp -fopenmp-targets=spir64 -DALF_GPU"
+INTELGPULIBS="-qmkl -fiopenmp -fopenmp-targets=spir64"
 
 
 # default optimization flags for GNU compiler
@@ -227,6 +246,7 @@ modev=0
 STAB=""
 stabv=0
 HDF5_ENABLED=""
+GPU_ENABLED=""
 NO_INTERACTIVE=""
 NO_FALLBACK=""
 
@@ -250,6 +270,9 @@ while [ "$#" -gt "0" ]; do
     ;;
     HDF5)
       HDF5_ENABLED="1"
+    ;;
+    GPU)
+      GPU_ENABLED="1"
     ;;
     DEVEL|DEVELOPMENT)
       #DEVEL="1"
@@ -509,6 +532,29 @@ case $MACHINE in
     fi
   ;;
 esac
+
+if [ "${GPU_ENABLED}" = "1" ]; then
+  if ! echo "$ALF_FC" | grep -q "ifx"; then
+    printf "${RED}\n==== Error: GPU offloading requires the ifx compiler (e.g. MACHINE IntelLLVM), but compiler is <%s>. ====${NC}\n\n" "$ALF_FC" 1>&2
+    rm -r "$tmpdir"
+    printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
+    return 1
+  fi
+  if [ -z "${MKLROOT}" ]; then
+    printf "${RED}\n==== Error: GPU offloading requires oneMKL, but MKLROOT is not set. ====${NC}\n\n" 1>&2
+    rm -r "$tmpdir"
+    printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
+    return 1
+  fi
+  # Offloading needs the dynamically loaded GPU runtime and -fiopenmp replaces -qopenmp
+  F90OPTFLAGS="$(echo " $F90OPTFLAGS " | sed 's| -static | |g; s| -qopenmp | |g')"
+  F90OPTFLAGS="${F90OPTFLAGS} ${INTELGPUFLAGS} -I${MKLROOT}/include"
+  LIB_BLAS_LAPACK="${INTELGPULIBS}"
+  echo; echo "GPU offloading enabled"
+  check_gpu "$ALF_FC" "${F90OPTFLAGS}" "${LIB_BLAS_LAPACK}" || return 1
+else
+  echo; echo "GPU offloading disabled"
+fi
 
 check_libs "$ALF_FC" "${LIB_BLAS_LAPACK}" || return 1
 

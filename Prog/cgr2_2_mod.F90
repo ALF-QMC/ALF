@@ -110,15 +110,15 @@ module cgr2_2_mod
            ALLOCATE(TMPVEC(LQ2), HLPB1(LQ2, LQ2), IPVT(LQ2))
            TMPVEC = conjg(1.D0/D3)
            ! set HLPB1 equal to zero
-           call zlaset('A', LQ2, LQ2, zero, zero, HLPB1, LQ2)
+           call ALF_ZLASET('A', LQ2, LQ2, zero, zero, HLPB1, LQ2)
            DO J = 1, LQ
               DO I = 1, LQ
                  HLPB1(I   , J    ) =  UCT(I, J)
                  HLPB1(I+LQ, J+LQ ) =  VINV(I,J)
               ENDDO
            ENDDO
-           CALL ZGETRF(LQ2, LQ2, V3, LQ2, IPVT, info)
-           CALL ZGETRS('C', LQ2, LQ2, V3, LQ2, IPVT, HLPB1, LQ2, info)! Block structure of HLPB1 is not exploited
+           CALL ALF_ZGETRF(LQ2, LQ2, V3, LQ2, IPVT, info)
+           CALL ALF_ZGETRS('C', LQ2, LQ2, V3, LQ2, IPVT, HLPB1, LQ2, info)! Block structure of HLPB1 is not exploited
            DO J = 1,LQ2
               DO I = 1,LQ2
                  HLPB1(I,J)  = TMPVEC(I)*HLPB1(I,J)
@@ -168,7 +168,7 @@ module cgr2_2_mod
            ALLOCATE(TMPVEC(LQ2))
            TMPVEC = conjg(1.D0/D)
            ! set HLP equal to zero
-           call zlaset('A', LQ2, LQ2, z, z, HLP, LQ2)
+           call ALF_ZLASET('A', LQ2, LQ2, z, z, HLP, LQ2)
            DO I = 1, LQ
               DO J = 1, LQ
                  HLP(I   , J    ) =  UCT(I, J)
@@ -178,8 +178,8 @@ module cgr2_2_mod
            z = 1.D0
            !P * V3^* X = H1
            FORWRD = .true.
-           CALL ZLAPMR(FORWRD, LQ2, LQ2, HLP(1, 1), LQ2, PIVT(1))
-           CALL ZTRSM('L', 'U', 'C', 'N', LQ2, LQ2, z, A(1, 1), LQ2, HLP(1, 1), LQ2)! Block structure of HLPB1 is not exploited
+           CALL ALF_ZLAPMR(FORWRD, LQ2, LQ2, HLP(1, 1), LQ2, PIVT(1))
+           CALL ALF_ZTRSM('L', 'U', 'C', 'N', LQ2, LQ2, z, A(1, 1), LQ2, HLP(1, 1), LQ2)! Block structure of HLPB1 is not exploited
            DO J = 1,LQ2
               DO I = 1,LQ2
                  HLP(I, J)  = TMPVEC(I)*HLP(I, J)
@@ -187,7 +187,7 @@ module cgr2_2_mod
            ENDDO
            deallocate (TMPVEC)
            ! Res = U * HLP
-           CALL ZUNMQR('L', 'N', LQ2, LQ2, LQ2, A(1, 1), LQ2, TAU(1), HLP(1, 1), LQ2, WORK(1), LWORK, INFO)
+           CALL ALF_ZUNMQR('L', 'N', LQ2, LQ2, LQ2, A(1, 1), LQ2, TAU(1), HLP(1, 1), LQ2, WORK(1), LWORK, INFO)
          end subroutine solve_extended_System
 #endif
 
@@ -258,8 +258,8 @@ module cgr2_2_mod
         CALL INV(udv1%V,V1INV,Z)
         If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
-           call zlacpy('A',LQ,LQ,V1INV(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
-           call zlacpy('A',LQ,LQ,MYU2(1,1)  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
+           call ALF_ZLACPY('A',LQ,LQ,V1INV(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
+           call ALF_ZLACPY('A',LQ,LQ,MYU2(1,1)  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J+LQ ) =  udv1%D(I)*conjg(udv1%U(J,I))!udv1%U(I,J)
@@ -296,8 +296,8 @@ module cgr2_2_mod
            call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB1, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
-           call zlacpy('A',LQ,LQ,MYU2(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
-           call zlacpy('A',LQ,LQ,V1INV(1,1),LQ,HLPB2(1+LQ,1+LQ),LQ2)
+           call ALF_ZLACPY('A',LQ,LQ,MYU2(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
+           call ALF_ZLACPY('A',LQ,LQ,V1INV(1,1),LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J+LQ ) = -udv2%D(I)*udv2%V(I,J)
@@ -355,13 +355,13 @@ module cgr2_2_mod
             D1m(J)=cmplx(exp(udv1%L(J)),0.d0,kind(0.d0))
           else
             D1m(J)=cmplx(1.d0,0.d0,kind(0.d0))
-            call zscal(LQ,cmplx(exp(-udv1%L(J)),0.d0,kind(0.d0)),V1INV(J,1),LQ)
+            call ALF_ZSCAL(LQ,cmplx(exp(-udv1%L(J)),0.d0,kind(0.d0)),V1INV(J,1),LQ)
           endif
           If(udv2%L(J) <= 0.d0) then
             D2m(J)=cmplx(exp(udv2%L(J)),0.d0,kind(0.d0))
           else
             D2m(J)=cmplx(1.d0,0.d0,kind(0.d0))
-            call zscal(LQ,cmplx(exp(-udv2%L(J)),0.d0,kind(0.d0)),MYU2(J,1),LQ)
+            call ALF_ZSCAL(LQ,cmplx(exp(-udv2%L(J)),0.d0,kind(0.d0)),MYU2(J,1),LQ)
           endif
         ENDDO
 #else
@@ -372,13 +372,13 @@ module cgr2_2_mod
             D1m(J)=udv1%D(J)
           else
             D1m(J)=cmplx(1.d0,0.d0,kind(0.d0))
-            call zscal(LQ,1.d0/udv1%D(J),V1INV(J,1),LQ)
+            call ALF_ZSCAL(LQ,1.d0/udv1%D(J),V1INV(J,1),LQ)
           endif
           If(dble(udv2%D(J)) <=1.d0) then
             D2m(J)=udv2%D(J)
           else
             D2m(J)=cmplx(1.d0,0.d0,kind(0.d0))
-            call zscal(LQ,1.d0/udv2%D(J),MYU2(J,1),LQ)
+            call ALF_ZSCAL(LQ,1.d0/udv2%D(J),MYU2(J,1),LQ)
           endif
         ENDDO
 #endif
@@ -392,8 +392,8 @@ module cgr2_2_mod
         If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then
 #endif
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
-           call zlacpy('A',LQ,LQ,V1INV(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
-           call zlacpy('A',LQ,LQ,MYU2(1,1)  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
+           call ALF_ZLACPY('A',LQ,LQ,V1INV(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
+           call ALF_ZLACPY('A',LQ,LQ,MYU2(1,1)  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J+LQ ) =  D1m(I)*conjg(udv1%U(J,I))!udv1%U(I,J)
@@ -407,8 +407,8 @@ module cgr2_2_mod
            call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB2, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
-           call zlacpy('A',LQ,LQ,MYU2(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
-           call zlacpy('A',LQ,LQ,V1INV(1,1),LQ,HLPB2(1+LQ,1+LQ),LQ2)
+           call ALF_ZLACPY('A',LQ,LQ,MYU2(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
+           call ALF_ZLACPY('A',LQ,LQ,V1INV(1,1),LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J+LQ ) = -D2m(I)*udv2%V(I,J)

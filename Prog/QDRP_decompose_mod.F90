@@ -68,18 +68,18 @@ Contains
       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout), Allocatable :: TAU
       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(INOUT), Allocatable :: WORK
       
-      COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
+      REAL(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
       COMPLEX(Kind=Kind(0.d0)) :: Z
       Integer :: info, i, j
       Real(Kind=Kind(0.d0)) :: X
       
       ALLOCATE(RWORK(2*Ndim))
       ! Query optimal amount of memory
-      call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+      call ALF_ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
       LWORK = INT(DBLE(Z))
       ALLOCATE(WORK(LWORK))
       ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-      call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+      call ALF_ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
       DEALLOCATE(RWORK)
       ! separate off D
       do i = 1, N_part

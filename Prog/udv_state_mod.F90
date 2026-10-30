@@ -332,10 +332,10 @@ CONTAINS
              CALL this%dealloc
              CALL this%alloc(size(P,1),size(P,2))
           endif
-          CALL ZLACPY('A', this%ndim, this%N_part, P(1, 1), this%ndim, this%U(1, 1), this%ndim)
+          CALL ALF_ZLACPY('A', this%ndim, this%N_part, P(1, 1), this%ndim, this%U(1, 1), this%ndim)
        else
-          CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
-          CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
+          CALL ALF_ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
+          CALL ALF_ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
        endif
 #if !defined(STABLOG)
        this%D = beta
@@ -408,8 +408,8 @@ CONTAINS
        IF(.not. ALLOCATED(this%U)) ALLOCATE(this%U(this%ndim, this%n_part))
        IF(.not. ALLOCATED(this%V) .and. ALLOCATED(src%V)) ALLOCATE(this%V(this%n_part, this%n_part))
        ASSOCIATE(ndim => src%ndim)
-         CALL ZLACPY('A', ndim, this%n_part, src%U(1, 1), ndim, this%U(1, 1), ndim)
-         if (ALLOCATED(src%V)) CALL ZLACPY('A', this%n_part, this%n_part, src%V(1, 1), &
+         CALL ALF_ZLACPY('A', ndim, this%n_part, src%U(1, 1), ndim, this%U(1, 1), ndim)
+         if (ALLOCATED(src%V)) CALL ALF_ZLACPY('A', this%n_part, this%n_part, src%V(1, 1), &
               & this%n_part, this%V(1, 1), this%n_part)
        END ASSOCIATE
 #if !defined(STABLOG)
@@ -456,7 +456,7 @@ CONTAINS
        INTEGER, allocatable, Dimension(:) :: IPVT
 #if defined(STABLOG)
        REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
-       REAL (Kind=Kind(0.d0)) :: tmpL, DZNRM2
+       REAL (Kind=Kind(0.d0)) :: tmpL, ALF_DZNRM2
        INTEGER :: J, PVT
        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: D
 #else
@@ -489,14 +489,14 @@ CONTAINS
        beta=1/Phase
        If( ALLOCATED(UDVR%V) ) then
           !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-          call ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
+          call ALF_ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
           ! Permute V. Since we multiply with V from the right we have to permute the rows.
           ! A V = A P P^-1 V = Q R P^-1 V
           FORWRD = .true.
           if(udvr%side == "R" .or. udvr%side == "r" ) then
-             CALL ZLAPMR(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1)) ! lapack 3.3
+             CALL ALF_ZLAPMR(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1)) ! lapack 3.3
           else
-             CALL ZLAPMT(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1))
+             CALL ALF_ZLAPMT(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1))
           endif
        endif
 #else
@@ -504,11 +504,11 @@ CONTAINS
        ALLOCATE(tmpnorm(N_part),D(N_part))
        if ( ALLOCATED(UDVR%V) ) then
           Do i=1,N_part
-             tmpnorm(i) = log(DZNRM2( Ndim, UDVR%U( 1, I ), 1 ))+UDVR%L(I)
+             tmpnorm(i) = log(ALF_DZNRM2( Ndim, UDVR%U( 1, I ), 1 ))+UDVR%L(I)
           enddo
        else
           Do i=1,N_part
-             tmpnorm(i) = log(DZNRM2( Ndim, UDVR%U( 1, I ), 1 ))
+             tmpnorm(i) = log(ALF_DZNRM2( Ndim, UDVR%U( 1, I ), 1 ))
           enddo
        endif
        ! TmpMat=UDVr%V
@@ -522,12 +522,12 @@ CONTAINS
           enddo
           IPVT(I)=PVT
           IF( PVT.NE.I ) THEN
-             CALL ZSWAP( ndim, UDVR%U( 1, PVT ), 1, UDVR%U( 1, I ), 1 )
+             CALL ALF_ZSWAP( ndim, UDVR%U( 1, PVT ), 1, UDVR%U( 1, I ), 1 )
              If( ALLOCATED(UDVR%V) ) then
                 if(udvr%side == "R" .or. udvr%side == "r" ) then
-                   CALL ZSWAP( N_part, UDVR%V( PVT, 1 ), N_part, UDVR%V( I, 1 ), N_part )
+                   CALL ALF_ZSWAP( N_part, UDVR%V( PVT, 1 ), N_part, UDVR%V( I, 1 ), N_part )
                 else
-                   CALL ZSWAP( N_part, UDVR%V( 1, PVT ), 1, UDVR%V( 1, I ), 1 )
+                   CALL ALF_ZSWAP( N_part, UDVR%V( 1, PVT ), 1, UDVR%V( 1, I ), 1 )
                 endif
              endif
              tmpL=UDVR%L(I)
@@ -549,7 +549,7 @@ CONTAINS
        beta=1/Phase
        If( ALLOCATED(UDVR%V) ) then
           !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-          call ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
+          call ALF_ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
           do i=1,N_part
              do j=i+1,N_part
                 UDVR%U(i,j)=UDVR%U(i,j)*cmplx(exp(UDVR%L(j)-UDVR%L(I)),0.d0,kind(0.d0))
@@ -566,16 +566,16 @@ CONTAINS
        If( ALLOCATED(UDVR%V) ) then
           if(UDVR%side == "R" .or. UDVR%side == "r" ) then
              ! V = R * V
-             CALL ZTRMM('L', 'U', 'N', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
+             CALL ALF_ZTRMM('L', 'U', 'N', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
           else
              ! V = V * R^dagger
-             CALL ZTRMM('R', 'U', 'C', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
+             CALL ALF_ZTRMM('R', 'U', 'C', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
           endif
        endif
        ! Generate explicitly U in the previously abused storage of U
-       CALL ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
+       CALL ALF_ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
        ! scale first column of U to correct the scaling in V such that UDV is not changed
-       call ZSCAL(Ndim,phase,UDVR%U(1,1),1)
+       call ALF_ZSCAL(Ndim,phase,UDVR%U(1,1),1)
 
        DEALLOCATE(TAU, WORK, IPVT)
 

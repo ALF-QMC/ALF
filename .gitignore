@@ -1,6 +1,7 @@
 *.o
 *.so
 *.mod
+*.modmic
 *.smod
 *.out
 *.a

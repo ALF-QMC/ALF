@@ -140,6 +140,7 @@ Program Main
         use cgr1_mod
         use set_random
         use iso8601_datetime_mod
+        use alf_linalg_mod, only: alf_linalg_init
          
 #ifdef HDF5
         use hdf5
@@ -239,6 +240,13 @@ Program Main
            end if
 #ifdef MPI
         endif
+#endif
+
+        ! Read offload thresholds of the BLAS/LAPACK wrappers and print them on rank 0
+#ifdef MPI
+        call alf_linalg_init(Irank)
+#else
+        call alf_linalg_init(0)
 #endif
 
 #if defined(TEMPERING) && defined(MPI)

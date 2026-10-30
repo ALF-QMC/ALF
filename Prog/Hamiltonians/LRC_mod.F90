@@ -527,7 +527,7 @@
         Alpha = 1.d0
         Beta  = 0.d0
         A_new = 0.d0
-        Call dgemv('N', M, M, alpha, U_int, M, A_tmp, 1, beta, A_new, 1)
+        Call ALF_DGEMV('N', M, M, alpha, U_int, M, A_tmp, 1, beta, A_new, 1)
 
 !!$        Real (Kind=Kind(0.d0)), allocatable :: A_test_new(:)
 !!$        Logical :: Test

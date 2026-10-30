@@ -90,7 +90,7 @@ Contains
 
     alpha=1.d0
     beta=0.d0
-    call ZGEMM('C','N',N_part,N_part,Ndim,alpha,WF_L%P(1,1),Ndim,WF_R%P(1,1),Ndim,beta,Mat(1,1),N_part)
+    call ALF_ZGEMM('C','N',N_part,N_part,Ndim,alpha,WF_L%P(1,1),Ndim,WF_R%P(1,1),Ndim,beta,Mat(1,1),N_part)
     ! Mat = (WL_L%P)^{dagger} WL_L%R 
     
     Z_norm =  Det(Mat,N_part)

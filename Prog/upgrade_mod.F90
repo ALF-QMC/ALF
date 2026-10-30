@@ -230,8 +230,8 @@ module upgrade_mod
               op_dim_nf = Op_V(n_op,nf)%N_non_zero
               if (op_dim_nf > 0) then
                 beta = 0.D0
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
+                call ALF_ZLASET('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
+                call ALF_ZLASET('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
                 do n = 1,op_dim_nf
                     u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf_eff)
                     do i = 1,Ndim
@@ -240,44 +240,44 @@ module upgrade_mod
                     v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
                 enddo
 
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, x_v, size(x_v, 1))
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, y_v, size(y_v, 1))
+                call ALF_ZLASET('N', Ndim, op_dim_nf, beta, beta, x_v, size(x_v, 1))
+                call ALF_ZLASET('N', Ndim, op_dim_nf, beta, beta, y_v, size(y_v, 1))
                 i = Op_V(n_op,nf)%P(1)
                 x_v(i, 1) = u(i, 1)/(1.d0 + v(i,1)*u(i,1) )
-                call zcopy(Ndim, v(:, 1), 1, y_v(:, 1), 1)
+                call ALF_ZCOPY(Ndim, v(:, 1), 1, y_v(:, 1), 1)
                 do n = 2,op_dim_nf
-                    call zcopy(Ndim, u(:, n), 1, x_v(:, n), 1)
-                    call zcopy(Ndim, v(:, n), 1, y_v(:, n), 1)
+                    call ALF_ZCOPY(Ndim, u(:, n), 1, x_v(:, n), 1)
+                    call ALF_ZCOPY(Ndim, v(:, n), 1, y_v(:, n), 1)
                     Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
                     alpha = -1.D0
                     Allocate(syu(n), sxv(n))
-                    call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
-                    call zgemv('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
+                    call ALF_ZGEMV('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
+                    call ALF_ZGEMV('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
                     alpha = 1.D0
-                    call zgemv('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
-                    call zgemv('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
+                    call ALF_ZGEMV('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
+                    call ALF_ZGEMV('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
                     do m = 1,n-1
                         Z = Z - syu(m)*sxv(m)
                     enddo
                     Z = 1.D0/Z
-                    call zscal(Ndim, Z, x_v(1, n), 1)
+                    call ALF_ZSCAL(Ndim, Z, x_v(1, n), 1)
                     Deallocate(syu, sxv)
                 enddo
                 IF (size(Op_V(n_op,nf)%P, 1) == 1) THEN
-                    CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
+                    CALL ALF_ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
                     Z = -x_v(Op_V(n_op,nf)%P(1), 1)
-                    CALL ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
+                    CALL ALF_ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
                 ELSE
                     Allocate (zarr(op_dim_nf, op_dim_nf), grarr(NDim, op_dim_nf))
                     Zarr = x_v(Op_V(n_op,nf)%P(1:op_dim_nf), :)
                     grarr = gr(:, Op_V(n_op,nf)%P(1:op_dim_nf), nf)
                     beta  = 0.d0
                     alpha = 1.D0
-                    CALL ZGEMM('N', 'N', NDim, op_dim_nf, op_dim_nf, alpha, grarr, Ndim, Zarr, op_dim_nf, beta, xp_v, Ndim)
+                    CALL ALF_ZGEMM('N', 'N', NDim, op_dim_nf, op_dim_nf, alpha, grarr, Ndim, Zarr, op_dim_nf, beta, xp_v, Ndim)
                     Deallocate(Zarr, grarr)
                     beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
                     alpha = -1.D0
-                    CALL ZGEMM('N','T',Ndim,Ndim,op_dim_nf,alpha,xp_v, Ndim, y_v, Ndim,beta,gr(1,1,nf), Ndim)
+                    CALL ALF_ZGEMM('N','T',Ndim,Ndim,op_dim_nf,alpha,xp_v, Ndim, y_v, Ndim,beta,gr(1,1,nf), Ndim)
                 ENDIF
               endif
 

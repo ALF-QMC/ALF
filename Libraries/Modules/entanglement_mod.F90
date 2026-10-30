@@ -255,8 +255,6 @@ Module entanglement_mod
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
           
-          EXTERNAL ZGEMM
-          EXTERNAL ZGETRF
 
           N_FL = size(GRC,3)
           N_FL_half = N_FL/2
@@ -370,8 +368,6 @@ Module entanglement_mod
           Integer         , Dimension(:), Allocatable :: SortedFlavors ! new
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
-          EXTERNAL ZGEMM
-          EXTERNAL ZGETRF
           
           N_FL = size(GRC,3)
 
@@ -504,8 +500,6 @@ Module entanglement_mod
           Integer         , Dimension(:), Allocatable :: SortedFlavors,N_SUN_fl
           Integer         , Dimension(:,:), Allocatable :: List_tmp, eff_ind, eff_ind_inv
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
-          EXTERNAL ZGEMM
-          EXTERNAL ZGETRF
           
           N_FL = size(GRC,3)
           num_nc = size(List,3)
@@ -714,7 +708,7 @@ Module entanglement_mod
           DO I = 1, dim_eff
               IDA(I,I) = IDA(I,I) + CMPLX(1.d0,0.d0,kind(0.d0))
           END DO
-          CALL ZGEMM('n', 'n', dim_eff, dim_eff, dim_eff, alpha, GreenA(1, 1), &
+          CALL ALF_ZGEMM('n', 'n', dim_eff, dim_eff, dim_eff, alpha, GreenA(1, 1), &
               & dim, GreenA(1, dim+1), dim, beta, IDA, dim)
           ! Compute determinant
           SELECT CASE(dim_eff)
@@ -724,7 +718,7 @@ Module entanglement_mod
             DET = IDA(1,1) * IDA(2,2) - IDA(1,2) * IDA(2,1)
           CASE DEFAULT
             Allocate(PIVOT(dim_eff))
-            CALL ZGETRF(dim_eff, dim_eff, IDA, dim, PIVOT, INFO)
+            CALL ALF_ZGETRF(dim_eff, dim_eff, IDA, dim, PIVOT, INFO)
             DET = cmplx(1.D0,0.D0,KIND(0.D0))
             DO I = 1, dim_eff
                 IF (PIVOT(I).NE.I) THEN
@@ -829,7 +823,7 @@ Module entanglement_mod
             DO I = 1, dim_eff
                 IDA(I,I) = IDA(I,I) + CMPLX(1.d0,0.d0,kind(0.d0))
             END DO
-            CALL ZGEMM('n', 'n', dim_eff, dim_eff, dim_eff, alpha, GreenA(1, 1), &
+            CALL ALF_ZGEMM('n', 'n', dim_eff, dim_eff, dim_eff, alpha, GreenA(1, 1), &
                 & dim, GreenA(1, dim+1), dim, beta, IDA, dim)
             ! Compute determinant
             SELECT CASE(dim_eff)
@@ -839,7 +833,7 @@ Module entanglement_mod
               DET = IDA(1,1) * IDA(2,2) - IDA(1,2) * IDA(2,1)
             CASE DEFAULT
               Allocate(PIVOT(dim_eff))
-              CALL ZGETRF(dim_eff, dim_eff, IDA, dim, PIVOT, INFO)
+              CALL ALF_ZGETRF(dim_eff, dim_eff, IDA, dim, PIVOT, INFO)
               DO I = 1, dim_eff
                   IF (PIVOT(I).NE.I) THEN
                     DET = -DET * IDA(I,I)
