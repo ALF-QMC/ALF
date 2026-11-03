@@ -368,7 +368,7 @@ case  \texttt{N\_FL=2}  and \texttt{N\_SUN=1}.    Note that the function only  c
 The module \texttt{entanglement\_mod.F90} allows one to compute the 2\textsuperscript{nd} R\'enyi entropy, $S_2$, for a subsystem.
 Using Eq.~\eqref{rhoA}, $S_2$ can be expressed as a stochastic average of an observable constructed from two independent simulations of the model \cite{Grover13}:
 \begin{equation}
-e^{-S_2} = \sum_{C_1,C_2} P(C_2) P(C_1) \det\left[G_A(\tau_0; C_1)G_A(\tau_0; C_2)-(\mathds{1} - G_A(\tau_0; C_1))(\mathds{1} - G_A(\tau_0; C_2))\right],
+e^{-S_2} = \sum_{C_1,C_2} P(C_2) P(C_1) \det\left[G_A(\tau_0; C_1)G_A(\tau_0; C_2)+(\mathds{1} - G_A(\tau_0; C_1))(\mathds{1} - G_A(\tau_0; C_2))\right],
 \label{renyi_obs}
 \end{equation}
 where $G_A(\tau_0; C_i)$, $i=1, 2$ is the Green function matrix restricted to the desired subsystem $A$ at a given time-slice $\tau_0$, and for the configuration $C_i$ of the replica $i$. The degrees of freedom defining the subsystem $A$ are lattice site, flavor index, and color index.
