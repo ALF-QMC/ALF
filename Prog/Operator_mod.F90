@@ -1027,8 +1027,8 @@ Contains
     Type(Operator), intent(in) :: Op_V_arr(:,:)
     Integer, intent(in) :: N_FL_in, Ndim_in
 
-    Integer :: n_op, n, nf, i, j, NN
-    Complex(Kind=Kind(0.d0)), allocatable :: M_fwd(:,:), M_rev(:,:), M_tmp(:,:), M_op(:,:)
+    Integer :: n_op, n, nf, i, NN
+    Complex(Kind=Kind(0.d0)), allocatable :: M_fwd(:,:), M_rev(:,:)
     Real(Kind=Kind(0.d0)) :: diff, scale
     Real(Kind=Kind(0.d0)), parameter :: sym_tol = 1.D-10
 
@@ -1038,53 +1038,24 @@ Contains
 
     if (n_op <= 1) return
 
-    allocate(M_fwd(NN, NN), M_rev(NN, NN), M_tmp(NN, NN), M_op(NN, NN))
+    allocate(M_fwd(NN, NN), M_rev(NN, NN))
 
     do nf = 1, N_FL_in
-       ! Initialize M_fwd = Identity
        M_fwd = cmplx(0.d0, 0.d0, kind(0.d0))
+       M_rev = cmplx(0.d0, 0.d0, kind(0.d0))
        do i = 1, NN
           M_fwd(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+          M_rev(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
        enddo
 
        ! Forward product: (I + g_1*V_1) * ... * (I + g_N*V_N)
        do n = 1, n_op
-          M_op = cmplx(0.d0, 0.d0, kind(0.d0))
-          do i = 1, NN
-             M_op(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
-          enddo
-          do j = 1, Op_V_arr(n, nf)%N
-             do i = 1, Op_V_arr(n, nf)%N
-                M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) = &
-                   M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) + &
-                   Op_V_arr(n, nf)%g * Op_V_arr(n, nf)%O(i, j)
-             enddo
-          enddo
-          M_tmp = matmul(M_fwd, M_op)
-          M_fwd = M_tmp
-       enddo
-
-       ! Initialize M_rev = Identity
-       M_rev = cmplx(0.d0, 0.d0, kind(0.d0))
-       do i = 1, NN
-          M_rev(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
+          call right_multiply(M_fwd, Op_V_arr(n, nf))
        enddo
 
        ! Reverse product: (I + g_N*V_N) * ... * (I + g_1*V_1)
        do n = n_op, 1, -1
-          M_op = cmplx(0.d0, 0.d0, kind(0.d0))
-          do i = 1, NN
-             M_op(i,i) = cmplx(1.d0, 0.d0, kind(0.d0))
-          enddo
-          do j = 1, Op_V_arr(n, nf)%N
-             do i = 1, Op_V_arr(n, nf)%N
-                M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) = &
-                   M_op(Op_V_arr(n, nf)%P(i), Op_V_arr(n, nf)%P(j)) + &
-                   Op_V_arr(n, nf)%g * Op_V_arr(n, nf)%O(i, j)
-             enddo
-          enddo
-          M_tmp = matmul(M_rev, M_op)
-          M_rev = M_tmp
+          call right_multiply(M_rev, Op_V_arr(n, nf))
        enddo
 
        ! Compare forward and reverse products
@@ -1092,12 +1063,37 @@ Contains
        scale = max(1.d0, maxval(abs(M_fwd)), maxval(abs(M_rev)))
        if (diff > sym_tol * scale) then
           Op_V_is_symmetric = .false.
-          deallocate(M_fwd, M_rev, M_tmp, M_op)
+          deallocate(M_fwd, M_rev)
           return
        endif
     enddo
 
-    deallocate(M_fwd, M_rev, M_tmp, M_op)
+    deallocate(M_fwd, M_rev)
+
+  contains
+
+    ! M <- M * (I + g*O embedded at indices P). Only columns P change, so no
+    ! dense NN x NN matmul (and no large compiler temporaries) is needed.
+    subroutine right_multiply(M, Op)
+      Complex(Kind=Kind(0.d0)), intent(inout) :: M(:,:)
+      Type(Operator), intent(in) :: Op
+      Complex(Kind=Kind(0.d0)), allocatable :: Mp(:,:)
+      Integer :: ii, jj, kk, r
+
+      allocate(Mp(size(M,1), Op%N))
+      do ii = 1, Op%N
+         Mp(:,ii) = M(:, Op%P(ii))
+      enddo
+      do jj = 1, Op%N
+         kk = Op%P(jj)
+         do ii = 1, Op%N
+            do r = 1, size(M,1)
+               M(r,kk) = M(r,kk) + Mp(r,ii) * Op%g * Op%O(ii,jj)
+            enddo
+         enddo
+      enddo
+      deallocate(Mp)
+    end subroutine right_multiply
   end function Op_V_is_symmetric
 
   function Op_is_real(Op) result(retval)
