@@ -5,6 +5,7 @@
 *.smod
 *.out
 *.a
+*__genmod.f90
 Prog/git.h
 Prog/git_status.h
 Prog/Hamiltonians_case.h
