@@ -24,9 +24,9 @@
 #SBATCH --cpus-per-task=##Nthreads##
 
 unset SLURM_EXPORT_ENV
-module load intel
-module load intelmpi
-module load mkl
+module load intel/2025.2.0
+module load intelmpi/2021.16.0
+module load mkl/2024.2.2
 
 # the following environment variables generate an optimal pinning (to the best of our knowledge)
 # This DOES NOT have to be adapted to the choice of Ntasks
