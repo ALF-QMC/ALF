@@ -11,7 +11,8 @@ Please choose one of the following MACHINEs:
  * PGI
  * SuperMUC-NG
  * JUWELS
- * FRITZ
+ * FRITZ-ifort
+ * FRITZ-ifx
  * HELMA
 Possible MODEs are:
  * MPI (default)
@@ -445,11 +446,11 @@ case $MACHINE in
     INC_HDF5=""
   ;;
 
-  #NHR@FAU Fritz cluster
-  FRITZ)
-    module load intel
-    module load intelmpi
-    module load mkl
+  #NHR@FAU Fritz cluster with ifort
+  FRITZ-ifort)
+    module load intel/2023.2.1
+    module load intelmpi/2021.16.0
+    module load mkl/2024.2.2
 
     F90OPTFLAGS="$INTELOPTFLAGS"
     F90USEFULFLAGS="$INTELUSEFULFLAGS"
@@ -460,6 +461,24 @@ case $MACHINE in
       set_intelcc
       set_intelcxx
       set_hdf5_flags "$INTELCC" ifort "$INTELCXX" || return 1
+    fi
+  ;;
+
+  #NHR@FAU Fritz cluster with ifx
+  FRITZ-ifx)
+    module load intel/2025.2.0
+    module load intelmpi/2021.16.0
+    module load mkl/2024.2.2
+
+    F90OPTFLAGS="$INTELLLVMOPTFLAGS"
+    F90USEFULFLAGS="$INTELLLVMUSEFULFLAGS"
+    ALF_FC="$INTELLLVMCOMPILER"
+    find_mkl_flag || return 1
+    LIB_BLAS_LAPACK="${INTELMKL}"
+    if [ "${HDF5_ENABLED}" = "1" ]; then
+      set_intelcc
+      set_intelcxx
+      set_hdf5_flags "$INTELCC" ifx "$INTELCXX" || return 1
     fi
   ;;
 
