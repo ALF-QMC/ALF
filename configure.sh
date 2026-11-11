@@ -447,7 +447,7 @@ case $MACHINE in
   ;;
 
   #NHR@FAU Fritz cluster with ifort
-  FRITZ-ifort)
+  FRITZ-IFORT)
     module load intel/2023.2.1
     module load intelmpi/2021.16.0
     module load mkl/2024.2.2
@@ -465,7 +465,7 @@ case $MACHINE in
   ;;
 
   #NHR@FAU Fritz cluster with ifx
-  FRITZ-ifx)
+  FRITZ-IFX)
     module load intel/2025.2.0
     module load intelmpi/2021.16.0
     module load mkl/2024.2.2
