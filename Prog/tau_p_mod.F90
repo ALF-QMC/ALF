@@ -48,6 +48,7 @@
        Use Langevin_HMC_mod
        Use tau_m_mod  !, only propr, proprm1
        use cgr1_mod, only: cgrp
+       Use MyMats, only: MMULT
        use wrapur_mod
 
      Contains

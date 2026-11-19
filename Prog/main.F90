@@ -119,6 +119,7 @@ Program Main
 #endif
         Use runtime_error_mod
         Use Operator_mod
+        Use mpi_shared_memory, only: mpi_shared_memory_init, deallocate_all_shared_memory
         Use QMC_runtime_var
         Use Lattices_v3
         Use MyMats

@@ -41,13 +41,16 @@
 !--------------------------------------------------------------------
 Module Operator_mod
 
-  Use mpi_shared_memory
-  Use mat_subroutines
-  Use MyMats
-  Use Fields_mod
-  Use runtime_error_mod
+  Use mpi_shared_memory, only: allocate_shared_memory, use_mpi_shm
+  Use mat_subroutines, only: ZSLGEMM
+  Use MyMats, only: DET_C, Diag
+  Use Fields_mod, only: Fields
+  Use runtime_error_mod, only: Terminate_on_error, ERROR_HAMILTONIAN
   Use iso_fortran_env, only: error_unit
   Use Natural_Constants, only: Eps_machine, Eps_small
+#ifdef MPI
+  Use mpi
+#endif
   
   Implicit none
   
