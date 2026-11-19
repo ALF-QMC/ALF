@@ -31,7 +31,7 @@
 
 Module QMC_runtime_var
         
-        Use runtime_error_mod
+        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_FILE_NOT_FOUND
         Use iso_fortran_env, only: output_unit, error_unit
 
 #ifdef MPI
