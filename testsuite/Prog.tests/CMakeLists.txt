@@ -137,17 +137,32 @@ add_test(34-Op-V-symm-pass 34-Op-V-symm-pass)
 add_test(35-Op-V-symm-fail 35-Op-V-symm-fail)
 set_tests_properties(35-Op-V-symm-fail PROPERTIES WILL_FAIL TRUE)
 
-# Hamiltonian smoke tests: Alloc_Ham + Ham_set + Validate_Ham_Variables.
-# They link all Prog objects except main.o (object list from Prog/.deps.mk,
-# as in MALA.tests). Each test runs in its own directory because Ham_set
-# reads ./parameters and writes ./info. With TEMPERING the parameters are
-# read from Temp_<n>/, so these tests are only built without it.
-set(ham_smoke_tests 36-Ham-smoke-Hubbard_Plain_Vanilla 37-Ham-smoke-Hubbard 38-Ham-smoke-tV
-  39-Ham-smoke-Kondo)
+# Hamiltonian smoke test: Alloc_Ham + Ham_set + Validate_Ham_Variables with
+# default parameters, one ctest per model in Prog/Hamiltonians.list (and
+# Prog/Hamiltonians.list.d/*), so newly registered models are covered
+# automatically. The executable links all Prog objects except main.o (object
+# list from Prog/.deps.mk, as in MALA.tests). Each model runs in its own
+# directory because Ham_set reads ./parameters and writes ./info. With
+# TEMPERING the parameters are read from Temp_<n>/, so the test is only
+# built without it.
 if("${FLAG_LIST}" MATCHES "-DTEMPERING")
   message(STATUS "Hamiltonian smoke tests skipped for TEMPERING builds")
 else()
   set(PROG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog")
+  file(STRINGS "${PROG_DIR}/Hamiltonians.list" ham_lines)
+  file(GLOB ham_list_d "${PROG_DIR}/Hamiltonians.list.d/*")
+  foreach(list_file ${ham_list_d})
+    file(STRINGS "${list_file}" more_lines)
+    list(APPEND ham_lines ${more_lines})
+  endforeach()
+  set(ham_names)
+  foreach(line ${ham_lines})
+    string(STRIP "${line}" line)
+    if(line AND NOT line MATCHES "^#")
+      string(REGEX MATCH "^[^ \t]+" ham_name "${line}")
+      list(APPEND ham_names ${ham_name})
+    endif()
+  endforeach()
   file(READ "${PROG_DIR}/.deps.mk" dependencies)
   string(FIND "${dependencies}" "\n\n" objects_end)
   string(SUBSTRING "${dependencies}" 0 ${objects_end} object_list)
@@ -157,15 +172,17 @@ else()
   foreach(object ${objects})
     list(APPEND prog_objects "${PROG_DIR}/${object}")
   endforeach()
-  foreach(iter ${ham_smoke_tests})
-    add_executable(${iter} ${iter}.F90)
-    target_compile_options(${iter} PRIVATE ${FLAG_LIST})
-    target_include_directories(${iter} PRIVATE "${PROG_DIR}"
-      "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
-    target_link_libraries(${iter} ${prog_objects} ${LIB_LIST})
-    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${iter}.run")
-    add_test(NAME ${iter} COMMAND ${iter}
-      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${iter}.run")
-    set_tests_properties(${iter} PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=1" TIMEOUT 60)
+  add_executable(36-Ham-smoke 36-Ham-smoke.F90)
+  target_compile_options(36-Ham-smoke PRIVATE ${FLAG_LIST})
+  target_include_directories(36-Ham-smoke PRIVATE "${PROG_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+  target_link_libraries(36-Ham-smoke ${prog_objects} ${LIB_LIST})
+  foreach(ham_name ${ham_names})
+    set(run_dir "${CMAKE_CURRENT_BINARY_DIR}/36-Ham-smoke.${ham_name}")
+    file(MAKE_DIRECTORY "${run_dir}")
+    add_test(NAME 36-Ham-smoke-${ham_name} COMMAND 36-Ham-smoke ${ham_name}
+      WORKING_DIRECTORY "${run_dir}")
+    set_tests_properties(36-Ham-smoke-${ham_name} PROPERTIES
+      ENVIRONMENT "OMP_NUM_THREADS=1" TIMEOUT 60)
   endforeach()
 endif()
