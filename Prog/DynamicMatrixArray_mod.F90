@@ -34,7 +34,7 @@
 ! http://www.chem.helsinki.fi/~manninen/fortran2014/7_Object_oriented_features.pdf
 
 module DynamicMatrixArray_mod
-    Use ContainerElementBase_mod
+    Use ContainerElementBase_mod, only: ContainerElementBase
     implicit none
 
     private
