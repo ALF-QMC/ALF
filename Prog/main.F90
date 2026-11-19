@@ -152,6 +152,11 @@ Program Main
         Use Hop_mod, only: Hop_mod_init, Hop_mod_Symm
         Use Global_mod, only: Global_Updates, Global_Tempering_setup, Global_Tempering_init_obs, &
              &                Global_Tempering_Pr
+#if defined(TEMPERING)
+        Use Global_mod, only: Exchange_Step
+        Use QMC_runtime_var, only: read_and_broadcast_TEMPERING_var, get_N_exchange_steps, set_N_exchange_steps, &
+             &                     get_N_Tempering_frequency
+#endif
         Use UDV_State_mod, only: UDV_State
         Use Wrapgr_mod, only: Wrapgr_alloc, Wrapgr_dealloc, WrapgrUP, WrapgrDO
         Use Fields_mod, only: Fields_init
