@@ -64,8 +64,8 @@
        Use hdf5
        use h5lt
 #endif
-       Use runtime_error_mod
-       Use Random_Wrap
+       Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_FIELDS, ERROR_FILE_NOT_FOUND
+       Use Random_Wrap, only: RANSET, RANGET, NRANF, GET_SEED_LEN, RANF_WRAP
        use iso_fortran_env, only: output_unit, error_unit
 
        Public Fields
