@@ -535,33 +535,33 @@
                Case(1)
                   ! Field should be 1 or -1
                   if (abs(this%f(I,nt))-1.d0 > 1e-8 .or. abs(aimag(this%f(I,nt))) > 1e-8) then
-                     write(error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
+                     write(error_unit, '(A,I0,A,I0,A,"(",ES13.5,",",ES13.5,")",A,I0)') &
                        & "Field I=", I, " nt=", nt, "value=", this%f(I,nt), " does not fit to type ", this%t(i)
                      CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
                   endif
                Case(2)
                   ! Field should be 1, -1, 2, or -2
                   if ((abs(this%f(I,nt))-1.d0 > 1e-8 .and. abs(this%f(I,nt))-2.d0 > 1e-8) .or. abs(aimag(this%f(I,nt))) > 1e-8) then
-                     write(error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
+                     write(error_unit, '(A,I0,A,I0,A,"(",ES13.5,",",ES13.5,")",A,I0)') &
                        & "Field I=", I, " nt=", nt, "value=", this%f(I,nt), " does not fit to type ", this%t(i)
                      CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
                   endif
                Case(3)
                   ! Field should be real
                   if (abs(aimag(this%f(I,nt))) > 0) then
-                     write(error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
+                     write(error_unit, '(A,I0,A,I0,A,"(",ES13.5,",",ES13.5,")",A,I0)') &
                        & "Field I=", I, " nt=", nt, "value=", this%f(I,nt), " does not fit to type ", this%t(i)
                      CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
                   endif
                Case(4)
                   ! Real part of Field should be 1, -1, 2, or -2
                   if (abs(real(this%f(I,nt)))-1.d0 > 1e-8 .and. abs(real(this%f(I,nt)))-2.d0 > 1e-8) then
-                     write(error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
+                     write(error_unit, '(A,I0,A,I0,A,"(",ES13.5,",",ES13.5,")",A,I0)') &
                        & "Real part of field I=", I, " nt=", nt, "value=", this%f(I,nt), " does not fit to type ", this%t(i)
                      CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
                   endif
                Case default
-                  write(error_unit, '("A","I0","A","I0")') "Field ", I, " has unrecongnized type ", this%t(i)
+                  write(error_unit, '(A,I0,A,I0)') "Field ", I, " has unrecongnized type ", this%t(i)
                   CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
                end Select
             enddo

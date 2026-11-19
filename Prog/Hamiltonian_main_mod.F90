@@ -234,7 +234,7 @@
 #include "Hamiltonians_case.h"
 !!$       This file will be dynamically generated and appended
        Case default
-          write(error_unit, '("A","A","A")') 'Hamiltonian ', ham_name, ' not yet implemented!'
+          write(error_unit, '(A,A,A)') 'Hamiltonian ', trim(ham_name), ' not yet implemented!'
           CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
        end Select
        
