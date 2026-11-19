@@ -31,9 +31,9 @@
 
 
 module OpT_time_dependent_mod
-    use ContainerElementBase_mod
-    use Operator_mod
-    use mat_subroutines
+    use ContainerElementBase_mod, only: ContainerElementBase
+    use Operator_mod, only: Operator
+    use mat_subroutines, only: ZSLGEMM
     use Natural_Constants, only: Eps_machine
     implicit none
 
