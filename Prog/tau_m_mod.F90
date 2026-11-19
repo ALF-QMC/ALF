@@ -41,14 +41,16 @@
 !
 !--------------------------------------------------------------------
      Module Tau_m_mod
-       Use Hamiltonian_main 
-       Use Operator_mod
-       Use Control
-       Use Hop_mod
-       Use UDV_State_mod
-       Use Langevin_HMC_mod
-       use wrapur_mod
-       use cgr2_2_mod
+       Use Hamiltonian_main, only: ham, Ndim, N_FL, N_FL_eff, Calc_Fl_map, Ltrot, Op_V, nsigma, &
+            &                      Projector, Symm, WF_R, reconstruction_needed
+       Use Operator_mod, only: Op_mmultL, Op_mmultR
+       Use Control, only: Control_Precision_tau
+       Use Hop_mod, only: Hop_mod_mmthR, Hop_mod_mmthl_m1, Hop_mod_Symm
+       Use UDV_State_mod, only: UDV_State
+       Use Langevin_HMC_mod, only: Langevin_HMC
+       use wrapur_mod, only: WRAPUR
+       use cgr2_2_mod, only: CGR2_2
+       Use files_mod, only: str_to_upper
        
 
        Contains
