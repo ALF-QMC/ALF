@@ -42,9 +42,9 @@
 
     Module Predefined_Lattices
 
-      use runtime_error_mod
-      Use Lattices_v3
-      Use files_mod
+      use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
+      Use Lattices_v3, only: Lattice, Unit_cell, Make_Lattice
+      Use files_mod, only: str_to_upper
       use iso_fortran_env, only: output_unit, error_unit
       Implicit none
 
