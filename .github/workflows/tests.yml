@@ -24,6 +24,30 @@ jobs:
             echo "STOP/ERROR STOP found."; exit 1;
           }
 
+  report_use_only:
+    name: Report USE statements without ONLY (informational)
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v6
+      - name: Count USE statements without ONLY in Prog/
+        # Report only: this job never fails. See refactoring step 0.14.
+        run: |
+          files=$(git ls-files -- 'Prog/*.F90' ':!:Prog/Hamiltonians/Not_supported/*')
+          uses=$(grep -i -E '^\s*use[ ,]' $files || true)
+          total=$(printf '%s\n' "$uses" | grep -c . || true)
+          bare=$(printf '%s\n' "$uses" | grep -v -i -E 'only\s*:' | grep -c . || true)
+          {
+            echo "### USE statements in Prog/ (tracked *.F90, excluding Not_supported)"
+            echo ""
+            echo "- total: $total"
+            echo "- without \`only:\`: $bare"
+            echo ""
+            echo "| count | file |"
+            echo "|---:|---|"
+            printf '%s\n' "$uses" | grep -v -i -E 'only\s*:' | cut -d: -f1 \
+              | sort | uniq -c | sort -rn | awk '{print "| " $1 " | " $2 " |"}'
+          } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
   # ======================
   # Linux tests
   # ======================
