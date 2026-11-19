@@ -142,7 +142,7 @@ set_tests_properties(35-Op-V-symm-fail PROPERTIES WILL_FAIL TRUE)
 # as in MALA.tests). Each test runs in its own directory because Ham_set
 # reads ./parameters and writes ./info. With TEMPERING the parameters are
 # read from Temp_<n>/, so these tests are only built without it.
-set(ham_smoke_tests 36-Ham-smoke-Hubbard_Plain_Vanilla)
+set(ham_smoke_tests 36-Ham-smoke-Hubbard_Plain_Vanilla 37-Ham-smoke-Hubbard)
 if("${FLAG_LIST}" MATCHES "-DTEMPERING")
   message(STATUS "Hamiltonian smoke tests skipped for TEMPERING builds")
 else()
