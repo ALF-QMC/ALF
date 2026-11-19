@@ -42,7 +42,7 @@
 
 
 MODULE UDV_State_mod
-    use runtime_error_mod
+    use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
     use iso_fortran_env, only: output_unit, error_unit
 
     IMPLICIT NONE
@@ -251,7 +251,7 @@ CONTAINS
 !> @param [in] this Class(UDV_state)
 !-------------------------------------------------------------------
      SUBROUTINE testscale_UDV_state(this)
-       use runtime_error_mod
+       use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
        IMPLICIT NONE
        CLASS(UDV_State), INTENT(IN) :: this
 
@@ -446,8 +446,7 @@ CONTAINS
 !>
 !-------------------------------------------------------------------
      SUBROUTINE decompose_UDV_state(UDVR)
-       Use QDRP_mod
-       Use MyMats
+       Use QDRP_mod, only: Pivot_Phase, QDRP_decompose
        Implicit None
        CLASS(UDV_State), intent(inout) :: UDVR
        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
