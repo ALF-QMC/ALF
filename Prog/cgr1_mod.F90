@@ -53,10 +53,12 @@ module cgr1_mod
 !
 !--------------------------------------------------------------------
 
-        Use UDV_State_mod
+        Use UDV_State_mod, only: UDV_State
 
 #if (defined(STAB2) || defined(STAB1)) && !defined(STABLOG)
-        Use UDV_Wrap_mod
+        Use UDV_Wrap_mod, only: UDV_WRAP_Pivot
+        Use MyMats, only: CT, DET_C, INV, MMULT
+        Use iso_fortran_env, only: error_unit
 
         Implicit None
 
@@ -173,8 +175,9 @@ module cgr1_mod
 
 #else
 
-        USE MyMats
-        USE QDRP_mod
+        USE MyMats, only: DET_C, MMULT
+        USE QDRP_mod, only: QDRP_decompose
+        Use iso_fortran_env, only: error_unit
         
         Implicit None
         !Arguments.
@@ -462,7 +465,7 @@ module cgr1_mod
 !
 !--------------------------------------------------------------------
       SUBROUTINE CGRP(phase, GRUP, udvr, udvl)
-        Use UDV_State_mod
+        Use UDV_State_mod, only: UDV_State
         CLASS(UDV_State), INTENT(IN) :: udvl, udvr
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Intent(OUT) :: GRUP
         COMPLEX (Kind=Kind(0.d0)), Intent(OUT) :: phase
