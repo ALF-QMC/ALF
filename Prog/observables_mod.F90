@@ -45,7 +45,7 @@
 #if !defined HDF5 && !defined OBS_LEGACY
 #define OBS_LEGACY 1
 #endif
-       Use runtime_error_mod
+       Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_HAMILTONIAN
        Use Lattices_v3, only: Unit_cell, Lattice
        use iso_fortran_env, only: output_unit, error_unit
 
@@ -353,7 +353,7 @@
 !--------------------------------------------------------------------
 
          Subroutine  Print_bin_Latt(Obs, Group_Comm)
-           Use Lattices_v3
+           Use Lattices_v3, only: Fourier_R_to_K
 #if defined HDF5
            Use hdf5
            Use alf_hdf5
@@ -590,7 +590,6 @@
          
 !--------------------------------------------------------------------
          Subroutine  Print_bin_Latt_Local(Obs, Group_Comm)
-            Use Lattices_v3
 
 #if defined HDF5
             Use hdf5
