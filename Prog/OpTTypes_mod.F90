@@ -31,9 +31,9 @@
 
 
 module OpTTypes_mod
-    use ContainerElementBase_mod
-    use Operator_mod
-    use mat_subroutines
+    use ContainerElementBase_mod, only: ContainerElementBase
+    use Operator_mod, only: Operator, Op_exp
+    use mat_subroutines, only: ZSLHEMM, ZDSLSYMM
     use Natural_Constants, only: Eps_machine
     implicit none
 
