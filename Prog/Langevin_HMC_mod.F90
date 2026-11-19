@@ -35,15 +35,19 @@
 
       Module Langevin_HMC_mod
         
-        Use runtime_error_mod 
-        Use Hamiltonian_main
-        Use UDV_State_mod
-        Use Control
-        Use Hop_mod
+        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
+        Use Hamiltonian_main, only: ham, Ndim, N_FL, N_FL_eff, N_SUN, Calc_Fl_map, Ltrot, Op_V, nsigma, &
+             &                      Projector, Symm, WF_L, WF_R, Group_Comm, reconstruction_needed, &
+             &                      leap_frog_bulk
+        Use UDV_State_mod, only: UDV_State
+        Use Control, only: Control_Langevin, Control_MALA_Global, Control_PrecisionG, Control_PrecisionP, &
+             &             Control_PrecisionP_HMC, Control_PrecisionP_MALA, Control_Upgrade_HMC, &
+             &             Control_Upgrade_MALA
+        Use Hop_mod, only: Hop_mod_mmthR, Hop_mod_mmthl_m1, Hop_mod_Symm
         Use Operator_mod, only: Op_phase, Op_Wrapup
-        use wrapur_mod
-        use wrapul_mod
-        use cgr1_mod
+        use wrapur_mod, only: WRAPUR
+        use wrapul_mod, only: WRAPUL
+        use cgr1_mod, only: CGR
         Use iso_fortran_env, only: output_unit, error_unit
 #ifdef MPI
         Use mpi
@@ -339,8 +343,9 @@
 !--------------------------------------------------------------------
 
       SUBROUTINE  Langevin_HMC_update(this,Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, LOBS_ST, LOBS_EN, LTAU)
-        use Global_mod
-        use Random_Wrap
+        use Global_mod, only: Compute_Fermion_Det, Compute_Ratio_Global
+        use Fields_mod, only: Fields
+        use Random_Wrap, only: ranf_wrap, rang_wrap
 
         Implicit none
         
