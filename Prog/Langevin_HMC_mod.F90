@@ -40,6 +40,7 @@
         Use UDV_State_mod
         Use Control
         Use Hop_mod
+        Use Operator_mod, only: Op_phase, Op_Wrapup
         use wrapur_mod
         use wrapul_mod
         use cgr1_mod
