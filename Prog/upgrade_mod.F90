@@ -109,6 +109,7 @@ module upgrade_mod
         Use Random_wrap
         Use Control
         Use Fields_mod
+        Use MyMats, only: Det
         use iso_fortran_env, only: output_unit, error_unit
         Implicit none
 

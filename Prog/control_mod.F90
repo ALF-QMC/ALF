@@ -45,8 +45,8 @@
 
 module Control
 
-    use files_mod
-    Use MyMats
+    use files_mod, only: str_to_upper
+    Use MyMats, only: Compare
     use iso_fortran_env, only: output_unit, error_unit
     Implicit none
 
@@ -341,7 +341,7 @@ module Control
 #ifdef MPI
         Use mpi
 #endif
-        use runtime_error_mod
+        use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_UNSTABLE_MATRIX
         Implicit none
 
         Integer :: Ndim
