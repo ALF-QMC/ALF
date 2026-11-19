@@ -48,6 +48,48 @@ jobs:
               | sort | uniq -c | sort -rn | awk '{print "| " $1 " | " $2 " |"}'
           } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
+  report_save_state:
+    name: Report SAVE state (informational)
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v6
+      - name: Classify SAVE variables in Prog/ and Libraries/Modules/
+        # Report only: this job never fails. See refactoring step 0.15.
+        # Heuristic, line based. Categories:
+        #   local_save     explicit SAVE inside a procedure (hidden state)
+        #   local_implicit local initialised in its declaration (implicit SAVE)
+        #   module_save    explicit SAVE at module level (redundant; global state)
+        run: |
+          files=$(git ls-files -- 'Prog/*.F90' 'Libraries/Modules/*.F90' \
+                  ':!:Prog/Hamiltonians/Not_supported/*')
+          awk '
+            FNR == 1 { depth = 0 }
+            {
+              line = $0; sub(/!.*/, "", line); l = tolower(line)
+              if (l ~ /^[ \t]*end[ \t]*(subroutine|function)([ \t]|$)/) { if (depth > 0) depth--; next }
+              if (l ~ /^[ \t]*end[ \t]*$/ && depth > 0) { depth--; next }
+              if (l !~ /^[ \t]*end/ && l !~ /procedure/ &&
+                  l ~ /(^|[ \t)])(subroutine|function)[ \t]+[a-z_][a-z0-9_]*/) { depth++; next }
+              head = l; p = index(l, "::"); if (p > 0) head = substr(l, 1, p - 1)
+              if ((p > 0 && head ~ /,[ \t]*save([ \t,]|$)/) || l ~ /^[ \t]*save[ \t]*$/ || l ~ /^[ \t]*save[ \t]*::/) {
+                printf "%s\t%s:%d\n", (depth > 0 ? "local_save" : "module_save"), FILENAME, FNR; next
+              }
+              if (depth > 0 && l ~ /^[ \t]*(integer|real|complex|logical|character|type[ \t]*\(|class[ \t]*\()/ &&
+                  l ~ /::[^=]*=[^>]/ && l !~ /parameter/) printf "local_implicit\t%s:%d\n", FILENAME, FNR
+            }' $files > save_scan.txt
+          {
+            echo "### SAVE state in Prog/ and Libraries/Modules/ (tracked *.F90, excluding Not_supported)"
+            echo ""
+            for c in local_save local_implicit module_save; do
+              echo "- $c: $(grep -c "^$c" save_scan.txt || true)"
+            done
+            echo ""
+            echo "| category | count | file |"
+            echo "|---|---:|---|"
+            cut -d: -f1 save_scan.txt | sort | uniq -c | sort -k2,2 -k1,1rn \
+              | awk '{print "| " $2 " | " $1 " | " $3 " |"}'
+          } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
   # ======================
   # Linux tests
   # ======================
