@@ -136,3 +136,35 @@ add_test(33-Op-equal 33-Op-equal)
 add_test(34-Op-V-symm-pass 34-Op-V-symm-pass)
 add_test(35-Op-V-symm-fail 35-Op-V-symm-fail)
 set_tests_properties(35-Op-V-symm-fail PROPERTIES WILL_FAIL TRUE)
+
+# Hamiltonian smoke tests: Alloc_Ham + Ham_set + Validate_Ham_Variables.
+# They link all Prog objects except main.o (object list from Prog/.deps.mk,
+# as in MALA.tests). Each test runs in its own directory because Ham_set
+# reads ./parameters and writes ./info. With TEMPERING the parameters are
+# read from Temp_<n>/, so these tests are only built without it.
+set(ham_smoke_tests 36-Ham-smoke-Hubbard_Plain_Vanilla)
+if("${FLAG_LIST}" MATCHES "-DTEMPERING")
+  message(STATUS "Hamiltonian smoke tests skipped for TEMPERING builds")
+else()
+  set(PROG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog")
+  file(READ "${PROG_DIR}/.deps.mk" dependencies)
+  string(FIND "${dependencies}" "\n\n" objects_end)
+  string(SUBSTRING "${dependencies}" 0 ${objects_end} object_list)
+  string(REGEX MATCHALL "[A-Za-z0-9_./+-]+\\.o" objects "${object_list}")
+  list(REMOVE_ITEM objects main.o)
+  set(prog_objects)
+  foreach(object ${objects})
+    list(APPEND prog_objects "${PROG_DIR}/${object}")
+  endforeach()
+  foreach(iter ${ham_smoke_tests})
+    add_executable(${iter} ${iter}.F90)
+    target_compile_options(${iter} PRIVATE ${FLAG_LIST})
+    target_include_directories(${iter} PRIVATE "${PROG_DIR}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+    target_link_libraries(${iter} ${prog_objects} ${LIB_LIST})
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${iter}.run")
+    add_test(NAME ${iter} COMMAND ${iter}
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${iter}.run")
+    set_tests_properties(${iter} PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=1" TIMEOUT 60)
+  endforeach()
+endif()
