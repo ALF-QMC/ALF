@@ -25,10 +25,26 @@ jobs:
           }
 
   report_use_only:
-    name: Report USE statements without ONLY (informational)
+    name: Check USE statements without ONLY
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v6
+      - name: Fail on USE without ONLY in Prog/*.F90 (Hamiltonians excluded)
+        # Enforced since refactoring step 1.34. Allowed without ONLY: the
+        # external library interfaces mpi, hdf5, h5lt and alf_hdf5 (HDF5 builds
+        # only), whose exported names differ between implementations.
+        # Excluded files: Prog/Hamiltonians/ (user model templates, a later
+        # phase) and Prog/matTypes_mod.F90 (not compiled).
+        run: |
+          files=$(git ls-files -- 'Prog/*.F90' ':!:Prog/Hamiltonians/*' ':!:Prog/matTypes_mod.F90')
+          bad=$(grep -n -i -E '^\s*use[ ,]' $files | grep -v -i -E 'only\s*:' \
+                | grep -v -i -E ':\s*use\s+(mpi|hdf5|h5lt|alf_hdf5)\s*(!.*)?$' || true)
+          if [ -n "$bad" ]; then
+            echo "USE statements without ONLY (add an ONLY list):"
+            echo "$bad"
+            exit 1
+          fi
+          echo "All USE statements in Prog/*.F90 (outside Hamiltonians/) have ONLY lists."
       - name: Count USE statements without ONLY in Prog/
         # Report only: this job never fails. See refactoring step 0.14.
         run: |
