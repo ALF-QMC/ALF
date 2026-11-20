@@ -3,7 +3,8 @@
 ! Prog/Hamiltonians.list, see CMakeLists.txt).
 !
 ! Writes a parameters file with empty namelist groups, so the model runs
-! with its built-in defaults, then calls Alloc_Ham, ham%Ham_set and
+! with its built-in defaults (except for required nonzero Spin_Peierls
+! phonon parameters), then calls Alloc_Ham, ham%Ham_set and
 ! Validate_Ham_Variables exactly as main.F90 does. Validate_Ham_Variables
 ! already checks Ndim, N_FL, N_SUN, Ltrot, Thtrot, the shapes of Op_V and
 ! Op_T and the operator site indices; this program adds a few generic
@@ -32,7 +33,13 @@ Program Test_Ham_smoke
   Open(newunit=unit_para, file='parameters', status='replace', action='write')
   Write(unit_para,'(A)') '&VAR_lattice /'
   Write(unit_para,'(A)') '&VAR_Model_Generic /'
-  Write(unit_para,'(A)') '&VAR_' // trim(name) // ' /'
+  if (trim(name) == 'Spin_Peierls') then
+     Write(unit_para,'(A)') '&VAR_Spin_Peierls'
+     Write(unit_para,'(A)') ' Ham_Lambda=1.0, Ham_Omega0=1.0'
+     Write(unit_para,'(A)') '/'
+  else
+     Write(unit_para,'(A)') '&VAR_' // trim(name) // ' /'
+  endif
   Close(unit_para)
 
   Call Alloc_Ham(name)

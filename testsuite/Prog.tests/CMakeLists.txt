@@ -148,6 +148,9 @@ set_tests_properties(35-Op-V-symm-fail PROPERTIES WILL_FAIL TRUE)
 if("${FLAG_LIST}" MATCHES "-DTEMPERING")
   message(STATUS "Hamiltonian smoke tests skipped for TEMPERING builds")
 else()
+  if("${FLAG_LIST}" MATCHES "-DMPI")
+    find_package(MPI REQUIRED COMPONENTS Fortran)
+  endif()
   set(PROG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog")
   file(STRINGS "${PROG_DIR}/Hamiltonians.list" ham_lines)
   file(GLOB ham_list_d "${PROG_DIR}/Hamiltonians.list.d/*")
@@ -180,8 +183,15 @@ else()
   foreach(ham_name ${ham_names})
     set(run_dir "${CMAKE_CURRENT_BINARY_DIR}/36-Ham-smoke.${ham_name}")
     file(MAKE_DIRECTORY "${run_dir}")
-    add_test(NAME 36-Ham-smoke-${ham_name} COMMAND 36-Ham-smoke ${ham_name}
-      WORKING_DIRECTORY "${run_dir}")
+    if("${FLAG_LIST}" MATCHES "-DMPI")
+      add_test(NAME 36-Ham-smoke-${ham_name}
+        COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS}
+          $<TARGET_FILE:36-Ham-smoke> ${MPIEXEC_POSTFLAGS} ${ham_name}
+        WORKING_DIRECTORY "${run_dir}")
+    else()
+      add_test(NAME 36-Ham-smoke-${ham_name} COMMAND 36-Ham-smoke ${ham_name}
+        WORKING_DIRECTORY "${run_dir}")
+    endif()
     set_tests_properties(36-Ham-smoke-${ham_name} PROPERTIES
       ENVIRONMENT "OMP_NUM_THREADS=1" TIMEOUT 60)
   endforeach()
