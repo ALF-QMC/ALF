@@ -24,6 +24,88 @@ jobs:
             echo "STOP/ERROR STOP found."; exit 1;
           }
 
+  report_use_only:
+    name: Check USE statements without ONLY
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fail on USE without ONLY in Prog/*.F90 (Hamiltonians excluded)
+        # Enforced since refactoring step 1.34. Allowed without ONLY: the
+        # external library interfaces mpi, hdf5, h5lt and alf_hdf5 (HDF5 builds
+        # only), whose exported names differ between implementations.
+        # Excluded files: Prog/Hamiltonians/ (user model templates, a later
+        # phase) and Prog/matTypes_mod.F90 (not compiled).
+        run: |
+          files=$(git ls-files -- 'Prog/*.F90' ':!:Prog/Hamiltonians/*' ':!:Prog/matTypes_mod.F90')
+          bad=$(grep -n -i -E '^\s*use[ ,]' $files | grep -v -i -E 'only\s*:' \
+                | grep -v -i -E ':\s*use\s+(mpi|hdf5|h5lt|alf_hdf5)\s*(!.*)?$' || true)
+          if [ -n "$bad" ]; then
+            echo "USE statements without ONLY (add an ONLY list):"
+            echo "$bad"
+            exit 1
+          fi
+          echo "All USE statements in Prog/*.F90 (outside Hamiltonians/) have ONLY lists."
+      - name: Count USE statements without ONLY in Prog/
+        # Report only: this job never fails. See refactoring step 0.14.
+        run: |
+          files=$(git ls-files -- 'Prog/*.F90' ':!:Prog/Hamiltonians/Not_supported/*')
+          uses=$(grep -i -E '^\s*use[ ,]' $files || true)
+          total=$(printf '%s\n' "$uses" | grep -c . || true)
+          bare=$(printf '%s\n' "$uses" | grep -v -i -E 'only\s*:' | grep -c . || true)
+          {
+            echo "### USE statements in Prog/ (tracked *.F90, excluding Not_supported)"
+            echo ""
+            echo "- total: $total"
+            echo "- without \`only:\`: $bare"
+            echo ""
+            echo "| count | file |"
+            echo "|---:|---|"
+            printf '%s\n' "$uses" | grep -v -i -E 'only\s*:' | cut -d: -f1 \
+              | sort | uniq -c | sort -rn | awk '{print "| " $1 " | " $2 " |"}'
+          } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+  report_save_state:
+    name: Report SAVE state (informational)
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v6
+      - name: Classify SAVE variables in Prog/ and Libraries/Modules/
+        # Report only: this job never fails. See refactoring step 0.15.
+        # Heuristic, line based. Categories:
+        #   local_save     explicit SAVE inside a procedure (hidden state)
+        #   local_implicit local initialised in its declaration (implicit SAVE)
+        #   module_save    explicit SAVE at module level (redundant; global state)
+        run: |
+          files=$(git ls-files -- 'Prog/*.F90' 'Libraries/Modules/*.F90' \
+                  ':!:Prog/Hamiltonians/Not_supported/*')
+          awk '
+            FNR == 1 { depth = 0 }
+            {
+              line = $0; sub(/!.*/, "", line); l = tolower(line)
+              if (l ~ /^[ \t]*end[ \t]*(subroutine|function)([ \t]|$)/) { if (depth > 0) depth--; next }
+              if (l ~ /^[ \t]*end[ \t]*$/ && depth > 0) { depth--; next }
+              if (l !~ /^[ \t]*end/ && l !~ /procedure/ &&
+                  l ~ /(^|[ \t)])(subroutine|function)[ \t]+[a-z_][a-z0-9_]*/) { depth++; next }
+              head = l; p = index(l, "::"); if (p > 0) head = substr(l, 1, p - 1)
+              if ((p > 0 && head ~ /,[ \t]*save([ \t,]|$)/) || l ~ /^[ \t]*save[ \t]*$/ || l ~ /^[ \t]*save[ \t]*::/) {
+                printf "%s\t%s:%d\n", (depth > 0 ? "local_save" : "module_save"), FILENAME, FNR; next
+              }
+              if (depth > 0 && l ~ /^[ \t]*(integer|real|complex|logical|character|type[ \t]*\(|class[ \t]*\()/ &&
+                  l ~ /::[^=]*=[^>]/ && l !~ /parameter/) printf "local_implicit\t%s:%d\n", FILENAME, FNR
+            }' $files > save_scan.txt
+          {
+            echo "### SAVE state in Prog/ and Libraries/Modules/ (tracked *.F90, excluding Not_supported)"
+            echo ""
+            for c in local_save local_implicit module_save; do
+              echo "- $c: $(grep -c "^$c" save_scan.txt || true)"
+            done
+            echo ""
+            echo "| category | count | file |"
+            echo "|---|---:|---|"
+            cut -d: -f1 save_scan.txt | sort | uniq -c | sort -k2,2 -k1,1rn \
+              | awk '{print "| " $2 " | " $1 " | " $3 " |"}'
+          } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
   # ======================
   # Linux tests
   # ======================

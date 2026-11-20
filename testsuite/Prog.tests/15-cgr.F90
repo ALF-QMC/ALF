@@ -93,7 +93,8 @@ end Program TESTCGR
       SUBROUTINE CGRold(PHASE,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)
 
       Use UDV_Wrap_mod
-      
+      Use MyMats, only: MMULT, INV
+
         Implicit None
 
 	!!!  GRUP = (1 + UR*DR*VR*VL*DL*UL)^-1

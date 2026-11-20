@@ -42,14 +42,17 @@
 
     Module Predefined_Trial
 
-      Use runtime_error_mod
-      Use Lattices_v3
-      Use Operator_mod
-      Use WaveFunction_mod
-      Use MyMats
-      Use Predefined_Hoppings
+      Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
+      Use Lattices_v3, only: Lattice, Unit_cell, Make_Lattice, Inv_R, Iscalar, Print_latt
+      Use Operator_mod, only: Operator, Op_make, Op_set, Op_clear
+      Use WaveFunction_mod, only: WaveFunction, WF_alloc, WF_overlap
+      Use MyMats, only: Diag
+      Use Predefined_Hoppings, only: Hopping_Matrix_type, Predefined_Hoppings_clear, Predefined_Hoppings_set_OPT, &
+           &                         Set_Default_hopping_parameters_square, Set_Default_hopping_parameters_n_leg_ladder, &
+           &                         Set_Default_hopping_parameters_triangular, Set_Default_hopping_parameters_kagome, &
+           &                         Set_Default_hopping_parameters_Bilayer_square, Set_Default_hopping_parameters_Bilayer_honeycomb
       use iso_fortran_env, only: output_unit, error_unit
-      use Files_mod
+      use Files_mod, only: str_to_upper
 
       Implicit none
 

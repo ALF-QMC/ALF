@@ -31,7 +31,7 @@
 
 
 module upgrade_mod
-   use runtime_error_mod
+   use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
    implicit none
    contains
 
@@ -105,10 +105,12 @@ module upgrade_mod
       Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode)
 !--------------------------------------------------------------------
 
-        Use Hamiltonian_main
-        Use Random_wrap
-        Use Control
-        Use Fields_mod
+        Use Hamiltonian_main, only: ham, Ndim, N_FL, N_FL_eff, N_SUN, Op_V, nsigma, Calc_Fl_map, reconstruction_needed
+        Use Random_wrap, only: ranf_wrap
+        Use Control, only: Control_upgrade, Control_upgrade_eff
+        Use Fields_mod, only: Fields
+        Use MyMats, only: Det
+        Use files_mod, only: str_to_upper
         use iso_fortran_env, only: output_unit, error_unit
         Implicit none
 

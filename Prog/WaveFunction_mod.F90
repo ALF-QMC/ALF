@@ -43,7 +43,7 @@
 
 Module WaveFunction_mod
 
-  Use MyMats
+  Use MyMats, only: Det
 
   Implicit none
   

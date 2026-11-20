@@ -43,14 +43,12 @@
 
     Module Predefined_Hoppings
 
-      Use runtime_error_mod
-      Use Lattices_v3
-      Use Operator_mod
-      Use WaveFunction_mod
-      Use MyMats
+      Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
+      Use Lattices_v3, only: Lattice, Unit_cell, Iscalar, Npbc, Xnorm
+      Use Operator_mod, only: Operator, Op_make, Op_set
       Use Natural_Constants, only: twopi, Eps_small
       use iso_fortran_env, only: output_unit, error_unit
-      use Hamiltonian_main
+      use Hamiltonian_main, only: Group_Comm
       Implicit none
 
       Logical, private, save :: pinning_notice_issued = .false.
@@ -1573,6 +1571,9 @@
 !> symmetry is broken. 
 !--------------------------------------------------------------------
       subroutine issue_pinning_notice()
+#ifdef MPI
+         Use mpi
+#endif
          Character (len=64) :: file_info
          integer :: unit_info
 #ifdef MPI
@@ -2060,7 +2061,7 @@
 
       complex  (Kind=kind(0.d0)) function Generic_hopping(i,no_i, del_1, del_2, no_j, N_Phi, Flux_1,Flux_2, Bulk, Latt, Latt_Unit)
 
-        Use Lattices_v3
+        Use Lattices_v3, only: Lattice, Unit_cell, Iscalar, Npbc, Xnorm
         Implicit none
 
 

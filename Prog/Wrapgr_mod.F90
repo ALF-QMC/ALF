@@ -43,16 +43,15 @@
 Module Wrapgr_mod
 
 
-  Use Hamiltonian_main
-  Use MyMats 
-  Use Operator_mod
-  Use Control
-  Use Random_Wrap
-  Use Fields_mod
-  Use Hamiltonian_main
-  Use Hop_mod
-  use upgrade_mod
-  use Langevin_HMC_mod
+  Use Hamiltonian_main, only: ham, Ndim, N_FL, N_FL_eff, Calc_Fl_map, Op_V, nsigma
+  Use MyMats, only: Compare
+  Use Operator_mod, only: Op_Wrapup, Op_Wrapdo
+  Use Control, only: Control_upgrade, Control_upgrade_eff, Control_MALA_sequential, &
+       &             Control_MALA_Global_tau
+  Use Random_Wrap, only: nranf, ranf_wrap, rang_wrap
+  Use Hop_mod, only: Hop_mod_mmthR, Hop_mod_mmthR_m1, Hop_mod_mmthl, Hop_mod_mmthl_m1
+  use upgrade_mod, only: Upgrade2
+  use Langevin_HMC_mod, only: Calculate_Force
 
   Implicit none
 

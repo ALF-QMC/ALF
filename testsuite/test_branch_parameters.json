@@ -335,5 +335,27 @@
 	    "ham_Lambda": 0.1, 
 	    "Ham_omega0": 0.5
         }
+    ],
+    "Hubbard_Global_moves": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+            "Lattice_type": "N_leg_ladder",
+            "L1": 1,
+            "L2": 6,
+            "Beta": 4.0,
+            "Dtau": 0.1,
+            "Ham_U": 4.0,
+            "Continuous": true,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 1,
+            "Global_moves": true,
+            "N_Global": 2,
+            "Global_tau_moves": true,
+            "N_Global_tau": 1,
+            "Nt_sequential_start": 1,
+            "Nt_sequential_end": 6
+        }
     ]
 }

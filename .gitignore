@@ -19,3 +19,8 @@ testsuite/tests/
 .deps.mk
 Prog/.echo_compile_mods
 Prog/.parse_parameters
+# Editor backup / lock files and macOS metadata
+*~
+\#*#
+.#*
+.DS_Store

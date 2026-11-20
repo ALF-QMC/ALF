@@ -31,7 +31,7 @@
 
 
 module set_random
-   use runtime_error_mod
+   use runtime_error_mod, only: Terminate_on_error, ERROR_FILE_NOT_FOUND
    implicit none
    contains
 
@@ -51,7 +51,7 @@ module set_random
 #ifdef MPI
         Use mpi
 #endif
-        Use Random_Wrap
+        Use Random_Wrap, only: RANSET
 
         Use iso_fortran_env, only: output_unit, error_unit
 

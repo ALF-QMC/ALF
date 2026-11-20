@@ -83,6 +83,7 @@ program test_measurement_cache
   use measurement_fixture
   use Langevin_HMC_mod
   use Hop_mod
+  use Operator_mod, only: Op_make, Op_set
   use Control
   use Random_wrap
   use UDV_State_mod

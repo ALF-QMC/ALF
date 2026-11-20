@@ -125,11 +125,13 @@
 
 
     Module Hamiltonian_main
-      Use runtime_error_mod
-      Use files_mod
+      Use runtime_error_mod, only: Terminate_on_error, ERROR_HAMILTONIAN
+      Use files_mod, only: str_to_upper
       Use Operator_mod, only: Operator, Op_V_is_symmetric
       Use WaveFunction_mod, only: WaveFunction
-      Use Observables
+      Use Observables, only: Obser_Vec, Obser_Latt, Obser_Latt_Local, &
+           &                 Obser_Vec_Init, Obser_Latt_Init, Obser_Latt_Local_Init, &
+           &                 Print_bin_Vec, Print_bin_Latt, Print_bin_Latt_Local
       Use Fields_mod, only: Fields
       use iso_fortran_env, only: output_unit, error_unit
       
@@ -234,7 +236,7 @@
 #include "Hamiltonians_case.h"
 !!$       This file will be dynamically generated and appended
        Case default
-          write(error_unit, '("A","A","A")') 'Hamiltonian ', ham_name, ' not yet implemented!'
+          write(error_unit, '(A,A,A)') 'Hamiltonian ', trim(ham_name), ' not yet implemented!'
           CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
        end Select
        

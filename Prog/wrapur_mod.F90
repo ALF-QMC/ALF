@@ -51,11 +51,13 @@ module wrapur_mod
 
 !-------------------------------------------------------------------
 
-        Use Hop_mod
-        Use UDV_State_mod
+        Use Hop_mod, only: Hop_mod_mmthR
+        Use UDV_State_mod, only: UDV_State
 #if defined(STAB2) || defined(STAB1)         
-        Use Hamiltonian_main
-        Use UDV_Wrap_mod
+        Use Hamiltonian_main, only: Ndim, N_FL_eff, Calc_Fl_map, Op_V, nsigma
+        Use UDV_Wrap_mod, only: UDV_WRAP_Pivot
+        Use Operator_mod, only: Op_mmultR
+        Use MyMats, only: INITD, MMULT
         Implicit None
 
         ! Arguments
@@ -99,6 +101,8 @@ module wrapur_mod
            CALL UDVR(nf_eff)%testscale
         ENDDO
 #else
+        Use Hamiltonian_main, only: N_FL_eff, Calc_Fl_map, Op_V, nsigma
+        Use Operator_mod, only: Op_mmultR
         Implicit None
 
         ! Arguments

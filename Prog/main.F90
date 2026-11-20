@@ -117,29 +117,58 @@ Program Main
 #ifdef MPI
         Use mpi
 #endif
-        Use runtime_error_mod
-        Use Operator_mod
-        Use QMC_runtime_var
-        Use Lattices_v3
-        Use MyMats
-        Use Hamiltonian_main
-        Use Control
-        Use Tau_m_mod
-        Use Tau_p_mod
-        Use Hop_mod
-        Use Global_mod
-        Use UDV_State_mod
-        Use Wrapgr_mod
-        Use Fields_mod
-        Use WaveFunction_mod
-        use entanglement_mod
+        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_HAMILTONIAN, &
+             &                       ERROR_RUNNING_FILE_FOUND
+        Use Operator_mod, only: Op_phase, Op_clear
+        Use mpi_shared_memory, only: mpi_shared_memory_init, deallocate_all_shared_memory, use_mpi_shm
+        Use QMC_runtime_var, only: check_compatibility_reconstruct_greens_function, &
+             &                     check_langevin_schemes_and_variables, check_mala_variables, &
+             &                     check_update_schemes_compatibility, get_amplitude, get_cpu_max, &
+             &                     get_delta_t_langevin_hmc, get_delta_t_mala_global, &
+             &                     get_delta_t_mala_global_tau, get_delta_t_mala_sequential, &
+             &                     get_global_mala_moves, get_global_moves, get_global_tau_mala_moves, &
+             &                     get_global_tau_moves, get_ham_name, get_hmc, get_langevin, &
+             &                     get_leapfrog_steps, get_lobs_en, get_lobs_st, get_ltau, get_max_force, &
+             &                     get_max_force_mala_global, get_max_force_mala_global_tau, &
+             &                     get_max_force_mala_sequential, get_mpi_per_parameter_set, get_n_global, &
+             &                     get_n_global_mala_sweeps, get_n_global_tau, get_n_global_tau_mala, &
+             &                     get_n_hmc_sweeps, get_nbin, get_nsweep, get_nt_sequential_end, &
+             &                     get_nt_sequential_start, get_nwrap, get_propose_s0, get_sequential, &
+             &                     get_sequential_mala, get_tempering_calc_det, &
+             &                     read_and_broadcast_qmc_var_and_ham_name, &
+             &                     set_default_values_measuring_interval, set_global_mala_moves, &
+             &                     set_global_moves, set_global_tau_mala_moves, set_global_tau_moves, &
+             &                     set_hmc, set_mpi_per_parameter_set, set_n_global_tau, &
+             &                     set_n_global_tau_mala, set_nbin, set_nt_sequential_end, &
+             &                     set_nt_sequential_start, set_sequential
+        Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Ndim, N_FL, N_FL_eff, N_SUN, &
+             &                      Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, Calc_Fl, Calc_Fl_map, &
+             &                      Projector, Symm, Group_Comm, reconstruction_needed, leap_frog_bulk
+        Use files_mod, only: str_to_upper
+        Use Control, only: Control_init, Control_Print, Control_PrecisionG, Control_PrecisionP, &
+             &             make_truncation
+        Use Tau_m_mod, only: Tau_m
+        Use Tau_p_mod, only: Tau_p
+        Use Hop_mod, only: Hop_mod_init, Hop_mod_Symm
+        Use Global_mod, only: Global_Updates, Global_Tempering_setup, Global_Tempering_init_obs, &
+             &                Global_Tempering_Pr
+#if defined(TEMPERING)
+        Use Global_mod, only: Exchange_Step
+        Use QMC_runtime_var, only: read_and_broadcast_TEMPERING_var, get_N_exchange_steps, set_N_exchange_steps, &
+             &                     get_N_Tempering_frequency
+#endif
+        Use UDV_State_mod, only: UDV_State
+        Use Wrapgr_mod, only: Wrapgr_alloc, Wrapgr_dealloc, WrapgrUP, WrapgrDO
+        Use Fields_mod, only: Fields_init
+        Use WaveFunction_mod, only: WF_clear
+        use entanglement_mod, only: Init_Entanglement_replicas
         use iso_fortran_env, only: output_unit, error_unit
-        Use Langevin_HMC_mod
-        use wrapur_mod
-        use wrapul_mod
-        use cgr1_mod
-        use set_random
-        use iso8601_datetime_mod
+        Use Langevin_HMC_mod, only: Langevin_HMC, Langevin_HMC_Reset_storage, Metropolis_Langevin
+        use wrapur_mod, only: WRAPUR
+        use wrapul_mod, only: WRAPUL
+        use cgr1_mod, only: CGR
+        use set_random, only: Set_Random_number_Generator
+        use iso8601_datetime_mod, only: iso8601_datetime
          
 #ifdef HDF5
         use hdf5
