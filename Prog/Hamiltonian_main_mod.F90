@@ -139,7 +139,7 @@
     
     private
     public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED, Validate_Ham_Variables
-    public :: Setup_flavor_map, Clear_Ham_state, Set_Group_Comm
+    public :: Setup_flavor_map, Clear_Ham_state, Set_Group_Comm, Set_model_for_testing
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
@@ -1291,6 +1291,35 @@
       Group_Comm = comm
 
     end subroutine Set_Group_Comm
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Installs a model built outside a Hamiltonian. For unit tests only.
+    !> @details
+    !> Production runs set the model state in ham_set. Unit tests that
+    !> need a small hand-made model call this routine instead; the
+    !> operator arrays are moved in (Op_T_in and Op_V_in are deallocated
+    !> on return). Call Setup_flavor_map afterwards.
+    !--------------------------------------------------------------------
+    subroutine Set_model_for_testing(Ndim_in, N_FL_in, N_SUN_in, Ltrot_in, Thtrot_in, &
+         &                           Projector_in, Symm_in, Op_T_in, Op_V_in)
+      implicit none
+      Integer, intent(in) :: Ndim_in, N_FL_in, N_SUN_in, Ltrot_in, Thtrot_in
+      Logical, intent(in) :: Projector_in, Symm_in
+      Type (Operator), dimension(:,:), allocatable, intent(inout) :: Op_T_in, Op_V_in
+
+      Ndim      = Ndim_in
+      N_FL      = N_FL_in
+      N_SUN     = N_SUN_in
+      Ltrot     = Ltrot_in
+      Thtrot    = Thtrot_in
+      Projector = Projector_in
+      Symm      = Symm_in
+      call move_alloc(Op_T_in, Op_T)
+      call move_alloc(Op_V_in, Op_V)
+
+    end subroutine Set_model_for_testing
 
 
     end Module Hamiltonian_main
