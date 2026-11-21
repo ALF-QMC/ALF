@@ -71,7 +71,8 @@ module wrapul_mod
         ! Working space.
         COMPLEX (Kind=Kind(0.d0)) ::  U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        Integer :: NT, NCON, n, nf, nf_eff, sign=1
+        Integer :: NT, NCON, n, nf, nf_eff
+        Integer, parameter :: sign = 1
         Real    (Kind=Kind(0.d0)) ::  X
  
 
