@@ -248,10 +248,11 @@
 
            !Arguments 
            Complex (Kind=Kind(0.D0)), intent(Inout) ::  AIN(Ndim, Ndim, N_FL) 
-           Integer :: NT, sign = - 1
+           Integer :: NT
 
            ! Locals 
            Integer :: nf,nf_eff, n 
+           Integer, parameter :: sign = -1
 
            do nf_eff = 1,N_FL_eff
               nf=Calc_Fl_map(nf_eff)
