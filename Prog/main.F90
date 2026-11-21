@@ -119,7 +119,7 @@ Program Main
 #endif
         Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_HAMILTONIAN, &
              &                       ERROR_RUNNING_FILE_FOUND
-        Use Operator_mod, only: Op_phase, Op_clear
+        Use Operator_mod, only: Op_phase
         Use mpi_shared_memory, only: mpi_shared_memory_init, deallocate_all_shared_memory, use_mpi_shm
         Use QMC_runtime_var, only: check_compatibility_reconstruct_greens_function, &
              &                     check_langevin_schemes_and_variables, check_mala_variables, &
@@ -141,7 +141,8 @@ Program Main
              &                     set_mpi_per_parameter_set, set_n_global_tau, &
              &                     set_n_global_tau_mala, apply_CPU_MAX_policy, set_nt_sequential_end, &
              &                     set_nt_sequential_start
-        Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Setup_flavor_map, Ndim, N_FL, N_FL_eff, N_SUN, &
+        Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Setup_flavor_map, Clear_Ham_state, &
+             &                      Ndim, N_FL, N_FL_eff, N_SUN, &
              &                      Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, Calc_Fl, Calc_Fl_map, &
              &                      Projector, Symm, Group_Comm, reconstruction_needed, leap_frog_bulk
         Use files_mod, only: str_to_upper
@@ -161,7 +162,6 @@ Program Main
         Use UDV_State_mod, only: UDV_State
         Use Wrapgr_mod, only: Wrapgr_alloc, Wrapgr_dealloc, WrapgrUP, WrapgrDO
         Use Fields_mod, only: Fields_init
-        Use WaveFunction_mod, only: WF_clear
         use entanglement_mod, only: Init_Entanglement_replicas
         use iso_fortran_env, only: output_unit, error_unit
         Use Langevin_HMC_mod, only: Langevin_HMC, Langevin_HMC_Reset_storage, Metropolis_Langevin
@@ -1018,26 +1018,13 @@ Program Main
               CALL udvst(n,nf_eff)%dealloc
            ENDDO
         ENDDO
-        if (Projector) then
-           DO nf = 1, N_FL
-              CALL WF_clear(WF_R(nf))
-              CALL WF_clear(WF_L(nf))
-           ENDDO
-        endif
         DEALLOCATE(udvl, udvr, udvst)
         DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
-        if (Projector) DEALLOCATE(WF_R, WF_L)
         If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA()) then
            Call Wrapgr_dealloc
         endif
-        do nf = 1, N_FL
-          do n = 1, size(OP_V,1)
-            call Op_clear(Op_V(n,nf),Op_V(n,nf)%N)
-          enddo
-          do n = 1, size(OP_T,1)
-            call Op_clear(Op_T(n,nf),Op_T(n,nf)%N)
-          enddo
-        enddo
+        ! Release the model state: trial wave functions, operators, flavour map
+        Call Clear_Ham_state()
 
 #if defined(MPI)  
         ! Gracefully deallocate all shared MPI memory (thw whole chunks)
@@ -1063,7 +1050,7 @@ Program Main
         
         Call Langevin_HMC%clean()
         Call Metropolis_Langevin%clean()
-        deallocate(Calc_Fl_map,Phase_array)
+        deallocate(Phase_array)
 
          ! Delete the file RUNNING since the simulation finished successfully
 #if defined(MPI)

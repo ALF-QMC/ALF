@@ -127,8 +127,8 @@
     Module Hamiltonian_main
       Use runtime_error_mod, only: Terminate_on_error, ERROR_HAMILTONIAN
       Use files_mod, only: str_to_upper
-      Use Operator_mod, only: Operator, Op_V_is_symmetric
-      Use WaveFunction_mod, only: WaveFunction
+      Use Operator_mod, only: Operator, Op_V_is_symmetric, Op_clear
+      Use WaveFunction_mod, only: WaveFunction, WF_clear
       Use Observables, only: Obser_Vec, Obser_Latt, Obser_Latt_Local, &
            &                 Obser_Vec_Init, Obser_Latt_Init, Obser_Latt_Local_Init, &
            &                 Print_bin_Vec, Print_bin_Latt, Print_bin_Latt_Local
@@ -139,7 +139,7 @@
     
     private
     public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED, Validate_Ham_Variables
-    public :: Setup_flavor_map
+    public :: Setup_flavor_map, Clear_Ham_state
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
@@ -1245,6 +1245,38 @@
       Enddo
 
     end subroutine Setup_flavor_map
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Releases the model state at the end of the run.
+    !> @details
+    !> Called from main.F90 after the bin loop: clears the trial wave
+    !> functions (projector code), the interaction and hopping operators,
+    !> and the flavour map.
+    !--------------------------------------------------------------------
+    subroutine Clear_Ham_state()
+      implicit none
+      Integer :: n, nf
+
+      if (Projector) then
+         DO nf = 1, N_FL
+            CALL WF_clear(WF_R(nf))
+            CALL WF_clear(WF_L(nf))
+         ENDDO
+         DEALLOCATE(WF_R, WF_L)
+      endif
+      do nf = 1, N_FL
+        do n = 1, size(OP_V,1)
+          call Op_clear(Op_V(n,nf),Op_V(n,nf)%N)
+        enddo
+        do n = 1, size(OP_T,1)
+          call Op_clear(Op_T(n,nf),Op_T(n,nf)%N)
+        enddo
+      enddo
+      deallocate(Calc_Fl_map)
+
+    end subroutine Clear_Ham_state
 
 
     end Module Hamiltonian_main
