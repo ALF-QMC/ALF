@@ -193,7 +193,7 @@
       Type (Fields), public        :: nsigma
       Integer      , public, protected        :: Ndim
       Integer      , public, protected        :: N_FL, N_FL_eff
-      Integer      , public        :: N_SUN
+      Integer      , public, protected        :: N_SUN
       Integer      , public        :: Ltrot
       Integer      , public        :: Thtrot
       Logical      , public        :: Projector
