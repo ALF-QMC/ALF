@@ -139,12 +139,13 @@ Program Main
              &                     set_default_values_measuring_interval, set_global_mala_moves, &
              &                     set_global_moves, set_global_tau_mala_moves, set_global_tau_moves, &
              &                     set_hmc, set_mpi_per_parameter_set, set_n_global_tau, &
-             &                     set_n_global_tau_mala, set_nbin, set_nt_sequential_end, &
+             &                     set_n_global_tau_mala, apply_CPU_MAX_policy, set_nt_sequential_end, &
              &                     set_nt_sequential_start, set_sequential
         Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Ndim, N_FL, N_FL_eff, N_SUN, &
              &                      Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, Calc_Fl, Calc_Fl_map, &
              &                      Projector, Symm, Group_Comm, reconstruction_needed, leap_frog_bulk
         Use files_mod, only: str_to_upper
+        Use Natural_Constants, only: Eps_small
         Use Control, only: Control_init, Control_Print, Control_PrecisionG, Control_PrecisionP, &
              &             make_truncation
         Use Tau_m_mod, only: Tau_m
@@ -203,7 +204,6 @@ Program Main
         Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
         Logical :: Toggle,  Toggle1
         Complex (Kind=Kind(0.d0)) :: Phase, Z, Z1
-        Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8
         Real    (Kind=Kind(0.d0)) :: Mc_step_weight
 
 #if defined(MPI) || defined(HDF5)
@@ -445,7 +445,7 @@ Program Main
         endif
         Call Hop_mod_init
 
-        IF (ABS(get_CPU_MAX()) > Zero ) call set_NBin(10000000)
+        Call apply_CPU_MAX_policy()
         If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA() ) then
            Call Wrapgr_alloc
         endif
@@ -547,7 +547,7 @@ Program Main
 #endif
            Open (Unit = 50,file=file_info,status="unknown",position="append")
            Write(50,*) 'Sweeps                              : ', get_NSweep()
-           If ( abs(get_CPU_MAX()) < ZERO ) then
+           If ( abs(get_CPU_MAX()) < Eps_small ) then
               Write(50,*) 'Bins                                : ', get_NBin()
               Write(50,*) 'No CPU-time limitation '
            else
@@ -1030,7 +1030,7 @@ Program Main
 
            call system_clock(count_bin_end)
            prog_truncation = .false.
-           if ( abs(get_CPU_MAX()) > Zero ) then
+           if ( abs(get_CPU_MAX()) > Eps_small ) then
               Call make_truncation(prog_truncation,get_CPU_MAX(),count_bin_start,count_bin_end,group_comm)
            endif
            If (prog_truncation) then
@@ -1081,7 +1081,7 @@ Program Main
         If (Irank_g == 0 ) then
 #endif
            Open (Unit=50,file=file_info, status="unknown", position="append")
-           if ( abs(get_CPU_MAX()) > Zero ) then
+           if ( abs(get_CPU_MAX()) > Eps_small ) then
               Write(50,*)' Effective number of bins   : ', Nbin_eff
            endif
            write(50,*)'FIN TIME: ' // iso8601_datetime()

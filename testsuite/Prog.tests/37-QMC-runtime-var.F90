@@ -9,7 +9,7 @@ Program Test_QMC_runtime_var
        &                     get_Amplitude, set_Amplitude, get_Nt_sequential_start, get_Nt_sequential_end, &
        &                     get_N_Global_tau, get_N_Global_tau_MALA, get_Delta_t_MALA_global, &
        &                     get_Max_Force_MALA_global, get_Global_moves, set_Global_moves, &
-       &                     get_ham_name, set_ham_name
+       &                     get_ham_name, set_ham_name, apply_CPU_MAX_policy
 #ifdef MPI
   Use mpi
 #endif
@@ -55,6 +55,12 @@ Program Test_QMC_runtime_var
   Call set_Global_moves(.true.); Call check_l("Global_moves", get_Global_moves(), .true.)
   Call set_ham_name("Hubbard")
   If (trim(get_ham_name()) /= "Hubbard") Call fail("ham_name")
+
+  ! CPU_MAX policy: without a CPU-time limit NBin is kept, with one it is large
+  Call set_NBin(5); Call set_CPU_MAX(0.d0); Call apply_CPU_MAX_policy()
+  Call check_i("NBin without CPU_MAX", get_NBin(), 5)
+  Call set_CPU_MAX(2.5d0); Call apply_CPU_MAX_policy()
+  Call check_i("NBin with CPU_MAX", get_NBin(), 10000000)
 
   ! After the lock the getters still return the values
   Call lock_QMC_runtime_settings()

@@ -33,6 +33,7 @@ Module QMC_runtime_var
         
         Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_FILE_NOT_FOUND
         Use iso_fortran_env, only: output_unit, error_unit
+        Use Natural_Constants, only: Eps_small
 
 #ifdef MPI
         Use mpi
@@ -105,6 +106,7 @@ Module QMC_runtime_var
     public :: read_and_broadcast_QMC_var_and_ham_name
 
     public :: lock_QMC_runtime_settings
+    public :: apply_CPU_MAX_policy
 
     ! Accessors (getters/setters) for runtime variables
     public :: get_Nwrap,             set_Nwrap
@@ -308,6 +310,17 @@ Module QMC_runtime_var
             call lock_QMC_runtime_settings()
             
         end subroutine check_update_schemes_compatibility
+
+        !--------------------------------------------------------------------
+        !> @brief
+        !> With a CPU-time limit (CPU_MAX > 0) the run stops on time, so the
+        !> number of bins is set to a large value.
+        !> Has to be called before the settings are locked.
+        !--------------------------------------------------------------------
+        subroutine apply_CPU_MAX_policy()
+            call ensure_settings_unlocked("apply_CPU_MAX_policy")
+            if (abs(CPU_MAX) > Eps_small) NBin = 10000000
+        end subroutine apply_CPU_MAX_policy
 
         !--------------------------------------------------------------------
         !> @brief
