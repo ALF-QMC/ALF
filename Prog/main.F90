@@ -136,11 +136,10 @@ Program Main
              &                     get_nt_sequential_start, get_nwrap, get_propose_s0, get_sequential, &
              &                     get_sequential_mala, get_tempering_calc_det, &
              &                     read_and_broadcast_qmc_var_and_ham_name, &
-             &                     set_default_values_measuring_interval, set_global_mala_moves, &
-             &                     set_global_moves, set_global_tau_mala_moves, set_global_tau_moves, &
-             &                     set_hmc, set_mpi_per_parameter_set, set_n_global_tau, &
+             &                     set_default_values_measuring_interval, apply_Langevin_overrides, &
+             &                     set_mpi_per_parameter_set, set_n_global_tau, &
              &                     set_n_global_tau_mala, apply_CPU_MAX_policy, set_nt_sequential_end, &
-             &                     set_nt_sequential_start, set_sequential
+             &                     set_nt_sequential_start
         Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Ndim, N_FL, N_FL_eff, N_SUN, &
              &                      Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, Calc_Fl, Calc_Fl_map, &
              &                      Projector, Symm, Group_Comm, reconstruction_needed, leap_frog_bulk
@@ -155,7 +154,7 @@ Program Main
              &                Global_Tempering_Pr
 #if defined(TEMPERING)
         Use Global_mod, only: Exchange_Step
-        Use QMC_runtime_var, only: read_and_broadcast_TEMPERING_var, get_N_exchange_steps, set_N_exchange_steps, &
+        Use QMC_runtime_var, only: read_and_broadcast_TEMPERING_var, get_N_exchange_steps, &
              &                     get_N_Tempering_frequency
 #endif
         Use UDV_State_mod, only: UDV_State
@@ -508,15 +507,7 @@ Program Main
 #if defined(MPI)
                 endif
 #endif
-               call set_sequential(.False.)
-               call set_HMC(.False.)
-               call set_Global_MALA_moves(.False.)
-               call set_Global_moves(.False.)
-               call set_Global_tau_moves(.False.)
-               call set_Global_tau_MALA_moves(.False.)
-#if defined(TEMPERING)
-              call set_N_exchange_steps(0)
-#endif
+               call apply_Langevin_overrides()
            endif
            Call Langevin_HMC%make(get_Langevin(), get_HMC() , get_Global_MALA_moves(), get_Delta_t_Langevin_HMC(), get_Max_Force(), get_Leapfrog_Steps())
         else

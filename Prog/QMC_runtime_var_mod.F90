@@ -107,6 +107,7 @@ Module QMC_runtime_var
 
     public :: lock_QMC_runtime_settings
     public :: apply_CPU_MAX_policy
+    public :: apply_Langevin_overrides
 
     ! Accessors (getters/setters) for runtime variables
     public :: get_Nwrap,             set_Nwrap
@@ -321,6 +322,25 @@ Module QMC_runtime_var
             call ensure_settings_unlocked("apply_CPU_MAX_policy")
             if (abs(CPU_MAX) > Eps_small) NBin = 10000000
         end subroutine apply_CPU_MAX_policy
+
+        !--------------------------------------------------------------------
+        !> @brief
+        !> Langevin dynamics updates all fields at once: sequential, HMC,
+        !> global and MALA updates (and tempering exchanges) are switched off.
+        !> Has to be called before the settings are locked.
+        !--------------------------------------------------------------------
+        subroutine apply_Langevin_overrides()
+            call ensure_settings_unlocked("apply_Langevin_overrides")
+            Sequential            = .false.
+            HMC                   = .false.
+            Global_MALA_moves     = .false.
+            Global_moves          = .false.
+            Global_tau_moves      = .false.
+            Global_tau_MALA_moves = .false.
+#if defined(TEMPERING)
+            N_exchange_steps      = 0
+#endif
+        end subroutine apply_Langevin_overrides
 
         !--------------------------------------------------------------------
         !> @brief

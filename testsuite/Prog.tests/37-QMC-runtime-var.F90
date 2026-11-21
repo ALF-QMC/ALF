@@ -9,7 +9,10 @@ Program Test_QMC_runtime_var
        &                     get_Amplitude, set_Amplitude, get_Nt_sequential_start, get_Nt_sequential_end, &
        &                     get_N_Global_tau, get_N_Global_tau_MALA, get_Delta_t_MALA_global, &
        &                     get_Max_Force_MALA_global, get_Global_moves, set_Global_moves, &
-       &                     get_ham_name, set_ham_name, apply_CPU_MAX_policy
+       &                     get_ham_name, set_ham_name, apply_CPU_MAX_policy, &
+       &                     apply_Langevin_overrides, get_Global_tau_moves, set_Global_tau_moves, &
+       &                     get_Global_MALA_moves, set_Global_MALA_moves, get_Global_tau_MALA_moves, &
+       &                     set_Global_tau_MALA_moves
 #ifdef MPI
   Use mpi
 #endif
@@ -61,6 +64,19 @@ Program Test_QMC_runtime_var
   Call check_i("NBin without CPU_MAX", get_NBin(), 5)
   Call set_CPU_MAX(2.5d0); Call apply_CPU_MAX_policy()
   Call check_i("NBin with CPU_MAX", get_NBin(), 10000000)
+
+  ! Langevin overrides switch off all other update schemes
+  Call set_sequential(.true.); Call set_HMC(.true.); Call set_Global_moves(.true.)
+  Call set_Global_tau_moves(.true.); Call set_Global_MALA_moves(.true.)
+  Call set_Global_tau_MALA_moves(.true.)
+  Call apply_Langevin_overrides()
+  Call check_l("sequential after Langevin overrides", get_sequential(), .false.)
+  Call check_l("HMC after Langevin overrides", get_HMC(), .false.)
+  Call check_l("Global_moves after Langevin overrides", get_Global_moves(), .false.)
+  Call check_l("Global_tau_moves after Langevin overrides", get_Global_tau_moves(), .false.)
+  Call check_l("Global_MALA_moves after Langevin overrides", get_Global_MALA_moves(), .false.)
+  Call check_l("Global_tau_MALA_moves after Langevin overrides", get_Global_tau_MALA_moves(), .false.)
+  Call set_HMC(.true.)   ! restore for the lock check below
 
   ! After the lock the getters still return the values
   Call lock_QMC_runtime_settings()
