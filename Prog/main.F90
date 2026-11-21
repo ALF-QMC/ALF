@@ -137,6 +137,7 @@ Program Main
              &                     get_sequential_mala, get_tempering_calc_det, &
              &                     read_and_broadcast_qmc_var_and_ham_name, &
              &                     set_default_values_measuring_interval, apply_Langevin_overrides, &
+             &                     set_default_global_tau_sampling, &
              &                     set_mpi_per_parameter_set, set_n_global_tau, &
              &                     set_n_global_tau_mala, apply_CPU_MAX_policy, set_nt_sequential_end, &
              &                     set_nt_sequential_start
@@ -408,10 +409,7 @@ Program Main
 
         If ( .not. ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) )  then
            ! This  corresponds to the default updating scheme
-           call set_Nt_sequential_start(1)
-           call set_Nt_sequential_end(Size(OP_V,1))
-           call set_N_Global_tau(0)
-           call set_N_Global_tau_MALA(0)
+           call set_default_global_tau_sampling(Size(OP_V,1))
         else
            !  Gives the possibility to set parameters in the Hamiltonian file
            tmp_Nt_sequential_start = get_Nt_sequential_start()

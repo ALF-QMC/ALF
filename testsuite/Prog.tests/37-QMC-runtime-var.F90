@@ -12,7 +12,7 @@ Program Test_QMC_runtime_var
        &                     get_ham_name, set_ham_name, apply_CPU_MAX_policy, &
        &                     apply_Langevin_overrides, get_Global_tau_moves, set_Global_tau_moves, &
        &                     get_Global_MALA_moves, set_Global_MALA_moves, get_Global_tau_MALA_moves, &
-       &                     set_Global_tau_MALA_moves
+       &                     set_Global_tau_MALA_moves, set_default_global_tau_sampling
 #ifdef MPI
   Use mpi
 #endif
@@ -77,6 +77,13 @@ Program Test_QMC_runtime_var
   Call check_l("Global_MALA_moves after Langevin overrides", get_Global_MALA_moves(), .false.)
   Call check_l("Global_tau_MALA_moves after Langevin overrides", get_Global_tau_MALA_moves(), .false.)
   Call set_HMC(.true.)   ! restore for the lock check below
+
+  ! Default global tau sampling: sequential sweep over all N_op vertices
+  Call set_default_global_tau_sampling(7)
+  Call check_i("Nt_sequential_start default sampling", get_Nt_sequential_start(), 1)
+  Call check_i("Nt_sequential_end default sampling", get_Nt_sequential_end(), 7)
+  Call check_i("N_Global_tau default sampling", get_N_Global_tau(), 0)
+  Call check_i("N_Global_tau_MALA default sampling", get_N_Global_tau_MALA(), 0)
 
   ! After the lock the getters still return the values
   Call lock_QMC_runtime_settings()

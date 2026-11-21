@@ -108,6 +108,7 @@ Module QMC_runtime_var
     public :: lock_QMC_runtime_settings
     public :: apply_CPU_MAX_policy
     public :: apply_Langevin_overrides
+    public :: set_default_global_tau_sampling
 
     ! Accessors (getters/setters) for runtime variables
     public :: get_Nwrap,             set_Nwrap
@@ -341,6 +342,22 @@ Module QMC_runtime_var
             N_exchange_steps      = 0
 #endif
         end subroutine apply_Langevin_overrides
+
+        !--------------------------------------------------------------------
+        !> @brief
+        !> Default sampling without global tau moves: the sequential sweep
+        !> covers all N_op interaction vertices and no global tau updates
+        !> (plain or MALA) are done.
+        !> Has to be called before the settings are locked.
+        !--------------------------------------------------------------------
+        subroutine set_default_global_tau_sampling(N_op)
+            integer, intent(in) :: N_op
+            call ensure_settings_unlocked("set_default_global_tau_sampling")
+            Nt_sequential_start = 1
+            Nt_sequential_end   = N_op
+            N_Global_tau        = 0
+            N_Global_tau_MALA   = 0
+        end subroutine set_default_global_tau_sampling
 
         !--------------------------------------------------------------------
         !> @brief
