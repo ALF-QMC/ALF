@@ -188,8 +188,8 @@
       Type (Operator),     dimension(:,:), allocatable, public, protected :: Op_T
       Type (WaveFunction), dimension(:),   allocatable, public, protected :: WF_L
       Type (WaveFunction), dimension(:),   allocatable, public, protected :: WF_R
-      Logical            , dimension(:),   allocatable, public :: Calc_Fl
-      Integer            , dimension(:),   allocatable, public :: Calc_Fl_map
+      Logical            , dimension(:),   allocatable, public, protected :: Calc_Fl
+      Integer            , dimension(:),   allocatable, public, protected :: Calc_Fl_map
       Type (Fields), public        :: nsigma
       Integer      , public, protected        :: Ndim
       Integer      , public, protected        :: N_FL, N_FL_eff
@@ -199,7 +199,7 @@
       Logical      , public, protected        :: Projector
       Integer      , public, protected        :: Group_Comm
       Logical      , public, protected        :: Symm
-      Logical      , public        :: reconstruction_needed
+      Logical      , public, protected        :: reconstruction_needed
       Logical      , public        :: leap_frog_bulk
 
 
