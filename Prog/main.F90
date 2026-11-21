@@ -142,6 +142,7 @@ Program Main
              &                     set_n_global_tau_mala, apply_CPU_MAX_policy, set_nt_sequential_end, &
              &                     set_nt_sequential_start
         Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Setup_flavor_map, Clear_Ham_state, &
+             &                      Set_Group_Comm, &
              &                      Ndim, N_FL, N_FL_eff, N_SUN, &
              &                      Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, Calc_Fl, Calc_Fl_map, &
              &                      Projector, Symm, Group_Comm, reconstruction_needed, leap_frog_bulk
@@ -225,7 +226,7 @@ Program Main
         character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
         character(64) :: chunk_size_str
         Real    (Kind=Kind(0.d0)) :: chunk_size_gb
-        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
+        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, comm_split
 
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
@@ -291,7 +292,8 @@ Program Main
 #ifdef MPI
         color = irank/get_mpi_per_parameter_set()
         key   =  0
-        call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,Group_comm, ierr)
+        call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,comm_split, ierr)
+        call Set_Group_Comm(comm_split)
         call MPI_Comm_rank(Group_Comm, Irank_g, ierr)
         call MPI_Comm_size(Group_Comm, Isize_g, ierr)
         igroup           = irank/isize_g

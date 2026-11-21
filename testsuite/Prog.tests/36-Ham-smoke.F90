@@ -24,7 +24,7 @@ Program Test_Ham_smoke
 #ifdef MPI
   Integer :: ierr
   Call MPI_Init(ierr)
-  Group_Comm = MPI_COMM_WORLD
+  Call Set_Group_Comm(MPI_COMM_WORLD)
 #endif
 
   Call get_command_argument(1, name)

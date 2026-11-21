@@ -139,7 +139,7 @@
     
     private
     public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED, Validate_Ham_Variables
-    public :: Setup_flavor_map, Clear_Ham_state
+    public :: Setup_flavor_map, Clear_Ham_state, Set_Group_Comm
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
@@ -1277,6 +1277,20 @@
       deallocate(Calc_Fl_map)
 
     end subroutine Clear_Ham_state
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Sets the communicator of the group of MPI ranks that simulate the
+    !> same parameter set (created in main.F90 by MPI_COMM_SPLIT).
+    !--------------------------------------------------------------------
+    subroutine Set_Group_Comm(comm)
+      implicit none
+      Integer, intent(in) :: comm
+
+      Group_Comm = comm
+
+    end subroutine Set_Group_Comm
 
 
     end Module Hamiltonian_main

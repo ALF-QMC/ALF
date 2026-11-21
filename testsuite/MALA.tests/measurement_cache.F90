@@ -97,7 +97,8 @@ program test_measurement_cache
   integer :: i, scheme, k, accepted, rejected, count_before
   integer :: seed(1) = [8752143]
 
-  Ndim=1; N_FL=1; N_FL_eff=1; N_SUN=1; Ltrot=2; Thtrot=0; Group_Comm=0
+  Ndim=1; N_FL=1; N_FL_eff=1; N_SUN=1; Ltrot=2; Thtrot=0
+  call Set_Group_Comm(0)
   Projector=.false.; Symm=.false.; reconstruction_needed=.false.; leap_frog_bulk=.false.
   allocate(fixture_hamiltonian :: ham)
   allocate(Calc_Fl(1),Calc_Fl_map(1),Op_T(1,1),Op_V(1,1))
