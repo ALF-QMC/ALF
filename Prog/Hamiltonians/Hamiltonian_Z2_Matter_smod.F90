@@ -279,7 +279,7 @@
                &                                  Phi_Y_vec(:),  Ham_T2_vec(:),  Ham_Lambda_vec(:)
           Integer, allocatable ::   N_Phi_vec(:)
 
-          Logical ::  Bulk = .False.,  Checkerboard = .False.
+          Logical, parameter ::  Bulk = .False.,  Checkerboard = .False.
 
           Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), &
                &    Phi_X_vec(N_FL), Phi_Y_vec(N_FL), N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
