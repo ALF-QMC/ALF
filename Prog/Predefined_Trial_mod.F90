@@ -134,11 +134,12 @@
 
         Type (Lattice)                                :: Latt_Kekule
         Real (Kind=Kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2),x1_p(2), hop(3), del_p(2)
-        Real (Kind=Kind(0.d0))  :: delta = 1.d-2, Ham_T1, Ham_T2, Ham_Tperp, dom, om
+        Real (Kind=Kind(0.d0))  :: delta, Ham_T1, Ham_T2, Ham_Tperp, dom, om
 
-        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, N_Phi,  den_file, Nom = 200 , nw
+        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, N_Phi,  den_file, nw
+        Integer, parameter :: Nom = 200
         Logical, parameter :: Test=.false.
-        Logical :: Bulk =.true.
+        Logical :: Bulk
         Complex (Kind=Kind(0.d0)) :: Z_norm, Z
 
         Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
@@ -146,6 +147,8 @@
         Integer, allocatable ::   N_Phi_vec(:)
 
 
+
+        delta = 1.d-2
 
         Allocate(WF_L(N_FL),WF_R(N_FL))
         do n=1,N_FL
