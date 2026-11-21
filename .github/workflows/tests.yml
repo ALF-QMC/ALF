@@ -65,12 +65,13 @@ jobs:
           } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
   report_save_state:
-    name: Report SAVE state (informational)
+    name: Report SAVE state (fails on implicit SAVE)
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v6
       - name: Classify SAVE variables in Prog/ and Libraries/Modules/
-        # Report only: this job never fails. See refactoring step 0.15.
+        # Report: see refactoring step 0.15. Since step 2.13 the job fails if a
+        # local variable is initialised in its declaration (implicit SAVE).
         # Heuristic, line based. Categories:
         #   local_save     explicit SAVE inside a procedure (hidden state)
         #   local_implicit local initialised in its declaration (implicit SAVE)
@@ -105,6 +106,13 @@ jobs:
             cut -d: -f1 save_scan.txt | sort | uniq -c | sort -k2,2 -k1,1rn \
               | awk '{print "| " $2 " | " $1 " | " $3 " |"}'
           } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+      - name: Fail on implicit SAVE (local initialised in its declaration)
+        # Use a PARAMETER for constants, or assign the value as an executable statement.
+        run: |
+          if grep '^local_implicit' save_scan.txt; then
+            echo "::error::Local variables initialised in their declaration are implicitly SAVE'd. Use PARAMETER or an explicit assignment."
+            exit 1
+          fi
 
   # ======================
   # Linux tests
