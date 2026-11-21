@@ -139,6 +139,7 @@
     
     private
     public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED, Validate_Ham_Variables
+    public :: Setup_flavor_map
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
@@ -1206,6 +1207,44 @@
       endif
 
     end subroutine Validate_Ham_Variables
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Sets up the flavours that are actually computed.
+    !> @details
+    !> Called from main.F90 after ham_set. If the Hamiltonian did not
+    !> allocate Calc_Fl, all flavours are computed. N_FL_eff counts the
+    !> computed flavours, Calc_Fl_map(1:N_FL_eff) lists them, and
+    !> reconstruction_needed is set if some flavours are reconstructed
+    !> instead of computed.
+    !--------------------------------------------------------------------
+    subroutine Setup_flavor_map()
+      implicit none
+      Integer :: I
+
+      If ( .not. allocated(Calc_Fl)) then
+        allocate(Calc_Fl(N_FL))
+        Calc_Fl=.True.
+      endif
+      ! Count number of flavors to be calculated
+      N_FL_eff=0
+      Do I=1,N_Fl
+        if (Calc_Fl(I)) N_FL_eff=N_FL_eff+1
+      Enddo
+      reconstruction_needed=.false.
+      If (N_FL_eff /= N_FL) reconstruction_needed=.true.
+      !initialize the flavor map
+      allocate(Calc_Fl_map(N_FL_eff))
+      N_FL_eff=0
+      Do I=1,N_Fl
+        if (Calc_Fl(I)) then
+           N_FL_eff=N_FL_eff+1
+           Calc_Fl_map(N_FL_eff)=I
+        endif
+      Enddo
+
+    end subroutine Setup_flavor_map
 
 
     end Module Hamiltonian_main

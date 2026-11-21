@@ -45,6 +45,15 @@ Program Test_Ham_smoke
   Call Alloc_Ham(name)
   Call ham%Ham_set()
   Call Validate_Ham_Variables()
+  Call Setup_flavor_map()
+
+  Call require(N_FL_eff >= 1 .and. N_FL_eff <= N_FL, 'N_FL_eff out of range')
+  Call require(size(Calc_Fl_map) == N_FL_eff, 'Calc_Fl_map has wrong size')
+  Call require(count(Calc_Fl) == N_FL_eff, 'Calc_Fl and N_FL_eff disagree')
+  Call require(reconstruction_needed .eqv. (N_FL_eff /= N_FL), 'reconstruction_needed inconsistent')
+  do nf = 1, N_FL_eff
+     Call require(Calc_Fl(Calc_Fl_map(nf)), 'Calc_Fl_map points to a flavour that is not computed')
+  enddo
 
   ! Every operator must act on at least one site; every interaction
   ! operator must have a field type (Op_make leaves type = 0)

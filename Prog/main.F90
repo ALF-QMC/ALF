@@ -141,7 +141,7 @@ Program Main
              &                     set_mpi_per_parameter_set, set_n_global_tau, &
              &                     set_n_global_tau_mala, apply_CPU_MAX_policy, set_nt_sequential_end, &
              &                     set_nt_sequential_start
-        Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Ndim, N_FL, N_FL_eff, N_SUN, &
+        Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Setup_flavor_map, Ndim, N_FL, N_FL_eff, N_SUN, &
              &                      Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, Calc_Fl, Calc_Fl_map, &
              &                      Projector, Symm, Group_Comm, reconstruction_needed, leap_frog_bulk
         Use files_mod, only: str_to_upper
@@ -373,27 +373,9 @@ Program Main
         enddo
          
 
-        ! Test if user has initialized Calc_FL array
-        If ( .not. allocated(Calc_Fl)) then
-          allocate(Calc_Fl(N_FL))
-          Calc_Fl=.True.
-        endif
-        ! Count number of flavors to be calculated
-        N_FL_eff=0
-        Do I=1,N_Fl
-          if (Calc_Fl(I)) N_FL_eff=N_FL_eff+1
-        Enddo
-        reconstruction_needed=.false.
-        If (N_FL_eff /= N_FL) reconstruction_needed=.true.
-        !initialize the flavor map
-        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL))
-        N_FL_eff=0
-        Do I=1,N_Fl
-          if (Calc_Fl(I)) then
-             N_FL_eff=N_FL_eff+1
-             Calc_Fl_map(N_FL_eff)=I
-          endif
-        Enddo
+        ! Flavours to compute: Calc_Fl (default all), N_FL_eff, Calc_Fl_map, reconstruction_needed
+        Call Setup_flavor_map()
+        allocate(Phase_array(N_FL))
 
         if(Projector) then
            do nf_eff=1,N_fl_eff
