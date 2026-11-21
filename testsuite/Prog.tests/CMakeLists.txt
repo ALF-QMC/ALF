@@ -196,3 +196,22 @@ else()
       ENVIRONMENT "OMP_NUM_THREADS=1" TIMEOUT 60)
   endforeach()
 endif()
+
+# Unit test for QMC_runtime_var (defaults, set/get round trip, lock).
+# In MPI builds it is started with mpiexec, like 36-Ham-smoke.
+if("${FLAG_LIST}" MATCHES "-DMPI")
+  find_package(MPI REQUIRED COMPONENTS Fortran)
+endif()
+add_executable(37-QMC-runtime-var 37-QMC-runtime-var.F90)
+target_compile_options(37-QMC-runtime-var PRIVATE ${FLAG_LIST})
+target_include_directories(37-QMC-runtime-var PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+target_link_libraries(37-QMC-runtime-var
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/QMC_runtime_var_mod.o" ${LIB_LIST})
+if("${FLAG_LIST}" MATCHES "-DMPI")
+  add_test(NAME 37-QMC-runtime-var
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS}
+      $<TARGET_FILE:37-QMC-runtime-var> ${MPIEXEC_POSTFLAGS})
+else()
+  add_test(NAME 37-QMC-runtime-var COMMAND 37-QMC-runtime-var)
+endif()
