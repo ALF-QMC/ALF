@@ -215,3 +215,19 @@ if("${FLAG_LIST}" MATCHES "-DMPI")
 else()
   add_test(NAME 37-QMC-runtime-var COMMAND 37-QMC-runtime-var)
 endif()
+
+# A setter after the lock must terminate the program.
+add_executable(38-QMC-runtime-lock-fail 38-QMC-runtime-lock-fail.F90)
+target_compile_options(38-QMC-runtime-lock-fail PRIVATE ${FLAG_LIST})
+target_include_directories(38-QMC-runtime-lock-fail PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+target_link_libraries(38-QMC-runtime-lock-fail
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/QMC_runtime_var_mod.o" ${LIB_LIST})
+if("${FLAG_LIST}" MATCHES "-DMPI")
+  add_test(NAME 38-QMC-runtime-lock-fail
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS}
+      $<TARGET_FILE:38-QMC-runtime-lock-fail> ${MPIEXEC_POSTFLAGS})
+else()
+  add_test(NAME 38-QMC-runtime-lock-fail COMMAND 38-QMC-runtime-lock-fail)
+endif()
+set_tests_properties(38-QMC-runtime-lock-fail PROPERTIES WILL_FAIL TRUE TIMEOUT 60)
