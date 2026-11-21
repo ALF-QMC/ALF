@@ -52,6 +52,7 @@ Module Wrapgr_mod
   Use Hop_mod, only: Hop_mod_mmthR, Hop_mod_mmthR_m1, Hop_mod_mmthl, Hop_mod_mmthl_m1
   use upgrade_mod, only: Upgrade2
   use Langevin_HMC_mod, only: Calculate_Force
+  Use Natural_Constants, only: Eps_small
 
   Implicit none
 
@@ -519,7 +520,7 @@ Contains
     Character (Len=64)        :: Mode
     Integer,      allocatable :: Flip_list(:)
     Complex (Kind=Kind(0.d0)), allocatable :: Flip_value(:), Flip_value_st(:)
-    Real    (Kind=Kind(0.d0)) :: Zero = 10D-8
+    Real    (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
 
     Allocate ( Flip_list(Size(Op_V,1)), Flip_value(Size(Op_V,1)), Flip_value_st(Size(Op_V,1)) )
 
