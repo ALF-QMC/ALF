@@ -191,7 +191,7 @@
       Logical            , dimension(:),   allocatable, public :: Calc_Fl
       Integer            , dimension(:),   allocatable, public :: Calc_Fl_map
       Type (Fields), public        :: nsigma
-      Integer      , public        :: Ndim
+      Integer      , public, protected        :: Ndim
       Integer      , public        :: N_FL, N_FL_eff
       Integer      , public        :: N_SUN
       Integer      , public        :: Ltrot
