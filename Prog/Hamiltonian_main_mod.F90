@@ -186,8 +186,8 @@
 
       Type (Operator),     dimension(:,:), allocatable, public, protected :: Op_V
       Type (Operator),     dimension(:,:), allocatable, public, protected :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable, public :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable, public :: WF_R
+      Type (WaveFunction), dimension(:),   allocatable, public, protected :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable, public, protected :: WF_R
       Logical            , dimension(:),   allocatable, public :: Calc_Fl
       Integer            , dimension(:),   allocatable, public :: Calc_Fl_map
       Type (Fields), public        :: nsigma
