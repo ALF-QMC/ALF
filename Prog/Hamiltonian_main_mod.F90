@@ -194,8 +194,8 @@
       Integer      , public, protected        :: Ndim
       Integer      , public, protected        :: N_FL, N_FL_eff
       Integer      , public, protected        :: N_SUN
-      Integer      , public        :: Ltrot
-      Integer      , public        :: Thtrot
+      Integer      , public, protected        :: Ltrot
+      Integer      , public, protected        :: Thtrot
       Logical      , public        :: Projector
       Integer      , public        :: Group_Comm
       Logical      , public        :: Symm
