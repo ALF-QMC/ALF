@@ -197,7 +197,7 @@
       Integer      , public, protected        :: Ltrot
       Integer      , public, protected        :: Thtrot
       Logical      , public, protected        :: Projector
-      Integer      , public        :: Group_Comm
+      Integer      , public, protected        :: Group_Comm
       Logical      , public, protected        :: Symm
       Logical      , public        :: reconstruction_needed
       Logical      , public        :: leap_frog_bulk
