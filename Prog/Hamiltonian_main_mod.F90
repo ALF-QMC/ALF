@@ -119,6 +119,16 @@
 !> \f$ \prod_{\tau} \; \;  \prod_{n=N_T}^{1}e^{T_n/2} \prod_{n=1}^{N_V}e^{V_n(\tau)}  \prod_{n=1}^{N_T}e^{T_n/2}  \f$
 !>
 !>
+!> @par Write access
+!> Op_V, Op_T, WF_L, WF_R, Calc_Fl, Calc_Fl_map, Ndim, N_FL, N_FL_eff, N_SUN, Ltrot, Thtrot,
+!> Projector, Group_Comm, Symm and reconstruction_needed are PUBLIC, PROTECTED: every module can
+!> read them, but only this module and its submodules (the Hamiltonians) can change them.
+!> They are fixed once Ham_set and Setup_flavor_map have run. The Monte Carlo core sets
+!> Group_Comm with Set_Group_Comm and releases the model with Clear_Ham_state. Unit tests that
+!> build a model without a Hamiltonian use Set_model_for_testing.
+!> nsigma (the auxiliary fields), leap_frog_bulk and ham stay writable from outside, because the
+!> Monte Carlo updates change them during the run.
+!>
 !> You still have to add some docu for the other private variables in this module.
 !>
 !--------------------------------------------------------------------

@@ -1,5 +1,21 @@
 # Log of backward compatibility changes and critical bugs
 
+### 2026-11-21 Model state in `Hamiltonian_main` is read-only outside the Hamiltonians
+Branch `Code-modularity`
+
+`Op_V`, `Op_T`, `WF_L`, `WF_R`, `Calc_Fl`, `Calc_Fl_map`, `Ndim`, `N_FL`, `N_FL_eff`, `N_SUN`,
+`Ltrot`, `Thtrot`, `Projector`, `Group_Comm`, `Symm` and `reconstruction_needed` now have the
+`protected` attribute. Hamiltonians are submodules of `Hamiltonian_main` and are not affected.
+Code outside the Hamiltonians that assigned these variables no longer compiles and has to use:
+
+1. `Setup_flavor_map()` to set the default of `Calc_Fl`, `N_FL_eff`, `Calc_Fl_map` and
+   `reconstruction_needed` after `Ham_set` (previously done in `main`);
+2. `Set_Group_Comm(comm)` to set the MPI group communicator;
+3. `Clear_Ham_state()` to release `Op_V`, `Op_T`, `WF_L`, `WF_R` and `Calc_Fl_map`;
+4. `Set_model_for_testing(...)` in unit tests that build a model without a Hamiltonian.
+
+`nsigma`, `leap_frog_bulk` and `ham` stay writable. The results of a run do not change.
+
 ### 2026-10-30 MALA updates: new argument of `Overide_global_tau_sampling_parameters`
 Author: A. Goetz, F. Assaad <br>
 [GitHub](https://github.com/ALF-QMC/ALF/pull/592) | [Issue](https://github.com/ALF-QMC/ALF/issues/305)

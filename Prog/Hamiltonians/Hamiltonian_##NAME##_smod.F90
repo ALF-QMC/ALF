@@ -112,6 +112,10 @@
 !> \f$ \prod_{\tau} \; \;  \prod_{n=N_T}^{1}e^{T_n/2} \prod_{n=1}^{N_V}e^{V_n(\tau)}  \prod_{n=1}^{N_T}e^{T_n/2}  \f$
 !>
 !>
+!> @par Write access
+!> Apart from nsigma, the variables above are PROTECTED in Hamiltonian_main. A Hamiltonian, being a
+!> submodule, sets them in Ham_set; the rest of the code can only read them.
+!>
 !> You still have to add some docu for the other private variables in this module.
 !>
 !--------------------------------------------------------------------
