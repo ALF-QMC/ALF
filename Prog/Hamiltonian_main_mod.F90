@@ -184,7 +184,7 @@
       
       class(ham_base), allocatable :: ham
 
-      Type (Operator),     dimension(:,:), allocatable, public :: Op_V
+      Type (Operator),     dimension(:,:), allocatable, public, protected :: Op_V
       Type (Operator),     dimension(:,:), allocatable, public, protected :: Op_T
       Type (WaveFunction), dimension(:),   allocatable, public :: WF_L
       Type (WaveFunction), dimension(:),   allocatable, public :: WF_R
