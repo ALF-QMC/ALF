@@ -196,7 +196,7 @@
       Integer      , public, protected        :: N_SUN
       Integer      , public, protected        :: Ltrot
       Integer      , public, protected        :: Thtrot
-      Logical      , public        :: Projector
+      Logical      , public, protected        :: Projector
       Integer      , public        :: Group_Comm
       Logical      , public        :: Symm
       Logical      , public        :: reconstruction_needed
