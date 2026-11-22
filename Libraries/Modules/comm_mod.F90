@@ -81,7 +81,7 @@
         Integer :: ierr
         call MPI_Comm_rank(comm, comm_rank, ierr)
 #else
-        comm_rank = 0 * comm
+        comm_rank = 0
 #endif
       end function comm_rank
 
@@ -92,7 +92,7 @@
         Integer :: ierr
         call MPI_Comm_size(comm, comm_size, ierr)
 #else
-        comm_size = 1 + 0 * comm
+        comm_size = 1
 #endif
       end function comm_size
 
