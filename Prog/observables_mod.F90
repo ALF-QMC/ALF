@@ -737,9 +737,7 @@
 !--------------------------------------------------------------------
 
          Subroutine  Print_bin_Vec(Obs,Group_Comm)
-#if defined MPI
-           Use mpi
-#endif
+           Use comm_mod, only: comm_reduce_mean, comm_reduce_mean_array, is_root, comm_world_rank, comm_size
 #if defined HDF5
            Use hdf5
            Use alf_hdf5
@@ -767,18 +765,10 @@
            TYPE(C_PTR)                   :: dat_ptr
            real(Kind=Kind(0.d0)), target :: sgn
 #endif
-#if defined MPI
-           Integer        :: Ierr, Isize, Irank, No
-           INTEGER        :: irank_g, isize_g, igroup
-           Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
-           Real     (Kind=Kind(0.d0)) :: X
+#if defined TEMPERING
+           INTEGER        :: igroup
 
-
-           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           igroup           = comm_world_rank()/comm_size(Group_Comm)
 #endif
            Obs%Obs_vec  = Obs%Obs_vec /dble(Obs%N)
            Obs%Ave_sign = Obs%Ave_sign/dble(Obs%N)
@@ -788,21 +778,11 @@
            filename = File_h5
 #endif
 
-#if defined MPI
-           No = size(Obs%Obs_vec, 1)
-           Allocate (Tmp(No) )
-           Tmp = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Obs%Obs_vec,Tmp,No,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Obs_vec = Tmp/DBLE(ISIZE_g)
-           deallocate (Tmp )
+           ! Average over the ranks of the group (no-op without MPI)
+           Call comm_reduce_mean_array(Obs%Obs_vec, size(Obs%Obs_vec), Group_Comm)
+           Call comm_reduce_mean(Obs%Ave_sign, Group_Comm)
 
-           I = 1
-           X = 0.d0
-           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
-           Obs%Ave_sign = X/DBLE(ISIZE_g)
-
-           if (Irank_g == 0 ) then
-#endif
+           if (is_root(Group_Comm)) then
 
 #if defined TEMPERING
               write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Vec), "_scal"
@@ -878,9 +858,7 @@
 
               CALL h5fclose_f(file_id, hdferr)
 #endif
-#if defined MPI
            endif
-#endif
 
          End Subroutine Print_bin_Vec
 
