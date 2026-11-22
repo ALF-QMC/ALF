@@ -467,7 +467,7 @@
              ! It is a noninteracting model and then there is no need to setup the interaction apart from one vertex per flavor
              ! for internal memory consistency (the code will always access the first vertex OP_V(1,:) hence it has to be allocated)
              ! any vertex with zero coupling strength will do, ie, the hubbard interaction with U=0
-             allocate(Op_V(1,N_FL))
+             Call Allocate_Op_V(1,N_FL)
              do nf = 1,N_FL
                 ! Fake hubbard interaction of weight 0.0 (last argument in the following call)
                 Call Predefined_Int_U_SUN(  OP_V(1,nf), 1, N_SUN, DTAU, 0.0d0  )
@@ -482,7 +482,7 @@
              N = N +  Bond_Matrix(1)%L_Fam(n_f)
           enddo
           
-          allocate(Op_V(N,N_FL))
+          Call Allocate_Op_V(N,N_FL)
           do nf = 1,N_FL
              !               (not needed since we can directly access the Hamiltonian member,
              !               otherwise we risk overwriting stuff)
