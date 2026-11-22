@@ -528,6 +528,10 @@ To simplify  the implementation of a new Hamiltonian, ALF comes with a set of pr
     \texttt{Group\_Comm}      & \path{int}              & Group communicator for MPI \\
     \hl{\texttt{Symm}}        & \path{logical}          & Symmetric trotter \\
     \texttt{Calc\_Fl}         & \path{logical}          & Explicitly calculation of flavors (optional) \\
+    \texttt{N\_FL\_eff}       & \path{int}              & Number of explicitly calculated flavors$^*$ \\
+    \texttt{Calc\_Fl\_map}    & \path{int}              & Indices of the explicitly calculated flavors$^*$ \\
+    \texttt{reconstruction\_needed} & \path{logical}    & True if some flavors are reconstructed by symmetry$^*$ \\
+    \texttt{leap\_frog\_bulk} & \path{logical}          & Set by the HMC leapfrog integrator \\
      \bottomrule
    \toprule
     Private Variable          &  Type                   & Description \\
@@ -537,7 +541,9 @@ To simplify  the implementation of a new Hamiltonian, ALF comes with a set of pr
     \texttt{Obs\_tau}         & \path{Obser_Latt}       & Storage for measured time displaced correlations \\
      \bottomrule
    \end{tabular}
-   \caption{List of the public and private variables declared in the module \texttt{Hamiltonian}. The \hl{highlighted} variables have to be set in the subroutine \texttt{ham\_set}.}
+   \caption{List of the public and private variables declared in the module \texttt{Hamiltonian}. The \hl{highlighted} variables have to be set in the subroutine \texttt{ham\_set}.
+   Variables marked with $^*$ are derived from \texttt{Calc\_Fl} by \texttt{Setup\_flavor\_map}, which the Monte Carlo core calls after \texttt{ham\_set}.
+   Except for \texttt{ham}, \texttt{nsigma} and \texttt{leap\_frog\_bulk}, the public variables have the \texttt{protected} attribute: they can be read everywhere, but only changed in the module \texttt{Hamiltonian\_main} and its submodules, the Hamiltonians.}
          \label{table:hamiltonian_variables}
      \end{center}
 \end{table}
@@ -685,6 +691,7 @@ Here, a pair of flavors $(n_\mathrm{fl},\bar{n}_\mathrm{fl})$ are related by a u
 for any given $i$. Note that \texttt{Op\_V(i,n$_\mathrm{fl}$)} includes a constant shift $\alpha$ to absorb contributions from the commutator in case of particle-hole symmetries.
 For example, the particle-hole symmetry requires a non-zero shift $\alpha=1/2$ in the $M_z$ decoupling of the Hubbard interaction to map the upspin to the downspin.
 This acceleration is activated by allocating \texttt{Calc\_Fl} in \texttt{Ham\_set} and setting the `active' flavors $n_\mathrm{fl}$ to \texttt{.True.} and the symmetry-related flavors $\bar{n}_\mathrm{fl}$ to \texttt{.False.}.
+If \texttt{Calc\_Fl} is not allocated, all flavors are calculated explicitly. After \texttt{Ham\_set}, the routine \texttt{Setup\_flavor\_map} derives from \texttt{Calc\_Fl} the number of active flavors \texttt{N\_FL\_eff}, their indices \texttt{Calc\_Fl\_map}, and the flag \texttt{reconstruction\_needed}.
 
 
 This symmetry allows one to reconstruct one flavor, say $\bar{n}_\mathrm{fl}$, from the other, $n_\mathrm{fl}$. For unitary symmetries, the weight is given by $Z(\bar{n}_\mathrm{fl})=Z(n_\mathrm{fl})$, while anti-unitary symmetries lead to $Z(\bar{n}_\mathrm{fl})=Z(n_\mathrm{fl})^*$. This relation has to be provided by the user in  \texttt{weight\_reconstruction}. Up to entry, all weights $Z(n_\mathrm{fl})$ have be explicitly calculated by ALF and the user has to fill all `inactive' flavors $\bar{n}_\mathrm{fl}$ of the array $Z$.
