@@ -64,6 +64,14 @@
          module procedure bcast_r8
       end interface comm_bcast
 
+      public :: comm_reduce_mean, comm_reduce_mean_array
+
+      !> MPI_SUM to rank 0, then division by the number of processes in comm.
+      !> The result is only meaningful on rank 0.
+      interface comm_reduce_mean
+         module procedure reduce_mean_r8
+      end interface comm_reduce_mean
+
     contains
 
       !> Rank of the calling process in comm (0 without MPI).
@@ -159,5 +167,35 @@
         call MPI_Bcast(x, 1, MPI_REAL8, 0, comm, ierr)
 #endif
       end Subroutine bcast_r8
+
+
+      Subroutine reduce_mean_r8(x, comm)
+        Real (Kind=Kind(0.d0)), intent(inout) :: x
+        Integer, intent(in) :: comm
+#ifdef MPI
+        Real (Kind=Kind(0.d0)) :: tmp
+        Integer :: ierr
+        tmp = 0.d0
+        call MPI_Reduce(x, tmp, 1, MPI_REAL8, MPI_SUM, 0, comm, ierr)
+        x = tmp/dble(comm_size(comm))
+#endif
+      end Subroutine reduce_mean_r8
+
+      !> Same as comm_reduce_mean for a complex array of any rank, passed with its
+      !> number of elements as in MPI (not a generic: a generic name would require
+      !> a fixed array rank).
+      Subroutine comm_reduce_mean_array(buf, n, comm)
+        Complex (Kind=Kind(0.d0)), intent(inout) :: buf(*)
+        Integer, intent(in) :: n, comm
+#ifdef MPI
+        Complex (Kind=Kind(0.d0)), allocatable :: tmp(:)
+        Integer :: ierr
+        allocate(tmp(n))
+        tmp = cmplx(0.d0, 0.d0, kind(0.d0))
+        call MPI_Reduce(buf, tmp, n, MPI_COMPLEX16, MPI_SUM, 0, comm, ierr)
+        buf(1:n) = tmp/dble(comm_size(comm))
+        deallocate(tmp)
+#endif
+      end Subroutine comm_reduce_mean_array
 
     end Module comm_mod

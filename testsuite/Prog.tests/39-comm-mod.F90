@@ -3,7 +3,8 @@
 Program Test_comm_mod
 
   Use comm_mod, only: comm_rank, comm_size, is_root, comm_world_rank, comm_world_size, &
-       &              comm_reduce_sum, comm_reduce_max, comm_bcast
+       &              comm_reduce_sum, comm_reduce_max, comm_bcast, comm_reduce_mean, &
+       &              comm_reduce_mean_array
 #ifdef MPI
   Use mpi
 #endif
@@ -12,6 +13,8 @@ Program Test_comm_mod
   Integer :: n_fail, comm, rank_ref, size_ref
   Real (Kind=Kind(0.d0)) :: x
   Integer (Kind=8) :: n8
+  Complex (Kind=Kind(0.d0)) :: c(2,3)
+  Integer :: i, j
 #ifdef MPI
   Integer :: ierr
   Call MPI_Init(ierr)
@@ -41,6 +44,25 @@ Program Test_comm_mod
   x = dble(rank_ref + 1)
   Call comm_reduce_max(x, comm)
   If (rank_ref == 0) Call check_r("comm_reduce_max r8", x, dble(size_ref))
+
+  ! Means over ranks: scalar and a rank-2 complex array (passed with its size).
+  x = dble(rank_ref + 1)
+  Call comm_reduce_mean(x, comm)
+  If (rank_ref == 0) Call check_r("comm_reduce_mean r8", x, dble(size_ref+1)/2.d0)
+  Do j = 1, 3
+     Do i = 1, 2
+        c(i,j) = cmplx(dble(rank_ref + 1), dble(i + 10*j), kind(0.d0))
+     enddo
+  enddo
+  Call comm_reduce_mean_array(c, size(c), comm)
+  If (rank_ref == 0) then
+     Do j = 1, 3
+        Do i = 1, 2
+           Call check_r("comm_reduce_mean_array re", dble(c(i,j)), dble(size_ref+1)/2.d0)
+           Call check_r("comm_reduce_mean_array im", aimag(c(i,j)), dble(i + 10*j))
+        enddo
+     enddo
+  endif
 
   ! Broadcast from rank 0 reaches every rank.
   x = 0.d0
