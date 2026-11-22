@@ -570,9 +570,7 @@
             Use hdf5
             Use alf_hdf5
 #endif
-#if defined MPI
-            Use mpi
-#endif
+            Use comm_mod, only: comm_reduce_mean, comm_reduce_mean_array, is_root, comm_world_rank, comm_size
             Implicit none
 
             class(Obser_Latt_Local),   Intent(Inout)   :: Obs
@@ -597,17 +595,10 @@
             TYPE(C_PTR)                   :: dat_ptr
             real(Kind=Kind(0.d0)), target :: sgn
 #endif
-#ifdef MPI
-            Complex (Kind=Kind(0.D0)), allocatable :: Tmp(:,:,:)
-            Real    (Kind=Kind(0.d0)) :: X
-            Integer         :: Ierr, Isize, Irank
-            INTEGER         :: irank_g, isize_g, igroup
+#if defined TEMPERING
+            Integer         :: igroup
 
-            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-            call MPI_Comm_size(Group_Comm, isize_g, ierr)
-            igroup           = irank/isize_g
+            igroup           = comm_world_rank()/comm_size(Group_Comm)
 #endif
 
             Ns    = Size(Obs%Obs_Latt,1)
@@ -629,21 +620,11 @@
             Obs%Obs_Latt  = Obs%Obs_Latt / dble(Obs%N)
             Obs%Ave_sign  = Obs%Ave_Sign / dble(Obs%N)
 
-#if defined(MPI)
-            Allocate (Tmp(Obs%Latt%N, Ntau, Obs%Latt_unit%Norb))
-            I = Obs%Latt%N * Ntau * Obs%Latt_unit%Norb
-            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
-            CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-            Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
+            ! Average over the ranks of the group (no-op without MPI)
+            Call comm_reduce_mean_array(Obs%Obs_Latt, size(Obs%Obs_Latt), Group_Comm)
+            Call comm_reduce_mean(Obs%Ave_sign, Group_Comm)
 
-            I = 1
-            X = 0.d0
-            CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-            Obs%Ave_sign = X/DBLE(ISIZE_g)
-            Deallocate(Tmp)
-
-            If (Irank_g == 0 ) then
-#endif
+            If (is_root(Group_Comm)) then
 #if defined TEMPERING
                write(File_pr ,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff )
 #if defined HDF5
@@ -748,9 +729,7 @@
 
                CALL h5fclose_f(file_id, hdferr)
 #endif
-#if defined MPI
             Endif
-#endif
 
          End Subroutine Print_bin_Latt_Local
 !--------------------------------------------------------------------
