@@ -15,6 +15,9 @@ Code outside the Hamiltonians that assigned these variables no longer compiles a
 4. `Set_model_for_testing(...)` in unit tests that build a model without a Hamiltonian.
 
 `nsigma`, `leap_frog_bulk` and `ham` stay writable. The results of a run do not change.
+With nvfortran (PGI), the allocatable arrays (`Op_V`, `Op_T`, `WF_L`, `WF_R`, `Calc_Fl`,
+`Calc_Fl_map`) are not protected, because that compiler wrongly rejects their allocation in the
+Hamiltonian submodules. The other compilers still enforce the rule.
 
 ### 2026-10-30 MALA updates: new argument of `Overide_global_tau_sampling_parameters`
 Author: A. Goetz, F. Assaad <br>

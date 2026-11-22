@@ -134,6 +134,15 @@
 !--------------------------------------------------------------------
 
 
+! nvfortran (PGI) wrongly rejects ALLOCATE/DEALLOCATE of PROTECTED module arrays in submodules,
+! although submodules access them by host association (Fortran 2008). For nvfortran the arrays are
+! therefore not protected; the other compilers still enforce the read-only rule.
+#if defined(__PGI) || defined(__NVCOMPILER)
+#define PROTECTED_ARRAY
+#else
+#define PROTECTED_ARRAY , protected
+#endif
+
     Module Hamiltonian_main
       Use runtime_error_mod, only: Terminate_on_error, ERROR_HAMILTONIAN
       Use files_mod, only: str_to_upper
@@ -194,12 +203,12 @@
       
       class(ham_base), allocatable :: ham
 
-      Type (Operator),     dimension(:,:), allocatable, public, protected :: Op_V
-      Type (Operator),     dimension(:,:), allocatable, public, protected :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable, public, protected :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable, public, protected :: WF_R
-      Logical            , dimension(:),   allocatable, public, protected :: Calc_Fl
-      Integer            , dimension(:),   allocatable, public, protected :: Calc_Fl_map
+      Type (Operator),     dimension(:,:), allocatable, public PROTECTED_ARRAY :: Op_V
+      Type (Operator),     dimension(:,:), allocatable, public PROTECTED_ARRAY :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable, public PROTECTED_ARRAY :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable, public PROTECTED_ARRAY :: WF_R
+      Logical            , dimension(:),   allocatable, public PROTECTED_ARRAY :: Calc_Fl
+      Integer            , dimension(:),   allocatable, public PROTECTED_ARRAY :: Calc_Fl_map
       Type (Fields), public        :: nsigma
       Integer      , public, protected        :: Ndim
       Integer      , public, protected        :: N_FL, N_FL_eff
