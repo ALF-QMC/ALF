@@ -2,7 +2,7 @@
 ! routines must behave like a single rank.
 Program Test_comm_mod
 
-  Use comm_mod, only: comm_rank, comm_size, is_root, comm_world_rank, comm_world_size, &
+  Use comm_mod, only: comm_rank, comm_size, is_root, comm_world, comm_world_rank, comm_world_size, &
        &              comm_reduce_sum, comm_reduce_max, comm_bcast, comm_reduce_mean, &
        &              comm_reduce_mean_array
 #ifdef MPI
@@ -33,6 +33,7 @@ Program Test_comm_mod
   Call check_l("is_root",   is_root(comm),   rank_ref == 0)
   Call check_i("comm_world_rank", comm_world_rank(), rank_ref)
   Call check_i("comm_world_size", comm_world_size(), size_ref)
+  Call check_i("comm_size(comm_world())", comm_size(comm_world()), size_ref)
 
   ! Rank r contributes r+1: sum = n(n+1)/2, max = n on rank 0.
   x = dble(rank_ref + 1)

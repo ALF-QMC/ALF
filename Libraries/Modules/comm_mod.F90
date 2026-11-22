@@ -46,7 +46,7 @@
       Implicit none
       private
       public :: comm_rank, comm_size, is_root
-      public :: comm_world_rank, comm_world_size
+      public :: comm_world, comm_world_rank, comm_world_size
       public :: comm_reduce_sum, comm_reduce_max, comm_bcast
 
       !> MPI_SUM to rank 0; the result is only meaningful on rank 0.
@@ -102,6 +102,15 @@
         is_root = (comm_rank(comm) == 0)
       end function is_root
 
+
+      !> Handle of MPI_COMM_WORLD (0 without MPI), for callers without "use mpi".
+      Integer function comm_world()
+#ifdef MPI
+        comm_world = MPI_COMM_WORLD
+#else
+        comm_world = 0
+#endif
+      end function comm_world
 
       !> Rank in MPI_COMM_WORLD (0 without MPI).
       Integer function comm_world_rank()

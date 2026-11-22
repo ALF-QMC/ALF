@@ -683,9 +683,7 @@ module Control
       ! The subroutine contains a hard-coded threshold (in unit of bins):
       ! if time_remain/time_bin_duration < threshold the program terminates.
 
-#ifdef MPI
-      Use mpi
-#endif
+      Use comm_mod, only: comm_reduce_mean, comm_bcast, comm_world
 
       logical, intent(out)                 :: prog_truncation
       real(kind=kind(0.d0)), intent(in)    :: cpu_max
@@ -693,19 +691,10 @@ module Control
       integer, intent(in)                  :: group_comm
       real(kind=kind(0.d0))                :: count_alloc_end
       real(kind=kind(0.d0))                :: time_bin_duration,time_remain,bins_remain,threshold
-#ifdef MPI
-      real(kind=kind(0.d0))                :: bins_remain_mpi
-      integer                              :: err_mpi, irank, isize, irank_g, isize_g
-#endif
+      integer                              :: comm
       threshold = 1.5d0
       prog_truncation = .false.
 
-#ifdef MPI
-      call mpi_comm_size(mpi_comm_world, isize, err_mpi)
-      call mpi_comm_rank(mpi_comm_world, irank, err_mpi)
-      call mpi_comm_size(group_comm, isize_g, err_mpi)
-      call mpi_comm_rank(group_comm, irank_g, err_mpi)
-#endif
       count_alloc_end   = count_CPU_start + cpu_max*3600*count_rate
       time_bin_duration = (count_bin_end-count_bin_start)/dble(count_rate)
       time_remain       = (count_alloc_end - count_bin_end)/dble(count_rate)
@@ -715,18 +704,15 @@ module Control
       endif
       bins_remain       = time_remain/time_bin_duration
 
-#ifdef MPI
+      ! Average over the ranks (the group with PARALLEL_PARAMS, all ranks otherwise),
+      ! so that all ranks take the same decision. No-op without MPI.
 #ifdef PARALLEL_PARAMS
-      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,group_comm,err_mpi)
-      if (irank_g .eq. 0) bins_remain_mpi = bins_remain_mpi/isize_g
-      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, group_comm,err_mpi)
+      comm = group_comm
 #else
-      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,mpi_comm_world,err_mpi)
-      if (irank .eq. 0) bins_remain_mpi = bins_remain_mpi/isize
-      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, mpi_comm_world,err_mpi)
+      comm = comm_world()
 #endif
-      bins_remain = bins_remain_mpi
-#endif
+      call comm_reduce_mean(bins_remain, comm)
+      call comm_bcast(bins_remain, comm)
       if (bins_remain .lt. threshold) prog_truncation = .true.
       end subroutine make_truncation
 
