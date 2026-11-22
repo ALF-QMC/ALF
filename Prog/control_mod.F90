@@ -596,20 +596,12 @@ module Control
         Call comm_reduce_mean(size_clust_Glob, Group_Comm)
         Call comm_reduce_mean(size_clust_Glob_ACC, Group_Comm)
 
-        X = 0.d0
-        CALL MPI_REDUCE(XMEANG,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        XMEANG = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(XMEAN_tau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        XMEAN_tau = X/dble(Isize_g)
+        Call comm_reduce_mean(XMEANG, Group_Comm)
+        Call comm_reduce_mean(XMEAN_tau, Group_Comm)
 
-        X = 0.d0
-        CALL MPI_REDUCE(XMEANP_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        XMEANP_Glob = X/dble(Isize_g)
+        Call comm_reduce_mean(XMEANP_Glob, Group_Comm)
 
-        X = 0.d0
-        CALL MPI_REDUCE(Time,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        Time = X/dble(Isize_g)
+        Call comm_reduce_mean(Time, Group_Comm)
 
 
         CALL MPI_REDUCE(XMAXG,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
