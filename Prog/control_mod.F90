@@ -485,10 +485,7 @@ module Control
 
 
       Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA, MALA_seq, MALA_gtau)
-#ifdef MPI
-        Use mpi
-#endif
-        Use comm_mod, only: comm_reduce_mean, comm_reduce_max, comm_reduce_sum
+        Use comm_mod, only: comm_reduce_mean, comm_reduce_max, comm_reduce_sum, is_root, comm_world_rank, comm_size
         Implicit none
 
         Integer, Intent(IN) :: Group_Comm
@@ -499,16 +496,10 @@ module Control
         Character (len=64) :: file1
         Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC, Acc_HMC
         Real (Kind=Kind(0.d0)) :: Acc_MALA
-#ifdef MPI
-        REAL (Kind=Kind(0.d0))  :: X
-        Integer (Kind=Kind(0.d0)) :: N
-        Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
+#if defined(TEMPERING)
+        Integer        :: igroup
 
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-        call MPI_Comm_size(Group_Comm, isize_g, ierr)
-        igroup           = irank/isize_g
+        igroup           = comm_world_rank()/comm_size(Group_Comm)
 #endif
 
         ACC = 0.d0
@@ -554,7 +545,7 @@ module Control
            Force_0_mean_MALA_global = Force_0_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
         endif
         
-#if defined(MPI)
+        ! Average/maximum over the ranks of the group (no-ops without MPI)
         If (str_to_upper(Global_update_scheme) == "LANGEVIN")  then
            Call comm_reduce_mean(Force_mean, Group_Comm)
            Call comm_reduce_max(Force_max, Group_Comm)
@@ -604,24 +595,17 @@ module Control
         Call comm_reduce_mean(Time, Group_Comm)
 
 
-        CALL MPI_REDUCE(XMAXG,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXG = X
-        CALL MPI_REDUCE(XMAX_tau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAX_tau= X
+        Call comm_reduce_max(XMAXG, Group_Comm)
+        Call comm_reduce_max(XMAX_tau, Group_Comm)
 
-        CALL MPI_REDUCE(XMAXP,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXP = X
+        Call comm_reduce_max(XMAXP, Group_Comm)
 
-        CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXP_GLOB = X
+        Call comm_reduce_max(XMAXP_GLOB, Group_Comm)
 
-        CALL MPI_REDUCE(XMAXP_HMC,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXP_HMC = X
+        Call comm_reduce_max(XMAXP_HMC, Group_Comm)
 
-        CALL MPI_REDUCE(XMAXP_MALA,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXP_MALA = X
+        Call comm_reduce_max(XMAXP_MALA, Group_Comm)
 
-#endif
 
 #if defined(TEMPERING)
         write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
@@ -629,9 +613,7 @@ module Control
         File1 = "info"
 #endif
 
-#if defined(MPI)
-        If (Irank_g == 0 ) then
-#endif
+        If (is_root(Group_Comm)) then
 
 
            Open (Unit=50,file=file1, status="unknown", position="append")
@@ -690,9 +672,7 @@ module Control
            
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)
-#if defined(MPI)
         endif
-#endif
 
       end Subroutine Control_Print
 
