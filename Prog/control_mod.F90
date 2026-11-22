@@ -488,7 +488,7 @@ module Control
 #ifdef MPI
         Use mpi
 #endif
-        Use comm_mod, only: comm_reduce_mean, comm_reduce_max
+        Use comm_mod, only: comm_reduce_mean, comm_reduce_max, comm_reduce_sum
         Implicit none
 
         Integer, Intent(IN) :: Group_Comm
@@ -577,50 +577,24 @@ module Control
            Call comm_reduce_max(Force_max_MALA_global, Group_Comm)
            Call comm_reduce_mean(Force_0_mean_MALA_global, Group_Comm)
            Call comm_reduce_max(Force_0_max_MALA_global, Group_Comm)
-           X = 0.d0
-           CALL MPI_REDUCE(XMEANP_MALA,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           XMEANP_MALA = X
-           CALL MPI_REDUCE(XMAXP_MALA,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           XMAXP_MALA = X
-           N = 0
-           CALL MPI_REDUCE(NC_Phase_MALA,N,1,MPI_INTEGER8,MPI_SUM, 0,Group_Comm,IERR)
-           NC_Phase_MALA = N
+           Call comm_reduce_sum(XMEANP_MALA, Group_Comm)
+           Call comm_reduce_max(XMAXP_MALA, Group_Comm)
+           Call comm_reduce_sum(NC_Phase_MALA, Group_Comm)
         endif
         If (str_to_upper(Global_update_scheme) == "HMC")  then
-           X = 0.d0
-           CALL MPI_REDUCE(XMEANP_HMC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           XMEANP_HMC = X
-           CALL MPI_REDUCE(XMAXP_HMC,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           XMAXP_HMC = X
-           N = 0
-           CALL MPI_REDUCE(NC_Phase_HMC,N,1,MPI_INTEGER8,MPI_SUM, 0,Group_Comm,IERR)
-           NC_Phase_HMC = N
+           Call comm_reduce_sum(XMEANP_HMC, Group_Comm)
+           Call comm_reduce_max(XMAXP_HMC, Group_Comm)
+           Call comm_reduce_sum(NC_Phase_HMC, Group_Comm)
         endif
-        X = 0.d0
-        CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_eff,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_eff = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_Glob = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_HMC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_HMC = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_Temp ,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_Temp  = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_MALA,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_MALA = X/dble(Isize_g)
+        Call comm_reduce_mean(ACC, Group_Comm)
+        Call comm_reduce_mean(ACC_eff, Group_Comm)
+        Call comm_reduce_mean(ACC_Glob, Group_Comm)
+        Call comm_reduce_mean(ACC_HMC, Group_Comm)
+        Call comm_reduce_mean(ACC_Temp, Group_Comm)
+        Call comm_reduce_mean(ACC_MALA, Group_Comm)
 
-        X = 0.d0
-        CALL MPI_REDUCE(size_clust_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        size_clust_Glob = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(size_clust_Glob_ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        size_clust_Glob_ACC = X/dble(Isize_g)
+        Call comm_reduce_mean(size_clust_Glob, Group_Comm)
+        Call comm_reduce_mean(size_clust_Glob_ACC, Group_Comm)
 
         X = 0.d0
         CALL MPI_REDUCE(XMEANG,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
