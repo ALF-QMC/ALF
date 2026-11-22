@@ -488,6 +488,7 @@ module Control
 #ifdef MPI
         Use mpi
 #endif
+        Use comm_mod, only: comm_reduce_mean, comm_reduce_max
         Implicit none
 
         Integer, Intent(IN) :: Group_Comm
@@ -555,48 +556,27 @@ module Control
         
 #if defined(MPI)
         If (str_to_upper(Global_update_scheme) == "LANGEVIN")  then
-           X = 0.d0
-           CALL MPI_REDUCE(Force_mean,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max= X
+           Call comm_reduce_mean(Force_mean, Group_Comm)
+           Call comm_reduce_max(Force_max, Group_Comm)
         endif
         ! Collectives are guarded by parameters, which are identical on all ranks.
         If (MALA_seq)  then
-           X = 0.d0
-           CALL MPI_REDUCE(Force_mean_MALA_seq,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean_MALA_seq= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max_MALA_seq,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max_MALA_seq= X
-           X = 0.d0
-           CALL MPI_REDUCE(Force_0_mean_MALA_seq,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_0_mean_MALA_seq= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_0_max_MALA_seq,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_0_max_MALA_seq= X
+           Call comm_reduce_mean(Force_mean_MALA_seq, Group_Comm)
+           Call comm_reduce_max(Force_max_MALA_seq, Group_Comm)
+           Call comm_reduce_mean(Force_0_mean_MALA_seq, Group_Comm)
+           Call comm_reduce_max(Force_0_max_MALA_seq, Group_Comm)
         endif
         If (MALA_gtau)  then
-           X = 0.d0
-           CALL MPI_REDUCE(Force_mean_MALA_gtau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean_MALA_gtau= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max_MALA_gtau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max_MALA_gtau= X
-           X = 0.d0
-           CALL MPI_REDUCE(Force_0_mean_MALA_gtau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_0_mean_MALA_gtau= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_0_max_MALA_gtau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_0_max_MALA_gtau= X
+           Call comm_reduce_mean(Force_mean_MALA_gtau, Group_Comm)
+           Call comm_reduce_max(Force_max_MALA_gtau, Group_Comm)
+           Call comm_reduce_mean(Force_0_mean_MALA_gtau, Group_Comm)
+           Call comm_reduce_max(Force_0_max_MALA_gtau, Group_Comm)
         endif
         If (MALA)  then
-           X = 0.d0
-           CALL MPI_REDUCE(Force_mean_MALA_global,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean_MALA_global= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max_MALA_global,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max_MALA_global= X
-           X = 0.d0
-           CALL MPI_REDUCE(Force_0_mean_MALA_global,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_0_mean_MALA_global= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_0_max_MALA_global,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_0_max_MALA_global= X
+           Call comm_reduce_mean(Force_mean_MALA_global, Group_Comm)
+           Call comm_reduce_max(Force_max_MALA_global, Group_Comm)
+           Call comm_reduce_mean(Force_0_mean_MALA_global, Group_Comm)
+           Call comm_reduce_max(Force_0_max_MALA_global, Group_Comm)
            X = 0.d0
            CALL MPI_REDUCE(XMEANP_MALA,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
            XMEANP_MALA = X
