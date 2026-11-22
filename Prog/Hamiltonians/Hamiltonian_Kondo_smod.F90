@@ -483,7 +483,7 @@
                 N_ops = N_ops + Latt%N*Latt_Unit%Norb*2/2
              endif
           Endif
-          Allocate(Op_V(N_ops,N_FL))
+          Call Allocate_Op_V(N_ops,N_FL)
           nc = 0
           if ( abs(Ham_Uc)  > Zero ) then
              Do I = 1,Latt%N
