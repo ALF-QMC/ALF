@@ -464,7 +464,7 @@
 
           Integer :: I
 
-          Call Allocate_Op_V(Ndim,N_FL)
+          Allocate(Op_V(Ndim,N_FL))
 
           Do I = 1,Ndim
              Call Predefined_Int_LRC( OP_V(I,1), I, DTAU  )

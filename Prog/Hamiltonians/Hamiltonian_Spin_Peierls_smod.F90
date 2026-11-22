@@ -360,7 +360,7 @@
 
 
           if  (SU2_Symm)   then
-             Call Allocate_Op_T(1,N_FL)
+             allocate(Op_T(1,N_FL))
              Do nf = 1,N_FL
                 x = -1.d0
                 If  (nf == 1)  x = 1.d0
@@ -371,7 +371,7 @@
                 Call Op_set( Op_T(1,nf) )
              enddo
           else
-             Call Allocate_Op_T(Ndim,N_FL)
+             allocate(Op_T(Ndim,N_FL))
              Do nf = 1,N_FL
                 x = -1.d0
                 If  (nf == 1)  x = 1.d0
@@ -412,7 +412,7 @@
           endif
           Allocate (Listb(Latt%N,Latt_Unit%N_coord), Invlistb(N_op,2))
 
-          Call Allocate_Op_V(N_op,N_FL)
+          Allocate(Op_V(N_op,N_FL))
           do nf = 1,N_FL
              nc = 0
              do i  = 1, Latt%N 

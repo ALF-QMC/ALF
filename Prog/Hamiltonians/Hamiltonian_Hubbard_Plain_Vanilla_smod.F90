@@ -353,7 +353,7 @@
           Implicit none
 
           Integer :: nf , I, Ix, Iy
-          Call Allocate_Op_T(1,N_FL)
+          allocate(Op_T(1,N_FL))
           do nf = 1,N_FL
              Call Op_make(Op_T(1,nf),Ndim)
              Do I = 1,Latt%N
@@ -447,7 +447,7 @@
           Real (Kind=Kind(0.d0)) :: X
 
 
-          Call Allocate_Op_V(Ndim,N_FL)
+          Allocate(Op_V(Ndim,N_FL))
 
           do nf = 1,N_FL
              do i  = 1, Ndim

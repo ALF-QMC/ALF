@@ -318,7 +318,7 @@
           Integer :: nf, I, I1, nc, N_Field_type, N_ops
 
           N_ops = size(Field_list_inv,1)
-          Call Allocate_Op_V(N_ops, N_FL)
+          Allocate(Op_V(N_ops, N_FL))
 
 
           !Field_list_inv(nc,1) = I

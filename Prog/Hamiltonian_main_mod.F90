@@ -1298,22 +1298,6 @@
     end subroutine Clear_Ham_state
 
 
-    subroutine Allocate_Op_V(N_ops, N_flavors)
-      implicit none
-      Integer, intent(in) :: N_ops, N_flavors
-
-      allocate(Op_V(N_ops, N_flavors))
-    end subroutine Allocate_Op_V
-
-
-    subroutine Allocate_Op_T(N_ops, N_flavors)
-      implicit none
-      Integer, intent(in) :: N_ops, N_flavors
-
-      allocate(Op_T(N_ops, N_flavors))
-    end subroutine Allocate_Op_T
-
-
     !--------------------------------------------------------------------
     !> @brief
     !> Sets the communicator of the group of MPI ranks that simulate the

@@ -514,7 +514,7 @@
              If (abs(Ham_U ) > Zero ) N_ops = N_ops + Latt%N*Latt_unit%Norb
           endif
           If ( Mz )  Then
-             Call Allocate_Op_V(N_ops,N_FL)
+             Allocate(Op_V(N_ops,N_FL))
              Ham_U_vec = Ham_U_vec/real(N_SUN,kind(0.d0))
              nc = 0
              Do I1 = 1,Latt%N
@@ -531,7 +531,7 @@
                 enddo
              enddo
           else
-             Call Allocate_Op_V(N_ops,N_FL)
+             Allocate(Op_V(N_ops,N_FL))
              nc = 0
              Do I1 = 1,Latt%N
                 do no = 1, Latt_unit%Norb
