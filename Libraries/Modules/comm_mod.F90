@@ -46,6 +46,23 @@
       Implicit none
       private
       public :: comm_rank, comm_size, is_root
+      public :: comm_world_rank, comm_world_size
+      public :: comm_reduce_sum, comm_reduce_max, comm_bcast
+
+      !> MPI_SUM to rank 0; the result is only meaningful on rank 0.
+      interface comm_reduce_sum
+         module procedure reduce_sum_r8, reduce_sum_i8
+      end interface comm_reduce_sum
+
+      !> MPI_MAX to rank 0; the result is only meaningful on rank 0.
+      interface comm_reduce_max
+         module procedure reduce_max_r8
+      end interface comm_reduce_max
+
+      !> Broadcast from rank 0.
+      interface comm_bcast
+         module procedure bcast_r8
+      end interface comm_bcast
 
     contains
 
@@ -76,5 +93,71 @@
         Integer, intent(in) :: comm
         is_root = (comm_rank(comm) == 0)
       end function is_root
+
+
+      !> Rank in MPI_COMM_WORLD (0 without MPI).
+      Integer function comm_world_rank()
+#ifdef MPI
+        Integer :: ierr
+        call MPI_Comm_rank(MPI_COMM_WORLD, comm_world_rank, ierr)
+#else
+        comm_world_rank = 0
+#endif
+      end function comm_world_rank
+
+      !> Number of processes in MPI_COMM_WORLD (1 without MPI).
+      Integer function comm_world_size()
+#ifdef MPI
+        Integer :: ierr
+        call MPI_Comm_size(MPI_COMM_WORLD, comm_world_size, ierr)
+#else
+        comm_world_size = 1
+#endif
+      end function comm_world_size
+
+      Subroutine reduce_sum_r8(x, comm)
+        Real (Kind=Kind(0.d0)), intent(inout) :: x
+        Integer, intent(in) :: comm
+#ifdef MPI
+        Real (Kind=Kind(0.d0)) :: tmp
+        Integer :: ierr
+        tmp = 0.d0
+        call MPI_Reduce(x, tmp, 1, MPI_REAL8, MPI_SUM, 0, comm, ierr)
+        x = tmp
+#endif
+      end Subroutine reduce_sum_r8
+
+      Subroutine reduce_sum_i8(n, comm)
+        Integer (Kind=8), intent(inout) :: n
+        Integer, intent(in) :: comm
+#ifdef MPI
+        Integer (Kind=8) :: tmp
+        Integer :: ierr
+        tmp = 0
+        call MPI_Reduce(n, tmp, 1, MPI_INTEGER8, MPI_SUM, 0, comm, ierr)
+        n = tmp
+#endif
+      end Subroutine reduce_sum_i8
+
+      Subroutine reduce_max_r8(x, comm)
+        Real (Kind=Kind(0.d0)), intent(inout) :: x
+        Integer, intent(in) :: comm
+#ifdef MPI
+        Real (Kind=Kind(0.d0)) :: tmp
+        Integer :: ierr
+        tmp = x
+        call MPI_Reduce(x, tmp, 1, MPI_REAL8, MPI_MAX, 0, comm, ierr)
+        x = tmp
+#endif
+      end Subroutine reduce_max_r8
+
+      Subroutine bcast_r8(x, comm)
+        Real (Kind=Kind(0.d0)), intent(inout) :: x
+        Integer, intent(in) :: comm
+#ifdef MPI
+        Integer :: ierr
+        call MPI_Bcast(x, 1, MPI_REAL8, 0, comm, ierr)
+#endif
+      end Subroutine bcast_r8
 
     end Module comm_mod
