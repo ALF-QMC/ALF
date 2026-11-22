@@ -5,6 +5,7 @@ LIB=modules_90.a
 SRCS = Mat_subroutines_mod.F90 \
 	alf_hdf5_mod.F90 \
 	check_omp_num_threads_mod.F90 \
+	comm_mod.F90 \
 	entanglement_mod.F90 \
 	errors_mod.F90 \
 	files_mod.F90 \

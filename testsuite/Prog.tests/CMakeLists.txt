@@ -231,3 +231,16 @@ else()
   add_test(NAME 38-QMC-runtime-lock-fail COMMAND 38-QMC-runtime-lock-fail)
 endif()
 set_tests_properties(38-QMC-runtime-lock-fail PROPERTIES WILL_FAIL TRUE TIMEOUT 60)
+
+# Unit test for the communication layer comm_mod (Libraries/Modules).
+add_executable(39-comm-mod 39-comm-mod.F90)
+target_compile_options(39-comm-mod PRIVATE ${FLAG_LIST})
+target_include_directories(39-comm-mod PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+target_link_libraries(39-comm-mod ${LIB_LIST})
+if("${FLAG_LIST}" MATCHES "-DMPI")
+  add_test(NAME 39-comm-mod
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS}
+      $<TARGET_FILE:39-comm-mod> ${MPIEXEC_POSTFLAGS})
+else()
+  add_test(NAME 39-comm-mod COMMAND 39-comm-mod)
+endif()
