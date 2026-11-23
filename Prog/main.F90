@@ -166,6 +166,7 @@ Program Main
         Use Langevin_HMC_mod, only: Langevin_HMC, Langevin_HMC_Reset_storage, Metropolis_Langevin
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
+        Use qmc_driver_mod, only: Langevin_update
         Use qmc_sweep_mod, only: Sweep_up, Sweep_down
         Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc, &
              &                    Walker_init_stack, Walker_init_GR
@@ -655,20 +656,7 @@ Program Main
 
 
               If ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" )  then
-                 !  Carry out a Langevin update and calculate equal time observables.
-                 Call Langevin_HMC%update(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst, &
-                      &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
-                 
-                 IF ( get_Ltau() == 1 ) then
-                    If (Projector) then 
-                       NST = 0 
-                       Call Tau_p ( walker%udvl, walker%udvr, walker%udvst, walker%GR, walker%PHASE, walker%NSTM, walker%STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
-                       call Langevin_HMC%set_L_Forces(.true.)
-                    else
-                       Call Tau_m( walker%udvst, walker%GR, walker%PHASE, walker%NSTM, get_Nwrap(), walker%STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
-                       call Langevin_HMC%set_L_Forces(.true.)
-                    endif
-                 endif
+                 Call Langevin_update(walker)
               endif
 
               If (  str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" )  then
