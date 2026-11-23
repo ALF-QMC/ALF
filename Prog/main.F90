@@ -149,8 +149,6 @@ Program Main
         Use Natural_Constants, only: Eps_small
         Use Control, only: Control_init, Control_Print, &
              &             make_truncation
-        Use Tau_m_mod, only: Tau_m
-        Use Tau_p_mod, only: Tau_p
         Use Hop_mod, only: Hop_mod_init
         Use Global_mod, only: Global_Updates, Global_Tempering_setup, Global_Tempering_init_obs, &
              &                Global_Tempering_Pr
@@ -163,10 +161,10 @@ Program Main
         Use Fields_mod, only: Fields_init
         use entanglement_mod, only: Init_Entanglement_replicas
         use iso_fortran_env, only: output_unit, error_unit
-        Use Langevin_HMC_mod, only: Langevin_HMC, Langevin_HMC_Reset_storage, Metropolis_Langevin
+        Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
-        Use qmc_driver_mod, only: Langevin_update, HMC_update
+        Use qmc_driver_mod, only: Langevin_update, HMC_update, MALA_update
         Use qmc_sweep_mod, only: Sweep_up, Sweep_down
         Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc, &
              &                    Walker_init_stack, Walker_init_GR
@@ -196,7 +194,7 @@ Program Main
 #endif
          
         !General
-        Integer :: I, nf, nf_eff, nst, n, n1, N_op, NBin_eff
+        Integer :: I, nf, nf_eff, n, n1, N_op, NBin_eff
         Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
         Logical :: Toggle,  Toggle1
 
@@ -664,49 +662,7 @@ Program Main
               endif
 
               If (  str_to_upper(Metropolis_Langevin%get_Update_scheme()) == "MALA" )  then
-                 ! The stored forces and determinants are only valid if no other update
-                 ! has changed the configuration since they were computed.
-                 if ( get_sequential() .or. get_Global_moves() .or. get_HMC() .or. get_Langevin() ) then
-                    call Metropolis_Langevin%set_L_Forces(.False.)
-                 endif
-#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
-                 IF (MOD(NSW,get_N_Tempering_frequency()) == 0) call Metropolis_Langevin%set_L_Forces(.False.)
-#endif
-                 Do n=1, get_N_Global_MALA_sweeps()
-                     Call Metropolis_Langevin%update(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst, &
-                          &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
-                     if (n /= get_N_Global_MALA_sweeps()) then
-                        Call Metropolis_Langevin%calc_Forces(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst,&
-                             &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                        Call Langevin_HMC_Reset_storage(walker%Phase, walker%GR, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst)
-                        call Metropolis_Langevin%set_L_Forces(.true.)
-                     endif
-                 enddo
-
-                 ! Measure only after the MALA acceptance/rejection decision and storage reset.
-                 If ( .not. get_sequential() ) then
-                    IF ( get_Ltau() == 1 ) then
-                       ! Tau_m/Tau_p measure equal-time observables only for Langevin/HMC.
-                       ! Without HMC, measure the retained MALA configuration here, including
-                       ! the restored old configuration after a rejected proposal.
-                       if ( .not. get_HMC() ) then
-                          Call Metropolis_Langevin%calc_Forces(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst,&
-                               &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                          Call Langevin_HMC_Reset_storage(walker%Phase, walker%GR, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst)
-                       endif
-                       If (Projector) then
-                          NST = 0
-                          Call Tau_p ( walker%udvl, walker%udvr, walker%udvst, walker%GR, walker%PHASE, walker%NSTM, walker%STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
-                       else
-                          Call Tau_m( walker%udvst, walker%GR, walker%PHASE, walker%NSTM, get_Nwrap(), walker%STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
-                       endif
-                    else
-                       Call Metropolis_Langevin%calc_Forces(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst,&
-                       &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                       Call Langevin_HMC_Reset_storage(walker%Phase, walker%GR, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst)
-                    endif
-                    call Metropolis_Langevin%set_L_Forces(.true.)
-                 endif
+                 Call MALA_update(walker, NSW)
               endif
 
               If (get_sequential())  then 

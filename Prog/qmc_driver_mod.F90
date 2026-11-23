@@ -50,12 +50,16 @@ Module qmc_driver_mod
   Use Tau_m_mod, only: Tau_m
   Use Tau_p_mod, only: Tau_p
   Use QMC_runtime_var, only: get_LOBS_ST, get_LOBS_EN, get_Ltau, get_Nwrap, &
-       &                     get_N_HMC_sweeps, get_sequential, get_Global_MALA_moves
+       &                     get_N_HMC_sweeps, get_sequential, get_Global_MALA_moves, &
+       &                     get_N_Global_MALA_sweeps, get_Global_moves, get_HMC, get_Langevin
+#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
+  Use QMC_runtime_var, only: get_N_Tempering_frequency
+#endif
 
   Implicit none
   private
 
-  public :: Langevin_update, HMC_update
+  public :: Langevin_update, HMC_update, MALA_update
 
   contains
 
@@ -124,5 +128,61 @@ Module qmc_driver_mod
          call Langevin_HMC%set_L_Forces(.true.)
       endif
     end Subroutine HMC_update
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> get_N_Global_MALA_sweeps() global MALA updates, then the measurements
+    !> unless the sequential sweep follows. NSW (the sweep index) is needed
+    !> only with tempering.
+    !--------------------------------------------------------------------
+    Subroutine MALA_update(walker, NSW)
+      Type (qmc_walker_t), intent(inout) :: walker
+      Integer,             intent(in)    :: NSW
+      Integer :: NST, n
+
+      ! The stored forces and determinants are only valid if no other update
+      ! has changed the configuration since they were computed.
+      if ( get_sequential() .or. get_Global_moves() .or. get_HMC() .or. get_Langevin() ) then
+         call Metropolis_Langevin%set_L_Forces(.False.)
+      endif
+#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
+      IF (MOD(NSW,get_N_Tempering_frequency()) == 0) call Metropolis_Langevin%set_L_Forces(.False.)
+#endif
+      Do n=1, get_N_Global_MALA_sweeps()
+          Call Metropolis_Langevin%update(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst, &
+               &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
+          if (n /= get_N_Global_MALA_sweeps()) then
+             Call Metropolis_Langevin%calc_Forces(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst,&
+                  &  get_LOBS_ST(), get_LOBS_EN(), .True. )
+             Call Langevin_HMC_Reset_storage(walker%Phase, walker%GR, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst)
+             call Metropolis_Langevin%set_L_Forces(.true.)
+          endif
+      enddo
+
+      ! Measure only after the MALA acceptance/rejection decision and storage reset.
+      If ( .not. get_sequential() ) then
+         IF ( get_Ltau() == 1 ) then
+            ! Tau_m/Tau_p measure equal-time observables only for Langevin/HMC.
+            ! Without HMC, measure the retained MALA configuration here, including
+            ! the restored old configuration after a rejected proposal.
+            if ( .not. get_HMC() ) then
+               Call Metropolis_Langevin%calc_Forces(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst,&
+                    &  get_LOBS_ST(), get_LOBS_EN(), .True. )
+               Call Langevin_HMC_Reset_storage(walker%Phase, walker%GR, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst)
+            endif
+            If (Projector) then
+               NST = 0
+               Call Tau_p ( walker%udvl, walker%udvr, walker%udvst, walker%GR, walker%PHASE, walker%NSTM, walker%STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
+            else
+               Call Tau_m( walker%udvst, walker%GR, walker%PHASE, walker%NSTM, get_Nwrap(), walker%STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
+            endif
+         else
+            Call Metropolis_Langevin%calc_Forces(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst,&
+            &  get_LOBS_ST(), get_LOBS_EN(), .True. )
+            Call Langevin_HMC_Reset_storage(walker%Phase, walker%GR, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst)
+         endif
+         call Metropolis_Langevin%set_L_Forces(.true.)
+      endif
+    end Subroutine MALA_update
 
 end Module qmc_driver_mod
