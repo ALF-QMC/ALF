@@ -164,6 +164,7 @@ Program Main
         Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
+        Use qmc_setup_mod, only: Setup_model
         Use comm_mod, only: is_root, comm_world
         Use qmc_driver_mod, only: Langevin_update, HMC_update, MALA_update
         Use qmc_sweep_mod, only: Sweep_up, Sweep_down
@@ -324,52 +325,7 @@ Program Main
         call read_and_broadcast_QMC_var_and_ham_name(Group_Comm)
         NBin_eff = get_NBin()
 
-        Call Fields_init(get_Amplitude())
-        Call Alloc_Ham(get_ham_name())
-        leap_frog_bulk = .false.
-        Call ham%Ham_set()
-        Call Validate_Ham_Variables()
-        If ( allocated(Calc_Fl) ) then
-           if ( any(.not. Calc_Fl) ) call check_compatibility_reconstruct_greens_function()
-        endif
-        ! Test  if  user  has  specified  correct  array  size  for time dependent Hamiltonians
-        N_op = Size(OP_V,1)
-        do n = 1, N_op
-            do i = 1, N_Fl
-                if (Op_V(n,i)%get_g_t_alloc()) then
-                    if (size(Op_V(n,i)%g_t,1) /= Ltrot) then
-                        write(error_unit,*) "Array size of time-dependent coupling Op_V%g_t has to be Ltrot!"
-                        CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-                    endif
-                endif
-            enddo
-        enddo
-        do n = 1, size(Op_T,1)
-            do i = 1, N_Fl
-                if (Op_T(n,i)%get_g_t_alloc()) then
-                    if (size(Op_T(n,i)%g_t,1) /= Ltrot) then
-                        write(error_unit,*) "Array size of time-dependent coupling Op_T%g_t has to be Ltrot!"
-                        CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-                    endif
-                endif
-            enddo
-        enddo
-         
-
-        ! Flavours to compute: Calc_Fl (default all), N_FL_eff, Calc_Fl_map, reconstruction_needed
-        Call Setup_flavor_map()
-
-        if(Projector) then
-           do nf_eff=1,N_fl_eff
-              nf=Calc_Fl_map(nf_eff)
-              if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) then
-                 write(error_unit,*) "Projector is selected but there are no trial wave functions!"
-                 CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-              endif
-           enddo
-        endif
-        
-        Call set_default_values_measuring_interval(Thtrot, Ltrot, Projector)
+        Call Setup_model(N_op)
 
         If ( .not. ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) )  then
            ! This  corresponds to the default updating scheme
