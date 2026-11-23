@@ -164,7 +164,7 @@ Program Main
         Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
-        Use qmc_setup_mod, only: Setup_model
+        Use qmc_setup_mod, only: Setup_model, Setup_fields
         Use comm_mod, only: is_root, comm_world
         Use qmc_driver_mod, only: Langevin_update, HMC_update, MALA_update
         Use qmc_sweep_mod, only: Sweep_up, Sweep_down
@@ -327,45 +327,7 @@ Program Main
 
         Call Setup_model(N_op)
 
-        If ( .not. ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) )  then
-           ! This  corresponds to the default updating scheme
-           call set_default_global_tau_sampling(Size(OP_V,1))
-        else
-           !  Gives the possibility to set parameters in the Hamiltonian file
-           tmp_Nt_sequential_start = get_Nt_sequential_start()
-           tmp_Nt_sequential_end   = get_Nt_sequential_end()
-           tmp_N_Global_tau        = get_N_Global_tau()
-           tmp_N_Global_tau_MALA   = get_N_Global_tau_MALA()
-           Call ham%Overide_global_tau_sampling_parameters(tmp_Nt_sequential_start,tmp_Nt_sequential_end,tmp_N_Global_tau,tmp_N_Global_tau_MALA)
-           call set_Nt_sequential_start(tmp_Nt_sequential_start)
-           call set_Nt_sequential_end(tmp_Nt_sequential_end)
-           call set_N_Global_tau(tmp_N_Global_tau)
-           call set_N_Global_tau_MALA(tmp_N_Global_tau_MALA)
-        endif
-        
-        call nsigma%make(N_op, Ltrot)
-        Do n = 1,N_op
-           nsigma%t(n)              = OP_V(n,1)%type
-           nsigma%flip_protocol(n)  = OP_V(n,1)%flip_protocol
-        Enddo
-           
-        File_seeds="seeds"
-        Call Set_Random_number_Generator(File_seeds,Seed_in)
-        !Write(6,*) Seed_in
-               
-        Call ham%Hamiltonian_set_nsigma(Initial_field)
-        if (allocated(Initial_field)) then
-           Call nsigma%in(Group_Comm,Initial_field)
-           deallocate(Initial_field)
-        else
-           Call nsigma%in(Group_Comm)
-        endif
-        Call Hop_mod_init
-
-        Call apply_CPU_MAX_policy()
-        If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA() ) then
-           Call Wrapgr_alloc
-        endif
+        Call Setup_fields(N_op)
         
 #if defined(HDF5)
 #if defined(TEMPERING)

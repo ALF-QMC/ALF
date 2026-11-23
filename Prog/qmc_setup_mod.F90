@@ -85,7 +85,7 @@ Module qmc_setup_mod
   Implicit none
   private
 
-  public :: Setup_model
+  public :: Setup_fields, Setup_model
 
   contains
 
@@ -147,5 +147,59 @@ Module qmc_setup_mod
 
       Call set_default_values_measuring_interval(Thtrot, Ltrot, Projector)
     end Subroutine Setup_model
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Global-tau sampling parameters, auxiliary fields (types, initial
+    !> configuration), random number generator, hopping and the CPU_MAX policy.
+    !--------------------------------------------------------------------
+    Subroutine Setup_fields(N_op)
+      Integer, intent(in) :: N_op
+      Integer :: n, Seed_in
+      Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
+      Character (len=64) :: file_seeds
+      Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:) :: Initial_field
+
+      If ( .not. ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) )  then
+         ! This  corresponds to the default updating scheme
+         call set_default_global_tau_sampling(Size(OP_V,1))
+      else
+         !  Gives the possibility to set parameters in the Hamiltonian file
+         tmp_Nt_sequential_start = get_Nt_sequential_start()
+         tmp_Nt_sequential_end   = get_Nt_sequential_end()
+         tmp_N_Global_tau        = get_N_Global_tau()
+         tmp_N_Global_tau_MALA   = get_N_Global_tau_MALA()
+         Call ham%Overide_global_tau_sampling_parameters(tmp_Nt_sequential_start,tmp_Nt_sequential_end,tmp_N_Global_tau,tmp_N_Global_tau_MALA)
+         call set_Nt_sequential_start(tmp_Nt_sequential_start)
+         call set_Nt_sequential_end(tmp_Nt_sequential_end)
+         call set_N_Global_tau(tmp_N_Global_tau)
+         call set_N_Global_tau_MALA(tmp_N_Global_tau_MALA)
+      endif
+
+      call nsigma%make(N_op, Ltrot)
+      Do n = 1,N_op
+         nsigma%t(n)              = OP_V(n,1)%type
+         nsigma%flip_protocol(n)  = OP_V(n,1)%flip_protocol
+      Enddo
+
+      File_seeds="seeds"
+      Call Set_Random_number_Generator(File_seeds,Seed_in)
+      !Write(6,*) Seed_in
+
+      Call ham%Hamiltonian_set_nsigma(Initial_field)
+      if (allocated(Initial_field)) then
+         Call nsigma%in(Group_Comm,Initial_field)
+         deallocate(Initial_field)
+      else
+         Call nsigma%in(Group_Comm)
+      endif
+      Call Hop_mod_init
+
+      Call apply_CPU_MAX_policy()
+      If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA() ) then
+         Call Wrapgr_alloc
+      endif
+    end Subroutine Setup_fields
 
 end Module qmc_setup_mod
