@@ -171,6 +171,7 @@ Program Main
         use cgr1_mod, only: CGR
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
+        Use qmc_walker_mod, only: qmc_walker_t
          
 #ifdef HDF5
         use hdf5
@@ -179,8 +180,8 @@ Program Main
         Implicit none
 
 #include "git.h"
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR, GR_Tilde
+        ! State of the Monte Carlo walker: Green function, phase, UDV propagations and storage
+        Type (qmc_walker_t) :: walker
         CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
         COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
        
@@ -640,7 +641,7 @@ Program Main
 #endif
         
         !Call Test_Hamiltonian
-        Allocate ( Test(Ndim,Ndim), GR(NDIM,NDIM,N_FL), GR_Tilde(NDIM,NDIM,N_FL)  )
+        Allocate ( walker%Test(Ndim,Ndim), walker%GR(NDIM,NDIM,N_FL), walker%GR_Tilde(NDIM,NDIM,N_FL)  )
         ALLOCATE(udvl(N_FL_eff), udvr(N_FL_eff), udvst(NSTM, N_FL_eff))
         do nf_eff = 1, N_FL_eff
            nf=Calc_Fl_map(nf_eff)
@@ -676,7 +677,7 @@ Program Main
         Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
         do nf_eff = 1,N_Fl_eff
            nf=Calc_Fl_map(nf_eff)
-           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
+           CALL CGR(Z, NVAR, walker%GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
            call Op_phase(Z,OP_V,Nsigma,nf)
            Phase_array(nf)=Z
         Enddo
@@ -709,25 +710,25 @@ Program Main
 #if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
               IF (MOD(NSW,get_N_Tempering_frequency()) == 0) then
                  !Write(6,*) "Irank, Call tempering", Irank, NSW, get_N_exchange_steps()
-                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, get_N_exchange_steps(), get_Tempering_calc_det())
+                 CALL Exchange_Step(Phase,walker%GR,udvr, udvl,Stab_nt, udvst, get_N_exchange_steps(), get_Tempering_calc_det())
               endif
 #endif
               ! Global updates
-              If ( get_Global_moves() ) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst, get_N_Global() )
+              If ( get_Global_moves() ) Call Global_Updates(Phase, walker%GR, udvr, udvl, Stab_nt, udvst, get_N_Global() )
 
 
               If ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" )  then
                  !  Carry out a Langevin update and calculate equal time observables.
-                 Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
+                 Call Langevin_HMC%update(Phase, walker%GR, walker%GR_Tilde, walker%Test, udvr, udvl, Stab_nt, udvst, &
                       &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
                  
                  IF ( get_Ltau() == 1 ) then
                     If (Projector) then 
                        NST = 0 
-                       Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
+                       Call Tau_p ( udvl, udvr, udvst, walker%GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
                        call Langevin_HMC%set_L_Forces(.true.)
                     else
-                       Call Tau_m( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
+                       Call Tau_m( udvst, walker%GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
                        call Langevin_HMC%set_L_Forces(.true.)
                     endif
                  endif
@@ -738,12 +739,12 @@ Program Main
                  if ( get_sequential() .or. get_Global_MALA_moves() ) call Langevin_HMC%set_L_Forces(.False.)
                  Do n=1, get_N_HMC_sweeps()
                      !  Carry out a Langevin update and calculate equal time observables.
-                     Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
+                     Call Langevin_HMC%update(Phase, walker%GR, walker%GR_Tilde, walker%Test, udvr, udvl, Stab_nt, udvst, &
                           &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
                      if (n /= get_N_HMC_sweeps()) then
-                        Call Langevin_HMC%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                        Call Langevin_HMC%calc_Forces(Phase, walker%GR, walker%GR_Tilde, walker%Test, udvr, udvl, Stab_nt, udvst,&
                              &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                        Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                        Call Langevin_HMC_Reset_storage(Phase, walker%GR, udvr, udvl, Stab_nt, udvst)
                         call Langevin_HMC%set_L_Forces(.true.)
                      endif
                  enddo
@@ -753,14 +754,14 @@ Program Main
                     IF ( get_Ltau() == 1 ) then
                        If (Projector) then 
                           NST = 0 
-                          Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
+                          Call Tau_p ( udvl, udvr, udvst, walker%GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
                        else
-                          Call Tau_m( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
+                          Call Tau_m( udvst, walker%GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
                        endif
                     else
-                       Call Langevin_HMC%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                       Call Langevin_HMC%calc_Forces(Phase, walker%GR, walker%GR_Tilde, walker%Test, udvr, udvl, Stab_nt, udvst,&
                        &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                       Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                       Call Langevin_HMC_Reset_storage(Phase, walker%GR, udvr, udvl, Stab_nt, udvst)
                     endif
                     call Langevin_HMC%set_L_Forces(.true.)
                  endif
@@ -776,12 +777,12 @@ Program Main
                  IF (MOD(NSW,get_N_Tempering_frequency()) == 0) call Metropolis_Langevin%set_L_Forces(.False.)
 #endif
                  Do n=1, get_N_Global_MALA_sweeps()
-                     Call Metropolis_Langevin%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
+                     Call Metropolis_Langevin%update(Phase, walker%GR, walker%GR_Tilde, walker%Test, udvr, udvl, Stab_nt, udvst, &
                           &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
                      if (n /= get_N_Global_MALA_sweeps()) then
-                        Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                        Call Metropolis_Langevin%calc_Forces(Phase, walker%GR, walker%GR_Tilde, walker%Test, udvr, udvl, Stab_nt, udvst,&
                              &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                        Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                        Call Langevin_HMC_Reset_storage(Phase, walker%GR, udvr, udvl, Stab_nt, udvst)
                         call Metropolis_Langevin%set_L_Forces(.true.)
                      endif
                  enddo
@@ -793,20 +794,20 @@ Program Main
                        ! Without HMC, measure the retained MALA configuration here, including
                        ! the restored old configuration after a rejected proposal.
                        if ( .not. get_HMC() ) then
-                          Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                          Call Metropolis_Langevin%calc_Forces(Phase, walker%GR, walker%GR_Tilde, walker%Test, udvr, udvl, Stab_nt, udvst,&
                                &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                          Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                          Call Langevin_HMC_Reset_storage(Phase, walker%GR, udvr, udvl, Stab_nt, udvst)
                        endif
                        If (Projector) then
                           NST = 0
-                          Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
+                          Call Tau_p ( udvl, udvr, udvst, walker%GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
                        else
-                          Call Tau_m( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
+                          Call Tau_m( udvst, walker%GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
                        endif
                     else
-                       Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                       Call Metropolis_Langevin%calc_Forces(Phase, walker%GR, walker%GR_Tilde, walker%Test, udvr, udvl, Stab_nt, udvst,&
                        &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                       Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                       Call Langevin_HMC_Reset_storage(Phase, walker%GR, udvr, udvl, Stab_nt, udvst)
                     endif
                     call Metropolis_Langevin%set_L_Forces(.true.)
                  endif
@@ -827,7 +828,7 @@ Program Main
                  NST = 1
                  DO NTAU = 0, LTROT-1
                     NTAU1 = NTAU + 1
-                    CALL WRAPGRUP(GR,NTAU,PHASE,get_Propose_S0(), get_Nt_sequential_start(), get_Nt_sequential_end(), &    
+                    CALL WRAPGRUP(walker%GR,NTAU,PHASE,get_Propose_S0(), get_Nt_sequential_start(), get_Nt_sequential_end(), &    
                          &        get_N_Global_tau(), &
                          &        get_Sequential_MALA(), get_Delta_t_MALA_sequential(), get_Max_Force_MALA_sequential(), &
                          &        get_N_Global_tau_MALA(), get_delta_t_MALA_global_tau(), get_Max_Force_MALA_global_tau())
@@ -844,9 +845,9 @@ Program Main
                           udvst(NST, nf_eff) = udvr(nf_eff)
                           NVAR = 1
                           IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                          TEST(:,:) = GR(:,:,nf)
-                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
-                          Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                          walker%TEST(:,:) = walker%GR(:,:,nf)
+                          CALL CGR(Z1, NVAR, walker%GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
+                          Call Control_PrecisionG(walker%GR(:,:,nf),walker%Test,Ndim)
                           call Op_phase(Z1,OP_V,Nsigma,nf)
                           Phase_array(nf)=Z1
                        ENDDO
@@ -865,14 +866,14 @@ Program Main
                        !write(*,*) "Phase before obser : ",phase
                        Mc_step_weight = 1.d0
                        If (Symm) then
-                          Call Hop_mod_Symm(GR_Tilde,GR,ntau1)
+                          Call Hop_mod_Symm(walker%GR_Tilde,walker%GR,ntau1)
                           !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
-                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
+                          If (reconstruction_needed) Call ham%GR_reconstruction( walker%GR_Tilde )
+                          CALL ham%Obser( walker%GR_Tilde, PHASE, Ntau1, Mc_step_weight )
                        else
                           !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( GR )
-                          CALL ham%Obser( GR, PHASE, Ntau1, Mc_step_weight  )
+                          If (reconstruction_needed) Call ham%GR_reconstruction( walker%GR )
+                          CALL ham%Obser( walker%GR, PHASE, Ntau1, Mc_step_weight  )
                        endif
                     ENDIF
                  ENDDO
@@ -889,7 +890,7 @@ Program Main
                  NST = NSTM-1
                  DO NTAU = LTROT,1,-1
                     NTAU1 = NTAU - 1
-                    CALL WRAPGRDO(GR,NTAU, PHASE,get_Propose_S0(),get_Nt_sequential_start(), get_Nt_sequential_end(), & 
+                    CALL WRAPGRDO(walker%GR,NTAU, PHASE,get_Propose_S0(),get_Nt_sequential_start(), get_Nt_sequential_end(), & 
                          &        get_N_Global_tau(), &
                          &        get_Sequential_MALA(), get_Delta_t_MALA_sequential(), get_Max_Force_MALA_sequential(), &
                          &        get_N_Global_tau_MALA(), get_delta_t_MALA_global_tau(), get_Max_Force_MALA_global_tau())
@@ -898,14 +899,14 @@ Program Main
                        !write(*,*) "Phase before obser : ",phase
                        Mc_step_weight = 1.d0
                        If (Symm) then
-                          Call Hop_mod_Symm(GR_Tilde,GR,ntau1)
+                          Call Hop_mod_Symm(walker%GR_Tilde,walker%GR,ntau1)
                           !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
-                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
+                          If (reconstruction_needed) Call ham%GR_reconstruction( walker%GR_Tilde )
+                          CALL ham%Obser( walker%GR_Tilde, PHASE, Ntau1, Mc_step_weight )
                        else
                           !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( GR )
-                          CALL ham%Obser( GR, PHASE, Ntau1,Mc_step_weight )
+                          If (reconstruction_needed) Call ham%GR_reconstruction( walker%GR )
+                          CALL ham%Obser( walker%GR, PHASE, Ntau1,Mc_step_weight )
                        endif
                     ENDIF
                     IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
@@ -922,9 +923,9 @@ Program Main
                           udvst(NST, nf_eff) = udvl(nf_eff)
                           NVAR = 1
                           IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                          TEST(:,:) = GR(:,:,nf)
-                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
-                          Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                          walker%TEST(:,:) = walker%GR(:,:,nf)
+                          CALL CGR(Z1, NVAR, walker%GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
+                          Call Control_PrecisionG(walker%GR(:,:,nf),walker%Test,Ndim)
                           call Op_phase(Z1,OP_V,Nsigma,nf)
                           Phase_array(nf)=Z1
                        ENDDO
@@ -934,7 +935,7 @@ Program Main
                        Call Control_PrecisionP(Z,Phase)
                        Phase = Z
                        IF( get_Ltau() == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
-                          Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST,  get_LOBS_ST(), get_LOBS_EN() )
+                          Call tau_p ( udvl, udvr, udvst, walker%GR, PHASE, NSTM, STAB_NT, NST,  get_LOBS_ST(), get_LOBS_EN() )
                        endif
                        NST = NST -1
                     ENDIF
@@ -956,10 +957,10 @@ Program Main
                  Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
                  do nf_eff = 1,N_FL_eff
                     nf=Calc_Fl_map(nf_eff)
-                    TEST(:,:) = GR(:,:,nf)
+                    walker%TEST(:,:) = walker%GR(:,:,nf)
                     NVAR = 1
-                    CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
-                    Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                    CALL CGR(Z1, NVAR, walker%GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
+                    Call Control_PrecisionG(walker%GR(:,:,nf),walker%Test,Ndim)
                     call Op_phase(Z1,OP_V,Nsigma,nf)
                     Phase_array(nf)=Z1
                  ENDDO
@@ -979,7 +980,7 @@ Program Main
                  enddo
                  
                  IF ( get_Ltau() == 1 .and. .not. Projector ) then
-                    Call TAU_M( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
+                    Call TAU_M( udvst, walker%GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
                  endif
                  ! When Nwrap > Thtrot+1, the smallest Stab_nt(1)=Nwrap already exceeds
                  ! THTROT+1, so the backward-loop condition Stab_nt(NST)<=THTROT+1 was
@@ -989,7 +990,7 @@ Program Main
                  ! udvst(1..Nstm) contains fresh left propagations from the backward
                  ! sweep, so calling tau_p with NST_IN=0 is correct here.
                  IF ( get_LTAU() == 1 .and. Projector .and. Stab_nt(1) > THTROT+1 ) then
-                    Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, 0, get_LOBS_ST(), get_LOBS_EN() )
+                    Call tau_p ( udvl, udvr, udvst, walker%GR, PHASE, NSTM, STAB_NT, 0, get_LOBS_ST(), get_LOBS_EN() )
                  endif
               endif
 
@@ -1021,7 +1022,7 @@ Program Main
            ENDDO
         ENDDO
         DEALLOCATE(udvl, udvr, udvst)
-        DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
+        DEALLOCATE(walker%GR, walker%TEST, Stab_nt,walker%GR_Tilde)
         If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA()) then
            Call Wrapgr_dealloc
         endif
