@@ -84,7 +84,7 @@ Module qmc_walker_mod
   end Type qmc_walker_t
 
   public :: Walker_layout, Walker_alloc, Walker_dealloc, Walker_init_stack, Walker_init_GR, &
-       &    Recompute_GR_phase
+       &    Recompute_GR_phase, Reset_udv
 
   contains
 
@@ -237,5 +237,31 @@ Module qmc_walker_mod
       Call Control_PrecisionP(Z,walker%Phase)
       walker%Phase = Z
     end Subroutine Recompute_GR_phase
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Resets the UDV states udv(1:N_FL_eff) of one side ('l' or 'r') to the
+    !> start of a propagation: the identity, or the trial wave function
+    !> (WF_L for 'l', WF_R for 'r') in the projector code.
+    !> udv is walker%udvl, walker%udvr or a storage column walker%udvst(n,:).
+    !--------------------------------------------------------------------
+    Subroutine Reset_udv(udv, side)
+      Class (UDV_State), Dimension(:), intent(inout) :: udv
+      Character (len=1),               intent(in)    :: side
+      Integer :: nf, nf_eff
+
+      do nf_eff = 1,N_FL_eff
+         nf=Calc_Fl_map(nf_eff)
+         if (Projector) then
+            if (side == 'r') then
+               CALL udv(nf_eff)%reset('r',WF_R(nf)%P)
+            else
+               CALL udv(nf_eff)%reset('l',WF_L(nf)%P)
+            endif
+         else
+            CALL udv(nf_eff)%reset(side)
+         endif
+      enddo
+    end Subroutine Reset_udv
 
 end Module qmc_walker_mod

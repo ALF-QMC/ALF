@@ -169,7 +169,8 @@ Program Main
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
         Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc, &
-             &                    Walker_init_stack, Walker_init_GR, Recompute_GR_phase
+             &                    Walker_init_stack, Walker_init_GR, Recompute_GR_phase, &
+             &                    Reset_udv
          
 #ifdef HDF5
         use hdf5
@@ -757,14 +758,7 @@ Program Main
               If (get_sequential())  then 
                  ! Propagation from 1 to Ltrot
                  ! Set the right storage to 1
-                 do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    if (Projector) then
-                       CALL walker%udvr(nf_eff)%reset('r',WF_R(nf)%P)
-                    else
-                       CALL walker%udvr(nf_eff)%reset('r')
-                    endif
-                 Enddo
+                 Call Reset_udv(walker%udvr, 'r')
                  
                  NST = 1
                  DO NTAU = 0, LTROT-1
@@ -808,14 +802,7 @@ Program Main
                     ENDIF
                  ENDDO
                  
-                 Do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    if (Projector) then
-                       CALL walker%udvl(nf_eff)%reset('l',WF_L(nf)%P)
-                    else
-                       CALL walker%udvl(nf_eff)%reset('l')
-                    endif
-                 ENDDO
+                 Call Reset_udv(walker%udvl, 'l')
                  
                  NST = walker%NSTM-1
                  DO NTAU = LTROT,1,-1
@@ -865,25 +852,11 @@ Program Main
                  NT  = walker%Stab_nt(1)
                  CALL WRAPUL(NT, NT1, walker%udvl)
                  
-                 do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    if (Projector) then
-                       CALL walker%udvr(nf_eff)%reset('r',WF_R(nf)%P)
-                    else
-                       CALL walker%udvr(nf_eff)%reset('r')
-                    endif
-                 ENDDO
+                 Call Reset_udv(walker%udvr, 'r')
                  NVAR = 1
                  Call Recompute_GR_phase(walker, NVAR)
                  NST =  walker%NSTM
-                 Do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    if (Projector) then
-                       CALL walker%udvst(NST, nf_eff)%reset('l',WF_L(nf)%P)
-                    else
-                       CALL walker%udvst(NST, nf_eff)%reset('l')
-                    endif
-                 enddo
+                 Call Reset_udv(walker%udvst(NST,:), 'l')
                  
                  IF ( get_Ltau() == 1 .and. .not. Projector ) then
                     Call TAU_M( walker%udvst, walker%GR, walker%PHASE, walker%NSTM, get_Nwrap(), walker%STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
