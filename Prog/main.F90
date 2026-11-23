@@ -164,7 +164,7 @@ Program Main
         Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
-        Use qmc_setup_mod, only: Setup_model, Setup_fields, Setup_update_schemes
+        Use qmc_setup_mod, only: Setup_model, Setup_fields, Setup_update_schemes, Write_info_parameters
         Use comm_mod, only: is_root, comm_world
         Use qmc_driver_mod, only: Langevin_update, HMC_update, MALA_update
         Use qmc_sweep_mod, only: Sweep_up, Sweep_down
@@ -199,6 +199,7 @@ Program Main
         Integer :: I, nf, nf_eff, n, n1, N_op, NBin_eff
         Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
         Logical :: Toggle,  Toggle1
+        Real    (Kind=Kind(0.d0)) :: chunk_size_gb   ! MPI shared memory chunk (GB); set with MPI only
 
 #if defined(MPI) || defined(HDF5)
         Integer :: Ierr
@@ -214,7 +215,6 @@ Program Main
 #ifdef MPI
         character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
         character(64) :: chunk_size_str
-        Real    (Kind=Kind(0.d0)) :: chunk_size_gb
         Integer        :: Isize, Irank, Isize_g, color, key, igroup, comm_split
 
         CALL MPI_INIT(ierr)
@@ -357,125 +357,7 @@ Program Main
 
         Call Setup_update_schemes(N_op)
 
-        if (is_root(Group_Comm)) then
-           Open (Unit = 50,file=file_info,status="unknown",position="append")
-           Write(50,*) 'Sweeps                              : ', get_NSweep()
-           If ( abs(get_CPU_MAX()) < Eps_small ) then
-              Write(50,*) 'Bins                                : ', get_NBin()
-              Write(50,*) 'No CPU-time limitation '
-           else
-              Write(50,'(" Prog will stop after hours:",2x,F8.4)') get_CPU_MAX()
-           endif
-           Write(50,*) 'Measure Int.                        : ', get_LOBS_ST(), get_LOBS_EN()
-           Write(50,*) 'Stabilization,Wrap                  : ', get_Nwrap()
-           Write(50,*) 'Nstm                                : ', walker%NSTM
-           Write(50,*) 'Ltau                                : ', get_Ltau()
-           Write(50,*) '# of interacting Ops per time slice : ', Size(OP_V,1)
-           If ( get_Propose_S0() ) &
-                &  Write(50,*) 'Propose Ising moves according to  bare Ising action'
-           if ( get_sequential() ) then
-               Write(50,*)  '-------  Space-sequential Time-sequential moves -------' 
-               Write(50,*) 'Nt_sequential_start: ', get_Nt_sequential_start()
-               Write(50,*) 'Nt_sequential_end  : ', get_Nt_sequential_end()
-               If (get_Sequential_MALA()) then 
-                  Write(50,*) 'MALA Update          '
-                  Write(50,*) 'delta_t            : ', get_Delta_t_MALA_sequential() 
-                  Write(50,*) 'Max_force          : ', get_Max_Force_MALA_sequential()
-               endif
-            endif    
-            if ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) Then
-               Write(50,*)  '-------  Space-global     Time-sequential moves -------' 
-               If ( get_Global_tau_moves() ) Then
-                  Write(50,*) 'Metropolis'
-                  Write(50,*) 'N_Global_tau       : ', get_N_Global_tau()
-               endif
-               If ( get_Global_tau_MALA_moves() ) Then
-                  Write(50,*) 'MALA'
-                  Write(50,*) 'N_Global_tau_MALA  : ', get_N_Global_tau_MALA()
-                  Write(50,*) 'delta_t            : ', get_Delta_t_MALA_global_tau()
-                  Write(50,*) 'Max_Force          : ', get_Max_Force_MALA_global_tau()
-               endif
-            endif
-            if ( get_Global_moves() .or. get_Langevin() .or. get_HMC() .or. get_Global_MALA_moves() ) then 
-               Write(50,*)  '-------  Space-global     Time-global     moves -------' 
-               if ( get_HMC() ) then
-                  Write(50,*) ' HMC '
-                  Write(50,*) 'Leapfrog_Steps    : ', get_Leapfrog_steps()
-                  Write(50,*) 'delta _t          : ', get_Delta_t_Langevin_HMC()
-                  Write(50,*) 'HMC_Sweeps        : ', get_N_HMC_sweeps()
-               endif
-               if ( get_Global_MALA_moves() ) then
-                  Write(50,*) 'User Defined MALA '
-                  Write(50,*) '# moves / sweep    : ', get_N_Global_MALA_sweeps()
-                  Write(50,*) 'delta_t            : ', get_Delta_t_MALA_global()
-                  Write(50,*) 'Max_Force          : ', get_MAX_Force_MALA_global()
-               endif
-               If ( get_Global_moves() ) Then
-                  Write(50,*) 'User Defined Metropolis   '
-                  Write(50,*) '#  moves / sweep   :', get_N_Global()
-               Endif
-               if (get_Langevin() ) then
-                  Write(50,*) 'Langevin '     
-                  Write(50,*) 'delta_t            : ', get_Delta_t_Langevin_HMC()
-                  Write(50,*) 'Max_Force          : ', get_Max_Force()
-               endif
-            endif
-          
-
-           !Write out info  for  amplitude and flip_protocol
-           Toggle  = .false.
-           Do n = 1,N_op
-              if (nsigma%t(n) == 3 .or. nsigma%t(n) == 4)  Toggle = .true.
-           Enddo
-           if ( Toggle .and. (.not.get_Sequential_MALA()) ) then
-              Write(50,*) 'Amplitude  for  t=3,4  vertices is  set to: ', get_Amplitude()
-           endif
-           Toggle  = .false.
-           Do n = 1,N_op
-              if (nsigma%t(n) == 4)  Toggle = .true.
-           Enddo
-           If (Toggle)  then 
-              Write(50,"('Flip protocal  for  t=4  vertices is  set to')",advance="no")
-              do n1  =  1,4 
-                 Toggle1 = .false.
-                 do n =1,N_op
-                    if (nsigma%Flip_protocol(n)  ==  n1  .and. nsigma%t(n) == 4  )  Toggle1 = .true.
-                 enddo
-                 if  (Toggle1)   Write(50,"(I2,2x)",advance="no")   n1 
-              enddo
-              Write(50,*)
-           endif
-           
-#if defined(MPI)
-           Write(50,*) 'Number of mpi-processes : ', isize_g
-           if(use_mpi_shm) Write(50,*) 'Using mpi-shared memory in chunks of ', chunk_size_gb, 'GB.'
-#endif
-#if defined(GIT)
-           Write(50,*) 'This executable represents commit '&
-                &      , GIT_COMMIT_HASH , ' of branch ' , GIT_BRANCH , '.'
-#endif
-#if defined(STAB1)
-           Write(50,*) 'STAB1 is defined '
-#endif
-#if defined(STAB2)
-           Write(50,*) 'STAB2 is defined '
-#endif
-#if defined(STAB3)
-           Write(50,*) 'STAB3 is defined '
-#endif
-#if defined(STABLOG)
-           Write(50,*) 'LOG is defined '
-#endif
-#if defined(QRREF)
-           Write(50,*) 'QRREF is defined '
-#endif
-#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
-           Write(50,*) '# of exchange steps  ', get_N_exchange_steps()
-           Write(50,*) 'Tempering frequency  ', get_N_Tempering_frequency()
-           Write(50,*) 'Tempering Calc_det   ', get_Tempering_calc_det()
-#endif
-           close(50)
-        endif
+        Call Write_info_parameters(file_info, walker%NSTM, N_op, chunk_size_gb)
         
         !Call Test_Hamiltonian
         Call Walker_alloc(walker)
