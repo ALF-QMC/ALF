@@ -164,6 +164,7 @@ Program Main
         Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
+        Use comm_mod, only: is_root, comm_world
         Use qmc_driver_mod, only: Langevin_update, HMC_update, MALA_update
         Use qmc_sweep_mod, only: Sweep_up, Sweep_down
         Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc, &
@@ -213,14 +214,14 @@ Program Main
         character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
         character(64) :: chunk_size_str
         Real    (Kind=Kind(0.d0)) :: chunk_size_gb
-        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, comm_split
+        Integer        :: Isize, Irank, Isize_g, color, key, igroup, comm_split
 
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-        
-        If (  Irank == 0 ) then
 #endif
+        
+        If (is_root(comm_world())) then
            write (*,*) "ALF Copyright (C) 2016 - 2026 The ALF project contributors"
            write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
            write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
@@ -254,9 +255,7 @@ Program Main
              write (5,*) "ALF is running"
              close (5)
            end if
-#ifdef MPI
         endif
-#endif
 
 #if defined(TEMPERING) && defined(MPI)
         call read_and_broadcast_TEMPERING_var()
@@ -281,7 +280,6 @@ Program Main
         key   =  0
         call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,comm_split, ierr)
         call Set_Group_Comm(comm_split)
-        call MPI_Comm_rank(Group_Comm, Irank_g, ierr)
         call MPI_Comm_size(Group_Comm, Isize_g, ierr)
         igroup           = irank/isize_g
         !Write(6,*) 'irank, Irank_g, Isize_g', irank, irank_g, isize_g
@@ -311,9 +309,7 @@ Program Main
         file_git_info = "info_git"
 #endif
 
-#if defined(MPI)
-        if ( Irank_g == 0 ) then
-#endif
+        if (is_root(Group_Comm)) then
            Open (Unit = 50,file=file_info,status="unknown",position="append")
            write(50,*) "START TIME: " // iso8601_datetime()
            close(50)
@@ -324,9 +320,7 @@ Program Main
            write(50,*) "=================================="
            close(50)
 #endif
-#if defined(MPI)
         endif
-#endif
         call read_and_broadcast_QMC_var_and_ham_name(Group_Comm)
         NBin_eff = get_NBin()
 
@@ -423,9 +417,7 @@ Program Main
 #else
         file_dat = "data.h5"
 #endif
-#if defined(MPI)
-        if ( Irank_g == 0 ) then
-#endif
+        if (is_root(Group_Comm)) then
           CALL h5open_f(ierr)
           inquire (file=file_dat, exist=file_exists)
           IF (.not. file_exists) THEN
@@ -436,9 +428,7 @@ Program Main
           endif
           call ham%write_parameters_hdf5(file_dat)
 
-#if defined(MPI)
         endif
-#endif
 #endif
 
 
@@ -451,9 +441,7 @@ Program Main
         !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)
         if ( get_Langevin() .or.  get_HMC() ) then
            if ( get_Langevin() ) then
-#if defined(MPI)
-                if ( Irank_g == 0 ) then
-#endif
+                if (is_root(Group_Comm)) then
                     Call check_langevin_schemes_and_variables()
 #if defined(TEMPERING)
                     if ( get_N_exchange_steps() > 0 ) then
@@ -461,9 +449,7 @@ Program Main
                         write(output_unit,*) "Overwriting N_exchange_steps to 0."
                     endif
 #endif
-#if defined(MPI)
                 endif
-#endif
                call apply_Langevin_overrides()
            endif
            Call Langevin_HMC%make(get_Langevin(), get_HMC() , get_Global_MALA_moves(), get_Delta_t_Langevin_HMC(), get_Max_Force(), get_Leapfrog_Steps())
@@ -490,9 +476,7 @@ Program Main
          enddo
         endif
 
-#if defined(MPI)
-        if ( Irank_g == 0 ) then
-#endif
+        if (is_root(Group_Comm)) then
            Open (Unit = 50,file=file_info,status="unknown",position="append")
            Write(50,*) 'Sweeps                              : ', get_NSweep()
            If ( abs(get_CPU_MAX()) < Eps_small ) then
@@ -610,9 +594,7 @@ Program Main
            Write(50,*) 'Tempering Calc_det   ', get_Tempering_calc_det()
 #endif
            close(50)
-#if defined(MPI)
         endif
-#endif
         
         !Call Test_Hamiltonian
         Call Walker_alloc(walker)
@@ -707,31 +689,23 @@ Program Main
         Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), get_Global_MALA_moves(), &
              &              get_Sequential_MALA(), get_Global_tau_MALA_moves())
 
-#if defined(MPI)
-        If (Irank_g == 0 ) then
-#endif
+        If (is_root(Group_Comm)) then
            Open (Unit=50,file=file_info, status="unknown", position="append")
            if ( abs(get_CPU_MAX()) > Eps_small ) then
               Write(50,*)' Effective number of bins   : ', Nbin_eff
            endif
            write(50,*)'FIN TIME: ' // iso8601_datetime()
            Close(50)
-#if defined(MPI)
         endif
-#endif
         
         Call Langevin_HMC%clean()
         Call Metropolis_Langevin%clean()
 
          ! Delete the file RUNNING since the simulation finished successfully
-#if defined(MPI)
-        If (  Irank == 0 ) then
-#endif
+        If (is_root(comm_world())) then
            open(unit=5, file='RUNNING', status='old')
            close(5, status='delete')
-#if defined(MPI)
         endif
-#endif
 
 #ifdef MPI
         CALL MPI_FINALIZE(ierr)
