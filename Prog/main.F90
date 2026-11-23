@@ -117,39 +117,19 @@ Program Main
 #ifdef MPI
         Use mpi
 #endif
-        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_HAMILTONIAN, &
-             &                       ERROR_RUNNING_FILE_FOUND
-        Use mpi_shared_memory, only: mpi_shared_memory_init, deallocate_all_shared_memory, use_mpi_shm
-        Use QMC_runtime_var, only: check_compatibility_reconstruct_greens_function, &
-             &                     check_langevin_schemes_and_variables, check_mala_variables, &
-             &                     check_update_schemes_compatibility, get_amplitude, get_cpu_max, &
-             &                     get_delta_t_langevin_hmc, get_delta_t_mala_global, &
-             &                     get_delta_t_mala_global_tau, get_delta_t_mala_sequential, &
-             &                     get_global_mala_moves, get_global_moves, get_global_tau_mala_moves, &
-             &                     get_global_tau_moves, get_ham_name, get_hmc, get_langevin, &
-             &                     get_leapfrog_steps, get_lobs_en, get_lobs_st, get_ltau, get_max_force, &
-             &                     get_max_force_mala_global, get_max_force_mala_global_tau, &
-             &                     get_max_force_mala_sequential, get_mpi_per_parameter_set, get_n_global, &
-             &                     get_n_global_mala_sweeps, get_n_global_tau, get_n_global_tau_mala, &
-             &                     get_n_hmc_sweeps, get_nbin, get_nsweep, get_nt_sequential_end, &
-             &                     get_nt_sequential_start, get_nwrap, get_propose_s0, get_sequential, &
-             &                     get_sequential_mala, get_tempering_calc_det, &
-             &                     read_and_broadcast_qmc_var_and_ham_name, &
-             &                     set_default_values_measuring_interval, apply_Langevin_overrides, &
-             &                     set_default_global_tau_sampling, &
-             &                     set_mpi_per_parameter_set, set_n_global_tau, &
-             &                     set_n_global_tau_mala, apply_CPU_MAX_policy, set_nt_sequential_end, &
-             &                     set_nt_sequential_start
-        Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Setup_flavor_map, Clear_Ham_state, &
-             &                      Set_Group_Comm, &
-             &                      Ndim, N_FL, N_FL_eff, N_SUN, &
-             &                      Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, Calc_Fl, Calc_Fl_map, &
-             &                      Projector, Group_Comm, leap_frog_bulk
+        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_RUNNING_FILE_FOUND
+        Use mpi_shared_memory, only: mpi_shared_memory_init, deallocate_all_shared_memory
+        Use QMC_runtime_var, only: get_cpu_max, get_global_mala_moves, get_global_moves, &
+             &                     get_global_tau_mala_moves, get_ltau, get_mpi_per_parameter_set, &
+             &                     get_n_global, get_n_global_tau, get_n_global_tau_mala, get_nbin, &
+             &                     get_nsweep, get_nwrap, get_sequential, get_sequential_mala, &
+             &                     get_tempering_calc_det, read_and_broadcast_qmc_var_and_ham_name, &
+             &                     set_mpi_per_parameter_set
+        Use Hamiltonian_main, only: ham, Clear_Ham_state, Set_Group_Comm, Ltrot, nsigma, Group_Comm
         Use files_mod, only: str_to_upper
         Use Natural_Constants, only: Eps_small
         Use Control, only: Control_init, Control_Print, &
              &             make_truncation
-        Use Hop_mod, only: Hop_mod_init
         Use Global_mod, only: Global_Updates, Global_Tempering_setup, Global_Tempering_init_obs, &
              &                Global_Tempering_Pr
 #if defined(TEMPERING)
@@ -157,13 +137,10 @@ Program Main
         Use QMC_runtime_var, only: read_and_broadcast_TEMPERING_var, get_N_exchange_steps, &
              &                     get_N_Tempering_frequency
 #endif
-        Use Wrapgr_mod, only: Wrapgr_alloc, Wrapgr_dealloc
-        Use Fields_mod, only: Fields_init
+        Use Wrapgr_mod, only: Wrapgr_dealloc
         use entanglement_mod, only: Init_Entanglement_replicas
-        use iso_fortran_env, only: output_unit, error_unit
+        Use iso_fortran_env, only: error_unit
         Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
-        use set_random, only: Set_Random_number_Generator
-        use iso8601_datetime_mod, only: iso8601_datetime
 #if defined(HDF5)
         Use qmc_setup_mod, only: Init_hdf5_file
 #endif
@@ -174,10 +151,6 @@ Program Main
         Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc, &
              &                    Walker_init_stack, Walker_init_GR
          
-#ifdef HDF5
-        use hdf5
-        use h5lt
-#endif
         Implicit none
 
 #include "git.h"
@@ -185,26 +158,18 @@ Program Main
         Type (qmc_walker_t) :: walker
        
         Integer :: NBC, NSW
-        Character (len=64) :: file_seeds, file_info, file_git_info
-        Integer :: Seed_in
-        Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
+        Character (len=64) :: file_info, file_git_info
 
 #ifdef HDF5
         Character (len=64) :: file_dat
 #endif
 
-#ifdef HDF5
-        INTEGER(HID_T) :: file_id
-        Logical :: file_exists
-#endif
          
         !General
-        Integer :: I, nf, nf_eff, n, n1, N_op, NBin_eff
-        Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
-        Logical :: Toggle,  Toggle1
+        Integer :: N_op, NBin_eff
         Real    (Kind=Kind(0.d0)) :: chunk_size_gb   ! MPI shared memory chunk (GB); set with MPI only
 
-#if defined(MPI) || defined(HDF5)
+#if defined(MPI)
         Integer :: Ierr
 #endif
 
