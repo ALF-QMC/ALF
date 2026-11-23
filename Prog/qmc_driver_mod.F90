@@ -49,12 +49,13 @@ Module qmc_driver_mod
   Use Langevin_HMC_mod, only: Langevin_HMC, Langevin_HMC_Reset_storage, Metropolis_Langevin
   Use Tau_m_mod, only: Tau_m
   Use Tau_p_mod, only: Tau_p
-  Use QMC_runtime_var, only: get_LOBS_ST, get_LOBS_EN, get_Ltau, get_Nwrap
+  Use QMC_runtime_var, only: get_LOBS_ST, get_LOBS_EN, get_Ltau, get_Nwrap, &
+       &                     get_N_HMC_sweeps, get_sequential, get_Global_MALA_moves
 
   Implicit none
   private
 
-  public :: Langevin_update
+  public :: Langevin_update, HMC_update
 
   contains
 
@@ -82,5 +83,46 @@ Module qmc_driver_mod
          endif
       endif
     end Subroutine Langevin_update
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> get_N_HMC_sweeps() HMC trajectories, then the measurements (time-displaced
+    !> for Ltau = 1) unless the sequential sweep follows.
+    !--------------------------------------------------------------------
+    Subroutine HMC_update(walker)
+      Type (qmc_walker_t), intent(inout) :: walker
+      Integer :: NST, n
+
+      ! A preceding MALA sweep may have changed both the forces and determinants.
+      if ( get_sequential() .or. get_Global_MALA_moves() ) call Langevin_HMC%set_L_Forces(.False.)
+      Do n=1, get_N_HMC_sweeps()
+          !  Carry out a Langevin update and calculate equal time observables.
+          Call Langevin_HMC%update(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst, &
+               &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
+          if (n /= get_N_HMC_sweeps()) then
+             Call Langevin_HMC%calc_Forces(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst,&
+                  &  get_LOBS_ST(), get_LOBS_EN(), .True. )
+             Call Langevin_HMC_Reset_storage(walker%Phase, walker%GR, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst)
+             call Langevin_HMC%set_L_Forces(.true.)
+          endif
+      enddo
+
+      !Do time-displaced measurements if needed, else set Calc_Obser_eq=.True. for the very first leapfrog ONLY
+      If ( .not. get_sequential() ) then
+         IF ( get_Ltau() == 1 ) then
+            If (Projector) then 
+               NST = 0 
+               Call Tau_p ( walker%udvl, walker%udvr, walker%udvst, walker%GR, walker%PHASE, walker%NSTM, walker%STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
+            else
+               Call Tau_m( walker%udvst, walker%GR, walker%PHASE, walker%NSTM, get_Nwrap(), walker%STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
+            endif
+         else
+            Call Langevin_HMC%calc_Forces(walker%Phase, walker%GR, walker%GR_Tilde, walker%Test, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst,&
+            &  get_LOBS_ST(), get_LOBS_EN(), .True. )
+            Call Langevin_HMC_Reset_storage(walker%Phase, walker%GR, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst)
+         endif
+         call Langevin_HMC%set_L_Forces(.true.)
+      endif
+    end Subroutine HMC_update
 
 end Module qmc_driver_mod
