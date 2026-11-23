@@ -164,7 +164,7 @@ Program Main
         Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
-        Use qmc_setup_mod, only: Setup_model, Setup_fields, Setup_update_schemes, Write_info_parameters
+        Use qmc_setup_mod, only: Setup_model, Setup_fields, Setup_update_schemes, Write_info_parameters, Write_info_start, Write_info_end
         Use comm_mod, only: is_root, comm_world
         Use qmc_driver_mod, only: Langevin_update, HMC_update, MALA_update
         Use qmc_sweep_mod, only: Sweep_up, Sweep_down
@@ -310,18 +310,7 @@ Program Main
         file_git_info = "info_git"
 #endif
 
-        if (is_root(Group_Comm)) then
-           Open (Unit = 50,file=file_info,status="unknown",position="append")
-           write(50,*) "START TIME: " // iso8601_datetime()
-           close(50)
-#if defined(GIT)
-           Open (Unit=50, file=file_git_info, status="unknown", position="append")
-           write(50,*) "=================================="
-#include "git_status.h"
-           write(50,*) "=================================="
-           close(50)
-#endif
-        endif
+        Call Write_info_start(file_info, file_git_info)
         call read_and_broadcast_QMC_var_and_ham_name(Group_Comm)
         NBin_eff = get_NBin()
 
@@ -452,14 +441,7 @@ Program Main
         Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), get_Global_MALA_moves(), &
              &              get_Sequential_MALA(), get_Global_tau_MALA_moves())
 
-        If (is_root(Group_Comm)) then
-           Open (Unit=50,file=file_info, status="unknown", position="append")
-           if ( abs(get_CPU_MAX()) > Eps_small ) then
-              Write(50,*)' Effective number of bins   : ', Nbin_eff
-           endif
-           write(50,*)'FIN TIME: ' // iso8601_datetime()
-           Close(50)
-        endif
+        Call Write_info_end(file_info, NBin_eff)
         
         Call Langevin_HMC%clean()
         Call Metropolis_Langevin%clean()

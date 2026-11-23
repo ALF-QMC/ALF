@@ -85,7 +85,7 @@ Module qmc_setup_mod
   Implicit none
   private
 
-  public :: Write_info_parameters, Setup_update_schemes, Setup_fields, Setup_model
+  public :: Write_info_end, Write_info_start, Write_info_parameters, Setup_update_schemes, Setup_fields, Setup_model
 
   contains
 
@@ -385,5 +385,46 @@ Module qmc_setup_mod
          close(50)
       endif
     end Subroutine Write_info_parameters
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Start time to the info file and the git status to info_git (group root).
+    !--------------------------------------------------------------------
+    Subroutine Write_info_start(file_info, file_git_info)
+      Character (len=*), intent(in) :: file_info, file_git_info
+
+      if (is_root(Group_Comm)) then
+         Open (Unit = 50,file=file_info,status="unknown",position="append")
+         write(50,*) "START TIME: " // iso8601_datetime()
+         close(50)
+#if defined(GIT)
+         Open (Unit=50, file=file_git_info, status="unknown", position="append")
+         write(50,*) "=================================="
+#include "git_status.h"
+         write(50,*) "=================================="
+         close(50)
+#endif
+      endif
+    end Subroutine Write_info_start
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Effective number of bins (CPU_MAX runs) and end time to the info file.
+    !--------------------------------------------------------------------
+    Subroutine Write_info_end(file_info, NBin_eff)
+      Character (len=*), intent(in) :: file_info
+      Integer,           intent(in) :: NBin_eff
+
+      If (is_root(Group_Comm)) then
+         Open (Unit=50,file=file_info, status="unknown", position="append")
+         if ( abs(get_CPU_MAX()) > Eps_small ) then
+            Write(50,*)' Effective number of bins   : ', Nbin_eff
+         endif
+         write(50,*)'FIN TIME: ' // iso8601_datetime()
+         Close(50)
+      endif
+    end Subroutine Write_info_end
 
 end Module qmc_setup_mod
