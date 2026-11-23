@@ -164,7 +164,7 @@ Program Main
         Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
-        Use qmc_setup_mod, only: Setup_model, Setup_fields
+        Use qmc_setup_mod, only: Setup_model, Setup_fields, Setup_update_schemes
         Use comm_mod, only: is_root, comm_world
         Use qmc_driver_mod, only: Langevin_update, HMC_update, MALA_update
         Use qmc_sweep_mod, only: Sweep_up, Sweep_down
@@ -355,44 +355,7 @@ Program Main
 
         Call Walker_layout(walker, Ltrot, get_Nwrap())
 
-      !   Sequential = .true.
-        !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)
-        if ( get_Langevin() .or.  get_HMC() ) then
-           if ( get_Langevin() ) then
-                if (is_root(Group_Comm)) then
-                    Call check_langevin_schemes_and_variables()
-#if defined(TEMPERING)
-                    if ( get_N_exchange_steps() > 0 ) then
-                        write(output_unit,*) "Langevin mode does not allow tempering updates."
-                        write(output_unit,*) "Overwriting N_exchange_steps to 0."
-                    endif
-#endif
-                endif
-               call apply_Langevin_overrides()
-           endif
-           Call Langevin_HMC%make(get_Langevin(), get_HMC() , get_Global_MALA_moves(), get_Delta_t_Langevin_HMC(), get_Max_Force(), get_Leapfrog_Steps())
-        else
-           Call Langevin_HMC%set_Update_scheme(get_Langevin(), get_HMC(), .false. )
-        endif
-        if (get_Global_MALA_moves()) then
-           Call Metropolis_Langevin%make(.False., .False., get_Global_MALA_moves(), get_Delta_t_MALA_global(), get_MAX_Force_MALA_global(), get_Leapfrog_Steps())
-        else
-           Call Metropolis_Langevin%set_Update_scheme(.False., .False., get_Global_MALA_moves() )
-        endif 
-        Call check_MALA_variables()
-        Call check_update_schemes_compatibility()
-
-        if ( get_Sequential_MALA() .or. get_Global_tau_MALA_moves() ) then
-         Do n = 1,N_op
-          if ( nsigma%t(n) /= 3 ) then
-             write(output_unit,*)
-             WRITE(output_unit,*) 'Warning:    Not all fields are of type 3.'
-             WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated with MALA updates.'
-             write(output_unit,*)
-           exit
-          endif
-         enddo
-        endif
+        Call Setup_update_schemes(N_op)
 
         if (is_root(Group_Comm)) then
            Open (Unit = 50,file=file_info,status="unknown",position="append")
