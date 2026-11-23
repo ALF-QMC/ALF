@@ -120,7 +120,7 @@ Per default, the finite-temperature algorithm is used, \texttt{Ltau=0}, and the 
 
 %\begin{algorithm}[H]
 \begin{breakablealgorithm}
-	\caption{Basic structure of the QMC implementation in \texttt{Prog/main.f90}}
+	\caption{Basic structure of the QMC implementation in \texttt{Prog/main.F90} and the \texttt{qmc\_*\_mod} modules}
 	\label{alg:1}
 	\begin{algorithmic}[1]
 		
@@ -214,5 +214,12 @@ Per default, the finite-temperature algorithm is used, \texttt{Ltau=0}, and the 
 	\end{algorithmic}
 \end{breakablealgorithm}
 %\end{algorithm}
+
+The steps of Alg.~\ref{alg:1} are distributed over \texttt{Prog/main.F90} and four modules.
+\texttt{main.F90} starts MPI, sets up the communicators, and runs the loops over bins and sweeps.
+\texttt{qmc\_setup\_mod} carries out the initialization (Hamiltonian, auxiliary fields, random numbers, updating schemes, HDF5 file) and writes the \texttt{info} file.
+\texttt{qmc\_walker\_mod} holds the state of the Monte Carlo walker in the type \texttt{qmc\_walker\_t}: the Green function, the phase, the left and right UDV propagations and their storage at the stabilization points. It also provides the initial filling of the storage and the stabilization step \texttt{Recompute\_GR\_phase} (\texttt{CGR}, \texttt{Control\_PrecisionG} and the recomputation of the phase).
+\texttt{qmc\_sweep\_mod} contains the upward and downward sequential sweeps, \texttt{Sweep\_up} and \texttt{Sweep\_down}.
+\texttt{qmc\_driver\_mod} contains the Langevin, HMC and MALA updates.
 
 
