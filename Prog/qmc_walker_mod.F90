@@ -58,7 +58,11 @@ Module qmc_walker_mod
   !--------------------------------------------------------------------
 
   Use UDV_State_mod, only: UDV_State
-  Use Hamiltonian_main, only: Ndim, N_FL, N_FL_eff, Calc_Fl_map, Projector, WF_L, WF_R
+  Use Hamiltonian_main, only: Ndim, N_FL, N_FL_eff, N_SUN, Calc_Fl_map, Projector, WF_L, WF_R, &
+       &                      ham, nsigma, Op_V, reconstruction_needed
+  Use Operator_mod, only: Op_phase
+  Use wrapul_mod, only: WRAPUL
+  Use cgr1_mod, only: CGR
 
   Implicit none
   private
@@ -78,7 +82,7 @@ Module qmc_walker_mod
      Class (UDV_State),         Dimension(:,:),   Allocatable :: udvst
   end Type qmc_walker_t
 
-  public :: Walker_layout, Walker_alloc, Walker_dealloc
+  public :: Walker_layout, Walker_alloc, Walker_dealloc, Walker_init_stack, Walker_init_GR
 
   contains
 
@@ -156,5 +160,50 @@ Module qmc_walker_mod
       DEALLOCATE(walker%GR, walker%TEST, walker%Stab_nt,walker%GR_Tilde)
       deallocate(walker%Phase_array)
     end Subroutine Walker_dealloc
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Builds the initial storage: left propagation from Ltrot down to 0,
+    !> storing the UDV state at every stabilisation slice.
+    !--------------------------------------------------------------------
+    Subroutine Walker_init_stack(walker)
+      Type (qmc_walker_t), intent(inout) :: walker
+      Integer :: NST, NT, NT1, nf_eff
+
+      DO NST = walker%NSTM-1,1,-1
+         NT1 = walker%Stab_nt(NST+1)
+         NT  = walker%Stab_nt(NST  )
+         !Write(6,*)'Hi', NT1,NT, NST
+         CALL WRAPUL(NT1, NT, walker%UDVL)
+         Do nf_eff = 1,N_FL_eff
+            walker%UDVST(NST, nf_eff) = walker%UDVL(nf_eff)
+         ENDDO
+      ENDDO
+      NT1 = walker%stab_nt(1)
+      CALL WRAPUL(NT1, 0, walker%UDVL)
+    end Subroutine Walker_init_stack
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Green function and phase on time slice 0 from the initial storage
+    !> (no precision check: there is no previous Green function).
+    !--------------------------------------------------------------------
+    Subroutine Walker_init_GR(walker)
+      Type (qmc_walker_t), intent(inout) :: walker
+      Integer :: NVAR, nf, nf_eff
+      Complex (Kind=Kind(0.d0)) :: Z
+
+      NVAR = 1
+      walker%Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
+      do nf_eff = 1,N_Fl_eff
+         nf=Calc_Fl_map(nf_eff)
+         CALL CGR(Z, NVAR, walker%GR(:,:,nf), walker%UDVR(nf_eff), walker%UDVL(nf_eff))
+         call Op_phase(Z,OP_V,Nsigma,nf)
+         walker%Phase_array(nf)=Z
+      Enddo
+      if (reconstruction_needed) call ham%weight_reconstruction(walker%Phase_array)
+      walker%Phase=product(walker%Phase_array)
+      walker%Phase=walker%Phase**N_SUN
+    end Subroutine Walker_init_GR
 
 end Module qmc_walker_mod

@@ -170,7 +170,8 @@ Program Main
         use cgr1_mod, only: CGR
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
-        Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc
+        Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc, &
+             &                    Walker_init_stack, Walker_init_GR
          
 #ifdef HDF5
         use hdf5
@@ -624,31 +625,9 @@ Program Main
         !Call Test_Hamiltonian
         Call Walker_alloc(walker)
 
-        DO NST = walker%NSTM-1,1,-1
-           NT1 = walker%Stab_nt(NST+1)
-           NT  = walker%Stab_nt(NST  )
-           !Write(6,*)'Hi', NT1,NT, NST
-           CALL WRAPUL(NT1, NT, walker%UDVL)
-           Do nf_eff = 1,N_FL_eff
-              walker%UDVST(NST, nf_eff) = walker%UDVL(nf_eff)
-           ENDDO
-        ENDDO
-        NT1 = walker%stab_nt(1)
-        CALL WRAPUL(NT1, 0, walker%UDVL)
-
-
-
-        NVAR = 1
-        walker%Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
-        do nf_eff = 1,N_Fl_eff
-           nf=Calc_Fl_map(nf_eff)
-           CALL CGR(Z, NVAR, walker%GR(:,:,nf), walker%UDVR(nf_eff), walker%UDVL(nf_eff))
-           call Op_phase(Z,OP_V,Nsigma,nf)
-           walker%Phase_array(nf)=Z
-        Enddo
-        if (reconstruction_needed) call ham%weight_reconstruction(walker%Phase_array)
-        walker%Phase=product(walker%Phase_array)
-        walker%Phase=walker%Phase**N_SUN
+        ! Initial storage from Ltrot down to 0, then the Green function and phase on time slice 0
+        Call Walker_init_stack(walker)
+        Call Walker_init_GR(walker)
 #ifdef MPI
         !WRITE(6,*) 'Phase is: ', Irank, PHASE, GR(1,1,1)
 #else
