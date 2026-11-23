@@ -164,6 +164,9 @@ Program Main
         Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
+#if defined(HDF5)
+        Use qmc_setup_mod, only: Init_hdf5_file
+#endif
         Use qmc_setup_mod, only: Setup_model, Setup_fields, Setup_update_schemes, Write_info_parameters, Write_info_start, Write_info_end
         Use comm_mod, only: is_root, comm_world
         Use qmc_driver_mod, only: Langevin_update, HMC_update, MALA_update
@@ -324,18 +327,7 @@ Program Main
 #else
         file_dat = "data.h5"
 #endif
-        if (is_root(Group_Comm)) then
-          CALL h5open_f(ierr)
-          inquire (file=file_dat, exist=file_exists)
-          IF (.not. file_exists) THEN
-            ! Create HDF5 file
-            CALL h5fcreate_f(file_dat, H5F_ACC_TRUNC_F, file_id, ierr)
-            call h5ltset_attribute_string_f(file_id, '/', 'program_name', 'ALF', ierr)
-            call h5fclose_f(file_id, ierr)
-          endif
-          call ham%write_parameters_hdf5(file_dat)
-
-        endif
+        Call Init_hdf5_file(file_dat)
 #endif
 
 

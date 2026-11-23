@@ -85,6 +85,9 @@ Module qmc_setup_mod
   Implicit none
   private
 
+#if defined(HDF5)
+  public :: Init_hdf5_file
+#endif
   public :: Write_info_end, Write_info_start, Write_info_parameters, Setup_update_schemes, Setup_fields, Setup_model
 
   contains
@@ -426,5 +429,33 @@ Module qmc_setup_mod
          Close(50)
       endif
     end Subroutine Write_info_end
+
+
+#if defined(HDF5)
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Creates the HDF5 data file if needed and writes the model parameters
+    !> to it (group root only).
+    !--------------------------------------------------------------------
+    Subroutine Init_hdf5_file(file_dat)
+      Character (len=*), intent(in) :: file_dat
+      INTEGER(HID_T) :: file_id
+      Logical :: file_exists
+      Integer :: ierr
+
+      if (is_root(Group_Comm)) then
+        CALL h5open_f(ierr)
+        inquire (file=file_dat, exist=file_exists)
+        IF (.not. file_exists) THEN
+          ! Create HDF5 file
+          CALL h5fcreate_f(file_dat, H5F_ACC_TRUNC_F, file_id, ierr)
+          call h5ltset_attribute_string_f(file_id, '/', 'program_name', 'ALF', ierr)
+          call h5fclose_f(file_id, ierr)
+        endif
+        call ham%write_parameters_hdf5(file_dat)
+
+      endif
+    end Subroutine Init_hdf5_file
+#endif
 
 end Module qmc_setup_mod
