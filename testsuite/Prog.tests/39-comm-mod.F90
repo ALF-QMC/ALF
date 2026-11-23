@@ -5,6 +5,8 @@ Program Test_comm_mod
   Use comm_mod, only: comm_rank, comm_size, is_root, comm_world, comm_world_rank, comm_world_size, &
        &              comm_reduce_sum, comm_reduce_max, comm_bcast, comm_reduce_mean, &
        &              comm_reduce_mean_array
+  Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
+  Use iso_fortran_env, only: error_unit
 #ifdef MPI
   Use mpi
 #endif
@@ -71,13 +73,13 @@ Program Test_comm_mod
   Call comm_bcast(x, comm)
   Call check_r("comm_bcast r8", x, 42.d0)
 
+  If (n_fail > 0) then
+     Write(error_unit,*) "comm_mod test: ", n_fail, " failure(s)"
+     Call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
+  endif
 #ifdef MPI
   Call MPI_Finalize(ierr)
 #endif
-  If (n_fail > 0) then
-     Write(*,*) "comm_mod test: ", n_fail, " failure(s)"
-     Error stop 1
-  endif
   If (rank_ref == 0) Write(*,*) "comm_mod test passed"
 
 contains
@@ -86,7 +88,7 @@ contains
     Character(len=*), intent(in) :: label
     Integer, intent(in) :: got, expected
     If (got /= expected) then
-       Write(*,*) "FAIL ", label, ": got ", got, " expected ", expected
+       Write(error_unit,*) "FAIL ", label, ": got ", got, " expected ", expected
        n_fail = n_fail + 1
     endif
   end Subroutine check_i
@@ -95,7 +97,7 @@ contains
     Character(len=*), intent(in) :: label
     Real (Kind=Kind(0.d0)), intent(in) :: got, expected
     If (got /= expected) then
-       Write(*,*) "FAIL ", label, ": got ", got, " expected ", expected
+       Write(error_unit,*) "FAIL ", label, ": got ", got, " expected ", expected
        n_fail = n_fail + 1
     endif
   end Subroutine check_r
@@ -104,7 +106,7 @@ contains
     Character(len=*), intent(in) :: label
     Logical, intent(in) :: got, expected
     If (got .neqv. expected) then
-       Write(*,*) "FAIL ", label, ": got ", got, " expected ", expected
+       Write(error_unit,*) "FAIL ", label, ": got ", got, " expected ", expected
        n_fail = n_fail + 1
     endif
   end Subroutine check_l
