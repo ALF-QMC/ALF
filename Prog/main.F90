@@ -170,7 +170,7 @@ Program Main
         use cgr1_mod, only: CGR
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
-        Use qmc_walker_mod, only: qmc_walker_t, Walker_layout
+        Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc
          
 #ifdef HDF5
         use hdf5
@@ -371,7 +371,6 @@ Program Main
 
         ! Flavours to compute: Calc_Fl (default all), N_FL_eff, Calc_Fl_map, reconstruction_needed
         Call Setup_flavor_map()
-        allocate(walker%Phase_array(N_FL))
 
         if(Projector) then
            do nf_eff=1,N_fl_eff
@@ -623,23 +622,7 @@ Program Main
 #endif
         
         !Call Test_Hamiltonian
-        Allocate ( walker%Test(Ndim,Ndim), walker%GR(NDIM,NDIM,N_FL), walker%GR_Tilde(NDIM,NDIM,N_FL)  )
-        ALLOCATE(walker%udvl(N_FL_eff), walker%udvr(N_FL_eff), walker%udvst(walker%NSTM, N_FL_eff))
-        do nf_eff = 1, N_FL_eff
-           nf=Calc_Fl_map(nf_eff)
-           do n = 1, walker%NSTM
-              CALL walker%udvst(n,nf_eff)%alloc(ndim)
-           ENDDO
-           if (Projector) then
-              CALL walker%udvl(nf_eff)%init(ndim,'l',WF_L(nf)%P)
-              CALL walker%udvr(nf_eff)%init(ndim,'r',WF_R(nf)%P)
-              CALL walker%udvst(walker%NSTM, nf_eff)%reset('l',WF_L(nf)%P)
-           else
-              CALL walker%udvl(nf_eff)%init(ndim,'l')
-              CALL walker%udvr(nf_eff)%init(ndim,'r')
-              CALL walker%udvst(walker%NSTM, nf_eff)%reset('l')
-           endif
-        enddo
+        Call Walker_alloc(walker)
 
         DO NST = walker%NSTM-1,1,-1
            NT1 = walker%Stab_nt(NST+1)
@@ -996,15 +979,7 @@ Program Main
         Enddo
 
         ! Deallocate things
-        DO nf_eff = 1, N_FL_eff
-           CALL walker%udvl(nf_eff)%dealloc
-           CALL walker%udvr(nf_eff)%dealloc
-           do n = 1, walker%NSTM
-              CALL walker%udvst(n,nf_eff)%dealloc
-           ENDDO
-        ENDDO
-        DEALLOCATE(walker%udvl, walker%udvr, walker%udvst)
-        DEALLOCATE(walker%GR, walker%TEST, walker%Stab_nt,walker%GR_Tilde)
+        Call Walker_dealloc(walker)
         If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA()) then
            Call Wrapgr_dealloc
         endif
@@ -1035,7 +1010,6 @@ Program Main
         
         Call Langevin_HMC%clean()
         Call Metropolis_Langevin%clean()
-        deallocate(walker%Phase_array)
 
          ! Delete the file RUNNING since the simulation finished successfully
 #if defined(MPI)

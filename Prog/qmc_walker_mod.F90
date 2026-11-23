@@ -58,6 +58,7 @@ Module qmc_walker_mod
   !--------------------------------------------------------------------
 
   Use UDV_State_mod, only: UDV_State
+  Use Hamiltonian_main, only: Ndim, N_FL, N_FL_eff, Calc_Fl_map, Projector, WF_L, WF_R
 
   Implicit none
   private
@@ -77,7 +78,7 @@ Module qmc_walker_mod
      Class (UDV_State),         Dimension(:,:),   Allocatable :: udvst
   end Type qmc_walker_t
 
-  public :: Walker_layout
+  public :: Walker_layout, Walker_alloc, Walker_dealloc
 
   contains
 
@@ -105,5 +106,55 @@ Module qmc_walker_mod
 
       walker%Stab_nt(walker%NSTM) = Ltrot
     end Subroutine Walker_layout
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Allocates the walker arrays for the model in Hamiltonian_main and
+    !> sets the UDV states to the identity (or to the trial wave functions
+    !> in the projector code). Walker_layout must have been called.
+    !--------------------------------------------------------------------
+    Subroutine Walker_alloc(walker)
+      Type (qmc_walker_t), intent(inout) :: walker
+      Integer :: nf, nf_eff, n
+
+      allocate(walker%Phase_array(N_FL))
+      Allocate ( walker%Test(Ndim,Ndim), walker%GR(NDIM,NDIM,N_FL), walker%GR_Tilde(NDIM,NDIM,N_FL)  )
+      ALLOCATE(walker%udvl(N_FL_eff), walker%udvr(N_FL_eff), walker%udvst(walker%NSTM, N_FL_eff))
+      do nf_eff = 1, N_FL_eff
+         nf=Calc_Fl_map(nf_eff)
+         do n = 1, walker%NSTM
+            CALL walker%udvst(n,nf_eff)%alloc(ndim)
+         ENDDO
+         if (Projector) then
+            CALL walker%udvl(nf_eff)%init(ndim,'l',WF_L(nf)%P)
+            CALL walker%udvr(nf_eff)%init(ndim,'r',WF_R(nf)%P)
+            CALL walker%udvst(walker%NSTM, nf_eff)%reset('l',WF_L(nf)%P)
+         else
+            CALL walker%udvl(nf_eff)%init(ndim,'l')
+            CALL walker%udvr(nf_eff)%init(ndim,'r')
+            CALL walker%udvst(walker%NSTM, nf_eff)%reset('l')
+         endif
+      enddo
+    end Subroutine Walker_alloc
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Releases everything Walker_layout and Walker_alloc allocated.
+    !--------------------------------------------------------------------
+    Subroutine Walker_dealloc(walker)
+      Type (qmc_walker_t), intent(inout) :: walker
+      Integer :: nf_eff, n
+
+      DO nf_eff = 1, N_FL_eff
+         CALL walker%udvl(nf_eff)%dealloc
+         CALL walker%udvr(nf_eff)%dealloc
+         do n = 1, walker%NSTM
+            CALL walker%udvst(n,nf_eff)%dealloc
+         ENDDO
+      ENDDO
+      DEALLOCATE(walker%udvl, walker%udvr, walker%udvst)
+      DEALLOCATE(walker%GR, walker%TEST, walker%Stab_nt,walker%GR_Tilde)
+      deallocate(walker%Phase_array)
+    end Subroutine Walker_dealloc
 
 end Module qmc_walker_mod
