@@ -170,7 +170,7 @@ Program Main
         use cgr1_mod, only: CGR
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
-        Use qmc_walker_mod, only: qmc_walker_t
+        Use qmc_walker_mod, only: qmc_walker_t, Walker_layout
          
 #ifdef HDF5
         use hdf5
@@ -453,18 +453,7 @@ Program Main
         Call control_init(Group_Comm)
         Call ham%Alloc_obs(get_Ltau())
 
-        If ( mod(Ltrot,get_Nwrap()) == 0  ) then
-           walker%Nstm = Ltrot/get_Nwrap()
-        else
-           walker%nstm = Ltrot/get_Nwrap() + 1
-        endif
-        allocate ( walker%Stab_nt(0:walker%Nstm) )
-        walker%Stab_nt(0) = 0
-        do n = 1,walker%Nstm -1
-           walker%Stab_nt(n) = get_Nwrap()*n
-        enddo
-
-        walker%Stab_nt(walker%Nstm) = Ltrot
+        Call Walker_layout(walker, Ltrot, get_Nwrap())
 
       !   Sequential = .true.
         !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)

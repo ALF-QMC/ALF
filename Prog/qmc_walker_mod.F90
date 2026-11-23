@@ -77,4 +77,33 @@ Module qmc_walker_mod
      Class (UDV_State),         Dimension(:,:),   Allocatable :: udvst
   end Type qmc_walker_t
 
+  public :: Walker_layout
+
+  contains
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Sets the storage layout: NSTM stabilisation intervals of Nwrap time
+    !> slices (the last one may be shorter), Stab_nt(0:NSTM) with
+    !> Stab_nt(0) = 0 and Stab_nt(NSTM) = Ltrot.
+    !--------------------------------------------------------------------
+    Subroutine Walker_layout(walker, Ltrot, Nwrap)
+      Type (qmc_walker_t), intent(inout) :: walker
+      Integer,             intent(in)    :: Ltrot, Nwrap
+      Integer :: n
+
+      If ( mod(Ltrot,Nwrap) == 0  ) then
+         walker%NSTM = Ltrot/Nwrap
+      else
+         walker%NSTM = Ltrot/Nwrap + 1
+      endif
+      allocate ( walker%Stab_nt(0:walker%NSTM) )
+      walker%Stab_nt(0) = 0
+      do n = 1,walker%NSTM -1
+         walker%Stab_nt(n) = Nwrap*n
+      enddo
+
+      walker%Stab_nt(walker%NSTM) = Ltrot
+    end Subroutine Walker_layout
+
 end Module qmc_walker_mod
