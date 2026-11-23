@@ -119,7 +119,6 @@ Program Main
 #endif
         Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_HAMILTONIAN, &
              &                       ERROR_RUNNING_FILE_FOUND
-        Use Operator_mod, only: Op_phase
         Use mpi_shared_memory, only: mpi_shared_memory_init, deallocate_all_shared_memory, use_mpi_shm
         Use QMC_runtime_var, only: check_compatibility_reconstruct_greens_function, &
              &                     check_langevin_schemes_and_variables, check_mala_variables, &
@@ -148,7 +147,7 @@ Program Main
              &                      Projector, Symm, Group_Comm, reconstruction_needed, leap_frog_bulk
         Use files_mod, only: str_to_upper
         Use Natural_Constants, only: Eps_small
-        Use Control, only: Control_init, Control_Print, Control_PrecisionG, Control_PrecisionP, &
+        Use Control, only: Control_init, Control_Print, &
              &             make_truncation
         Use Tau_m_mod, only: Tau_m
         Use Tau_p_mod, only: Tau_p
@@ -167,11 +166,10 @@ Program Main
         Use Langevin_HMC_mod, only: Langevin_HMC, Langevin_HMC_Reset_storage, Metropolis_Langevin
         use wrapur_mod, only: WRAPUR
         use wrapul_mod, only: WRAPUL
-        use cgr1_mod, only: CGR
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
         Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc, &
-             &                    Walker_init_stack, Walker_init_GR
+             &                    Walker_init_stack, Walker_init_GR, Recompute_GR_phase
          
 #ifdef HDF5
         use hdf5
@@ -203,7 +201,6 @@ Program Main
         Integer :: I, nf, nf_eff, nst, n, n1, N_op, NBin_eff
         Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
         Logical :: Toggle,  Toggle1
-        Complex (Kind=Kind(0.d0)) :: Z, Z1
         Real    (Kind=Kind(0.d0)) :: Mc_step_weight
 
 #if defined(MPI) || defined(HDF5)
@@ -780,26 +777,15 @@ Program Main
                     If (NTAU1 == walker%Stab_nt(NST) ) then
                        NT1 = walker%Stab_nt(NST-1)
                        CALL WRAPUR(NT1, NTAU1, walker%udvr)
-                       walker%Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
                        Do nf_eff = 1, N_FL_eff
-                          nf=Calc_Fl_map(nf_eff)
                           ! Read from storage left propagation from LTROT to  NTAU1
                           walker%udvl(nf_eff) = walker%udvst(NST, nf_eff)
                           ! Write in storage right prop from 1 to NTAU1
                           walker%udvst(NST, nf_eff) = walker%udvr(nf_eff)
-                          NVAR = 1
-                          IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                          walker%TEST(:,:) = walker%GR(:,:,nf)
-                          CALL CGR(Z1, NVAR, walker%GR(:,:,nf), walker%UDVR(nf_eff), walker%UDVL(nf_eff))
-                          Call Control_PrecisionG(walker%GR(:,:,nf),walker%Test,Ndim)
-                          call Op_phase(Z1,OP_V,Nsigma,nf)
-                          walker%Phase_array(nf)=Z1
                        ENDDO
-                       if (reconstruction_needed) call ham%weight_reconstruction(walker%Phase_array)
-                       Z=product(walker%Phase_array)
-                       Z=Z**N_SUN
-                       Call Control_PrecisionP(Z,walker%Phase)
-                       walker%Phase = Z
+                       NVAR = 1
+                       IF (NTAU1 .GT. LTROT/2) NVAR = 2
+                       Call Recompute_GR_phase(walker, NVAR)
                        NST = NST + 1
                     ENDIF
                     
@@ -858,26 +844,15 @@ Program Main
                        !Write(6,*) 'Wrapul : ', NT1, NTAU1
                        CALL WRAPUL(NT1, NTAU1, walker%udvl)
                        !Write(6,*)  'Write UL, read UR ', NTAU1, NST
-                       walker%Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
                        do nf_eff = 1,N_FL_eff
-                          nf=Calc_Fl_map(nf_eff)
                           ! Read from store the right prop. from 1 to LTROT/NWRAP-1
                           walker%udvr(nf_eff) = walker%udvst(NST, nf_eff)
                           ! WRITE in store the left prop. from LTROT/NWRAP-1 to 1
                           walker%udvst(NST, nf_eff) = walker%udvl(nf_eff)
-                          NVAR = 1
-                          IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                          walker%TEST(:,:) = walker%GR(:,:,nf)
-                          CALL CGR(Z1, NVAR, walker%GR(:,:,nf), walker%UDVR(nf_eff), walker%UDVL(nf_eff))
-                          Call Control_PrecisionG(walker%GR(:,:,nf),walker%Test,Ndim)
-                          call Op_phase(Z1,OP_V,Nsigma,nf)
-                          walker%Phase_array(nf)=Z1
                        ENDDO
-                       if (reconstruction_needed) call ham%weight_reconstruction(walker%Phase_array)
-                       Z=product(walker%Phase_array)
-                       Z=Z**N_SUN
-                       Call Control_PrecisionP(Z,walker%Phase)
-                       walker%Phase = Z
+                       NVAR = 1
+                       IF (NTAU1 .GT. LTROT/2) NVAR = 2
+                       Call Recompute_GR_phase(walker, NVAR)
                        IF( get_Ltau() == 1 .and. Projector .and. walker%Stab_nt(NST)<=THTROT+1 .and. THTROT+1<walker%Stab_nt(NST+1) ) then
                           Call tau_p ( walker%udvl, walker%udvr, walker%udvst, walker%GR, walker%PHASE, walker%NSTM, walker%STAB_NT, NST,  get_LOBS_ST(), get_LOBS_EN() )
                        endif
@@ -898,21 +873,8 @@ Program Main
                        CALL walker%udvr(nf_eff)%reset('r')
                     endif
                  ENDDO
-                 walker%Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
-                 do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    walker%TEST(:,:) = walker%GR(:,:,nf)
-                    NVAR = 1
-                    CALL CGR(Z1, NVAR, walker%GR(:,:,nf), walker%UDVR(nf_eff), walker%UDVL(nf_eff))
-                    Call Control_PrecisionG(walker%GR(:,:,nf),walker%Test,Ndim)
-                    call Op_phase(Z1,OP_V,Nsigma,nf)
-                    walker%Phase_array(nf)=Z1
-                 ENDDO
-                 if (reconstruction_needed) call ham%weight_reconstruction(walker%Phase_array)
-                 Z=product(walker%Phase_array)
-                 Z=Z**N_SUN
-                 Call Control_PrecisionP(Z,walker%Phase)
-                 walker%Phase = Z
+                 NVAR = 1
+                 Call Recompute_GR_phase(walker, NVAR)
                  NST =  walker%NSTM
                  Do nf_eff = 1,N_FL_eff
                     nf=Calc_Fl_map(nf_eff)

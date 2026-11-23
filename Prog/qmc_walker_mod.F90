@@ -63,6 +63,7 @@ Module qmc_walker_mod
   Use Operator_mod, only: Op_phase
   Use wrapul_mod, only: WRAPUL
   Use cgr1_mod, only: CGR
+  Use Control, only: Control_PrecisionG, Control_PrecisionP
 
   Implicit none
   private
@@ -82,7 +83,8 @@ Module qmc_walker_mod
      Class (UDV_State),         Dimension(:,:),   Allocatable :: udvst
   end Type qmc_walker_t
 
-  public :: Walker_layout, Walker_alloc, Walker_dealloc, Walker_init_stack, Walker_init_GR
+  public :: Walker_layout, Walker_alloc, Walker_dealloc, Walker_init_stack, Walker_init_GR, &
+       &    Recompute_GR_phase
 
   contains
 
@@ -205,5 +207,35 @@ Module qmc_walker_mod
       walker%Phase=product(walker%Phase_array)
       walker%Phase=walker%Phase**N_SUN
     end Subroutine Walker_init_GR
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Stabilisation point: recomputes the Green function of every computed
+    !> flavour from the current udvl, udvr, compares it with the wrapped one
+    !> (Control_PrecisionG), and recomputes the phase (Control_PrecisionP).
+    !> NVAR selects the CGR variant (1 or 2).
+    !> In a GPU build this is the step that the stabilisation backend replaces.
+    !--------------------------------------------------------------------
+    Subroutine Recompute_GR_phase(walker, NVAR)
+      Type (qmc_walker_t), intent(inout) :: walker
+      Integer,             intent(in)    :: NVAR
+      Integer :: nf, nf_eff
+      Complex (Kind=Kind(0.d0)) :: Z, Z1
+
+      walker%Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
+      do nf_eff = 1,N_FL_eff
+         nf=Calc_Fl_map(nf_eff)
+         walker%TEST(:,:) = walker%GR(:,:,nf)
+         CALL CGR(Z1, NVAR, walker%GR(:,:,nf), walker%UDVR(nf_eff), walker%UDVL(nf_eff))
+         Call Control_PrecisionG(walker%GR(:,:,nf),walker%Test,Ndim)
+         call Op_phase(Z1,OP_V,Nsigma,nf)
+         walker%Phase_array(nf)=Z1
+      ENDDO
+      if (reconstruction_needed) call ham%weight_reconstruction(walker%Phase_array)
+      Z=product(walker%Phase_array)
+      Z=Z**N_SUN
+      Call Control_PrecisionP(Z,walker%Phase)
+      walker%Phase = Z
+    end Subroutine Recompute_GR_phase
 
 end Module qmc_walker_mod
