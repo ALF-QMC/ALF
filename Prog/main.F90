@@ -168,6 +168,7 @@ Program Main
         use wrapul_mod, only: WRAPUL
         use set_random, only: Set_Random_number_Generator
         use iso8601_datetime_mod, only: iso8601_datetime
+        Use qmc_sweep_mod, only: Sweep_up
         Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc, &
              &                    Walker_init_stack, Walker_init_GR, Recompute_GR_phase, &
              &                    Reset_udv
@@ -756,51 +757,7 @@ Program Main
               endif
 
               If (get_sequential())  then 
-                 ! Propagation from 1 to Ltrot
-                 ! Set the right storage to 1
-                 Call Reset_udv(walker%udvr, 'r')
-                 
-                 NST = 1
-                 DO NTAU = 0, LTROT-1
-                    NTAU1 = NTAU + 1
-                    CALL WRAPGRUP(walker%GR,NTAU,walker%PHASE,get_Propose_S0(), get_Nt_sequential_start(), get_Nt_sequential_end(), &    
-                         &        get_N_Global_tau(), &
-                         &        get_Sequential_MALA(), get_Delta_t_MALA_sequential(), get_Max_Force_MALA_sequential(), &
-                         &        get_N_Global_tau_MALA(), get_delta_t_MALA_global_tau(), get_Max_Force_MALA_global_tau())
-                    
-                    If (NTAU1 == walker%Stab_nt(NST) ) then
-                       NT1 = walker%Stab_nt(NST-1)
-                       CALL WRAPUR(NT1, NTAU1, walker%udvr)
-                       Do nf_eff = 1, N_FL_eff
-                          ! Read from storage left propagation from LTROT to  NTAU1
-                          walker%udvl(nf_eff) = walker%udvst(NST, nf_eff)
-                          ! Write in storage right prop from 1 to NTAU1
-                          walker%udvst(NST, nf_eff) = walker%udvr(nf_eff)
-                       ENDDO
-                       NVAR = 1
-                       IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                       Call Recompute_GR_phase(walker, NVAR)
-                       NST = NST + 1
-                    ENDIF
-                    
-                    IF (NTAU1.GE. get_LOBS_ST() .AND. NTAU1.LE. get_LOBS_EN() ) THEN
-                       !Call  Global_tau_mod_Test(Gr,ntau1)
-                       !Stop
-                       !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
-                       !write(*,*) "Phase before obser : ",phase
-                       Mc_step_weight = 1.d0
-                       If (Symm) then
-                          Call Hop_mod_Symm(walker%GR_Tilde,walker%GR,ntau1)
-                          !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( walker%GR_Tilde )
-                          CALL ham%Obser( walker%GR_Tilde, walker%PHASE, Ntau1, Mc_step_weight )
-                       else
-                          !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( walker%GR )
-                          CALL ham%Obser( walker%GR, walker%PHASE, Ntau1, Mc_step_weight  )
-                       endif
-                    ENDIF
-                 ENDDO
+                 Call Sweep_up(walker)
                  
                  Call Reset_udv(walker%udvl, 'l')
                  
