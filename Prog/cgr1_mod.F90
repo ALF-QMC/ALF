@@ -64,7 +64,7 @@ module cgr1_mod
 
         !Arguments.
         CLASS(UDV_State), INTENT(IN) :: udvl, udvr
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Contiguous, Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)) :: PHASE
         INTEGER         :: NVAR
  
@@ -107,7 +107,7 @@ module cgr1_mod
         DO J = 1,N_size
             TPUP(:,J) = udvr%D(:)*udvlocal%V(:,J)*udvl%D(J)
         ENDDO
-        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvl%U(1,1), N_size, alpha, TPUP, N_size)
+        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, alpha, TPUP, N_size)
         !>  Syntax 
         !>  ZGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
         !>  C := alpha*op( A )*op( B ) + beta*C
@@ -117,7 +117,7 @@ module cgr1_mod
            CALL UDV_WRAP_Pivot(TPUP,udvlocal%U,udvlocal%D,udvlocal%V,NCON,N_size,N_Size)
            !CALL UDV(TPUP,UUP,DUP,VUP,NCON)
 !            CALL MMULT(TPUP,udvlocal%V, udvl%U)
-           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, udvlocal%V(1,1), N_size, udvl%U(1,1), N_size, beta, TPUP, N_size)
+           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, udvlocal%V, N_size, udvl%U, N_size, beta, TPUP, N_size)
            !Do I = 1,N_size
            !   Write(6,*) DLUP(I)
            !enddo
@@ -138,8 +138,8 @@ module cgr1_mod
            TPUP1 = CT(TPUP)
            CALL UDV_WRAP_Pivot(TPUP1, udvlocal%U, udvlocal%D, udvlocal%V, NCON,N_size,N_size)
            !CALL UDV(TPUP1,UUP,DUP,VUP,NCON)
-           CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, udvl%U(1,1), N_size, udvlocal%U, N_size, beta, TPUPM1, N_size)
-           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvlocal%V, N_size, beta, TPUP1, N_size)
+           CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, udvl%U, N_size, udvlocal%U, N_size, beta, TPUPM1, N_size)
+           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, udvr%U, N_size, udvlocal%V, N_size, beta, TPUP1, N_size)
            CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
            !>  TPUP1 = P * L * U   LU-decomposition
            ZDUP2 = 1.D0
@@ -184,7 +184,7 @@ module cgr1_mod
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(IN)   ::  DLUP, DRUP
         CLASS(UDV_State), INTENT(IN) :: udvl, udvr
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Contiguous, Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
         INTEGER         :: NVAR
  
@@ -223,7 +223,7 @@ module cgr1_mod
         !Write(6,*) 'In CGR', N_size
         ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
-        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
+        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS, N_size)
         
         CALL MMULT(TPUP, udvr%V, udvl%V)
 #if !(defined(STAB3) || defined(STABLOG))
@@ -366,7 +366,7 @@ module cgr1_mod
             enddo
 #endif
             ! RHS = U^dagger * RHS
-            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             !apply inverse of D to RHS from the left
             DO J = 1, N_size
@@ -381,7 +381,7 @@ module cgr1_mod
             ! We solve the equation
             !  A * G = RHS for G with A = R * P^dagger * ULUP
             ! first we solve R *y = RHS. The solution is afterwards in RHS
-            CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP(1,1), N_size, RHS(1,1), N_size)
+            CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP, N_size, RHS, N_size)
             ! apply permutation matrix
             FORWRD = .false.
             CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
@@ -396,7 +396,7 @@ module cgr1_mod
             enddo
 #endif
             ! perform multiplication with ULUP and store in GRUP
-            CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, udvl%U(1, 1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
+            CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, udvl%U, N_size, RHS, N_size, beta, GRUP, N_size)
         ELSE
             ! This solves the system G * URUP * P * R^dagger * D * U^dagger * ULUP = 1
             
@@ -406,13 +406,13 @@ module cgr1_mod
             !scale RHS=RHS*L_+^-1
             do J=1,N_size
 #if !defined(STABLOG)
-              if( dble(UDVL%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVL%D(J),RHS(1,J),1)
+              if( dble(UDVL%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVL%D(J),RHS(:,J),1)
 #else
-              if( UDVL%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVL%L(J)),0.d0,kind(0.d0)),RHS(1,J),1)
+              if( UDVL%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVL%L(J)),0.d0,kind(0.d0)),RHS(:,J),1)
 #endif
             enddo
 #endif
-            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
+            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             ! apply D^-1 to RHS from the right
             DO J = 1, N_size
@@ -429,7 +429,7 @@ module cgr1_mod
             ! We solve the equation
             ! G * A = RHS for G with A = URUP * P * R^dagger
             ! first we solve y * R^dagger = RHS
-            CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP(1, 1), N_size, RHS(1, 1), N_size)
+            CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP, N_size, RHS, N_size)
             ! apply inverse permutation matrix
             FORWRD = .false.
             CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
@@ -437,14 +437,14 @@ module cgr1_mod
             ! first scale RHS=RHS*R_+^-1
             do J=1,N_size
 #if !defined(STABLOG)
-              if( dble(UDVR%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVR%D(J),RHS(1,J),1)
+              if( dble(UDVR%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVR%D(J),RHS(:,J),1)
 #else
-              if( UDVR%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVR%L(J)),0.d0,kind(0.d0)),RHS(1,J),1)
+              if( UDVR%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVR%L(J)),0.d0,kind(0.d0)),RHS(:,J),1)
 #endif
             enddo
 #endif
             ! perform multiplication with URUP
-            CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
+            CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS, N_size, udvr%U, N_size, beta, GRUP, N_size)
         ENDIF
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
 #endif
@@ -467,7 +467,7 @@ module cgr1_mod
       SUBROUTINE CGRP(phase, GRUP, udvr, udvl)
         Use UDV_State_mod, only: UDV_State
         CLASS(UDV_State), INTENT(IN) :: udvl, udvr
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Intent(OUT) :: GRUP
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Contiguous, Intent(OUT) :: GRUP
         COMPLEX (Kind=Kind(0.d0)), Intent(OUT) :: phase
 
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:,:) :: sMat, rMat
@@ -493,7 +493,7 @@ module cgr1_mod
         ! Ul = udvl%U ^dag
         alpha=1.d0
         beta=0.d0
-        call ZGEMM('C','N',N_part,N_part,Ndim,alpha,udvl%U(1,1),Ndim,udvr%U(1,1),Ndim,beta,sMat(1,1),N_part)
+        call ZGEMM('C','N',N_part,N_part,Ndim,alpha,udvl%U,Ndim,udvr%U,Ndim,beta,sMat,N_part)
 
         ! ZGETRF computes an LU factorization of a general M-by-N matrix A
         ! using partial pivoting with row interchanges.
@@ -507,9 +507,9 @@ module cgr1_mod
           endif
         enddo
         rMat = conjg(transpose(udvl%U))
-        call zgetrs('N', N_part, Ndim, sMat(1,1), N_part, ipiv, rMat(1,1), N_part, info)
+        call zgetrs('N', N_part, Ndim, sMat, N_part, ipiv, rMat, N_part, info)
         alpha=-1.d0
-        call ZGEMM('N','N',Ndim,Ndim,N_part,alpha,udvr%U(1,1),Ndim,rMat(1,1),N_part,beta,GRUP(1,1),Ndim)
+        call ZGEMM('N','N',Ndim,Ndim,N_part,alpha,udvr%U,Ndim,rMat,N_part,beta,GRUP,Ndim)
         do n=1,Ndim
           GRUP(n,n)=GRUP(n,n)+cmplx(1.d0, 0.d0, kind(0.d0))
         enddo
