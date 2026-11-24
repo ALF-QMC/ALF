@@ -33,6 +33,7 @@
 
 
 module mat_subroutines
+  Use linalg_mod, only: la_zgemm, la_zhemm, la_zscal, la_zlacpy
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -134,7 +135,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
         ELSEIF(N>1) THEN
           ALLOCATE(WORK(N,N))
           IF( op_id==0) THEN
-            CALL ZLACPY('A', N, N, A, N, WORK, N)
+            CALL la_zlacpy('A', N, N, A, N, WORK, N)
           ELSEIF( op_id==1 ) then
             DO I=1,N
             DO L=1,N
@@ -157,9 +158,9 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
           CASE (1)
             ! Here only one row is rescaled
             IF(op_id == 0 .or. op_id == 1) then
-              CALL ZSCAL(M2,A(1,1),Mat(P(1),1),M1)
+              CALL la_zscal(M2,A(1,1),Mat(P(1),1),M1)
             else
-              CALL ZSCAL(M2,conjg(A(1,1)),Mat(P(1),1),M1)
+              CALL la_zscal(M2,conjg(A(1,1)),Mat(P(1),1),M1)
             endif
           CASE (2)
             ! perform inplace matmult
@@ -325,20 +326,20 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             ! allocate memory and copy blocks of Mat to work
             ALLOCATE(WORK(N,M2))
             DO I=1,NUMBLOCKS
-              CALL ZLACPY('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORK(IDXLIST(I),1), N)
+              CALL la_zlacpy('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORK(IDXLIST(I),1), N)
             ENDDO
 
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
-              CALL ZGEMM(op,'N', N, M2, N, alpha, A, N, WORK, N, beta, Mat(P(1), 1), M1)
+              CALL la_zgemm(op,'N', N, M2, N, alpha, A, N, WORK, N, beta, Mat(P(1), 1), M1)
             ELSE
               !additional space for result
               ALLOCATE(WORK2(N,M2))
-              CALL ZGEMM(op,'N', N, M2, N, alpha, A, N, WORK, N, beta, WORK2, N)
+              CALL la_zgemm(op,'N', N, M2, N, alpha, A, N, WORK, N, beta, WORK2, N)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
-                CALL ZLACPY('A', DIMLIST(I), M2, WORK2(IDXLIST(I),1), N, Mat(P(IDXLIST(I)),1), M1)
+                CALL la_zlacpy('A', DIMLIST(I), M2, WORK2(IDXLIST(I),1), N, Mat(P(IDXLIST(I)),1), M1)
               ENDDO
               !free result memory
               DEALLOCATE(WORK2)
@@ -354,9 +355,9 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
           CASE (1)
             ! Here only one column is rescaled
             IF(op_id == 0 .or. op_id == 1) then
-              CALL ZSCAL(M1,A(1,1),Mat(1,P(1)),1)
+              CALL la_zscal(M1,A(1,1),Mat(1,P(1)),1)
             ELSE
-              CALL ZSCAL(M1,conjg(A(1,1)),Mat(1,P(1)),1)
+              CALL la_zscal(M1,conjg(A(1,1)),Mat(1,P(1)),1)
             ENDIF
           CASE (2)
             ! perform inplace matmult
@@ -488,20 +489,20 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             ! allocate memory and copy blocks of Mat to work
             ALLOCATE(WORK(M1,N))
             DO I=1,NUMBLOCKS
-              CALL ZLACPY('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORK(1,IDXLIST(I)), M1)
+              CALL la_zlacpy('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORK(1,IDXLIST(I)), M1)
             ENDDO
 
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
-              CALL ZGEMM('N',op, M1, N, N, alpha, WORK, M1, A, N, beta, Mat(1, P(1)), M1)
+              CALL la_zgemm('N',op, M1, N, N, alpha, WORK, M1, A, N, beta, Mat(1, P(1)), M1)
             ELSE
               !additional space for result
               ALLOCATE(WORK2(M1,N))
-              CALL ZGEMM('N',op, M1, N, N, alpha, WORK, M1, A, N, beta, WORK2, M1)
+              CALL la_zgemm('N',op, M1, N, N, alpha, WORK, M1, A, N, beta, WORK2, M1)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
-                CALL ZLACPY('A', M1, DIMLIST(I), WORK2(1,IDXLIST(I)), M1, Mat(1,P(IDXLIST(I))), M1)
+                CALL la_zlacpy('A', M1, DIMLIST(I), WORK2(1,IDXLIST(I)), M1, Mat(1,P(IDXLIST(I))), M1)
               ENDDO
               !free result memory
               DEALLOCATE(WORK2)
@@ -585,7 +586,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
           ENDIF
         ELSEIF(N>1) THEN
           ALLOCATE(WORK(N,N))
-          CALL ZLACPY(uplo, N, N, A, N, WORK, N)
+          CALL la_zlacpy(uplo, N, N, A, N, WORK, N)
           ! Fill the rest of WORK (thereby ignoring uplo)
           IF(uplo=='U' .or. uplo=='u') THEN
             DO L=1,N
@@ -609,7 +610,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
           CASE (1)
             ! Here only one row is rescaled
             ! uplo and transpositions as well as conjugation has no effect for 1x1 herm. Matrices
-            CALL ZSCAL(M2,A(1,1),Mat(P(1),1),M1)
+            CALL la_zscal(M2,A(1,1),Mat(P(1),1),M1)
           CASE (2)
             ! perform inplace matmult
 !             L=M2/4
@@ -774,20 +775,20 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             ! allocate memory and copy blocks of Mat to work
             ALLOCATE(WORK(N,M2))
             DO I=1,NUMBLOCKS
-              CALL ZLACPY('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORK(IDXLIST(I),1), N)
+              CALL la_zlacpy('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORK(IDXLIST(I),1), N)
             ENDDO
 
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
-              CALL ZHEMM(side, uplo, N, M2, alpha, A, N, WORK, N, beta, Mat(P(1), 1), M1)
+              CALL la_zhemm(side, uplo, N, M2, alpha, A, N, WORK, N, beta, Mat(P(1), 1), M1)
             ELSE
               !additional space for result
               ALLOCATE(WORK2(N,M2))
-              CALL ZHEMM(side, uplo, N, M2, alpha, A, N, WORK, N, beta, WORK2, N)
+              CALL la_zhemm(side, uplo, N, M2, alpha, A, N, WORK, N, beta, WORK2, N)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
-                CALL ZLACPY('A', DIMLIST(I), M2, WORK2(IDXLIST(I),1), N, Mat(P(IDXLIST(I)),1), M1)
+                CALL la_zlacpy('A', DIMLIST(I), M2, WORK2(IDXLIST(I),1), N, Mat(P(IDXLIST(I)),1), M1)
               ENDDO
               !free result memory
               DEALLOCATE(WORK2)
@@ -803,7 +804,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
           CASE (1)
             ! Here only one column is rescaled
             ! uplo and transposition as well as conjugation has no effect for 1x1 herm. matrices
-            CALL ZSCAL(M1,A(1,1),Mat(1,P(1)),1)
+            CALL la_zscal(M1,A(1,1),Mat(1,P(1)),1)
           CASE (2)
             ! perform inplace matmult
             DO I=1,M1
@@ -934,20 +935,20 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             ! allocate memory and copy blocks of Mat to work
             ALLOCATE(WORK(M1,N))
             DO I=1,NUMBLOCKS
-              CALL ZLACPY('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORK(1,IDXLIST(I)), M1)
+              CALL la_zlacpy('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORK(1,IDXLIST(I)), M1)
             ENDDO
 
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
-              CALL ZHEMM(side, uplo, M1, N, alpha, A, N, WORK, M1, beta, Mat(1, P(1)), M1)
+              CALL la_zhemm(side, uplo, M1, N, alpha, A, N, WORK, M1, beta, Mat(1, P(1)), M1)
             ELSE
               !additional space for result
               ALLOCATE(WORK2(M1,N))
-              CALL ZHEMM(side, uplo, M1, N, alpha, A, N, WORK, M1, beta, WORK2, M1)
+              CALL la_zhemm(side, uplo, M1, N, alpha, A, N, WORK, M1, beta, WORK2, M1)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
-                CALL ZLACPY('A', M1, DIMLIST(I), WORK2(1,IDXLIST(I)), M1, Mat(1,P(IDXLIST(I))), M1)
+                CALL la_zlacpy('A', M1, DIMLIST(I), WORK2(1,IDXLIST(I)), M1, Mat(1,P(IDXLIST(I))), M1)
               ENDDO
               !free result memory
               DEALLOCATE(WORK2)
@@ -1226,7 +1227,7 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
             ! allocate memory and copy blocks of Mat to work
             ALLOCATE(WORKCMPLX(N,M2))
             DO I=1,NUMBLOCKS
-              CALL ZLACPY('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORKCMPLX(IDXLIST(I),1), N)
+              CALL la_zlacpy('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORKCMPLX(IDXLIST(I),1), N)
             ENDDO
 
             ! Perform Mat multiplication
@@ -1244,7 +1245,7 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
 !               CALL ZHEMM(side, uplo, N, M2, alpha, A(1, 1), N, WORKCMPLX(1, 1), N, beta, WORK2(1, 1), N)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
-                CALL ZLACPY('A', DIMLIST(I), M2, WORK2(IDXLIST(I),1), N, Mat(P(IDXLIST(I)),1), M1)
+                CALL la_zlacpy('A', DIMLIST(I), M2, WORK2(IDXLIST(I),1), N, Mat(P(IDXLIST(I)),1), M1)
               ENDDO
               !free result memory
               DEALLOCATE(WORK2, RWORK)
@@ -1391,7 +1392,7 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
             ! allocate memory and copy blocks of Mat to work
             ALLOCATE(WORKCMPLX(M1,N))
             DO I=1,NUMBLOCKS
-              CALL ZLACPY('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORKCMPLX(1,IDXLIST(I)), M1)
+              CALL la_zlacpy('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORKCMPLX(1,IDXLIST(I)), M1)
             ENDDO
 
             ! Perform Mat multiplication
@@ -1408,7 +1409,7 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
 !              CALL ZHEMM(side, uplo, M1, N, alpha, A(1, 1), N, WORKCMPLX(1, 1), M1, beta, WORK2(1, 1), M1)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
-                CALL ZLACPY('A', M1, DIMLIST(I), WORK2(1,IDXLIST(I)), M1, Mat(1,P(IDXLIST(I))), M1)
+                CALL la_zlacpy('A', M1, DIMLIST(I), WORK2(1,IDXLIST(I)), M1, Mat(1,P(IDXLIST(I))), M1)
               ENDDO
               !free result memory
               DEALLOCATE(WORK2, RWORK)
