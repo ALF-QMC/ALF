@@ -134,7 +134,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
         ELSEIF(N>1) THEN
           ALLOCATE(WORK(N,N))
           IF( op_id==0) THEN
-            CALL ZLACPY('A', N, N, A(1,1), N, WORK(1,1), N)
+            CALL ZLACPY('A', N, N, A, N, WORK, N)
           ELSEIF( op_id==1 ) then
             DO I=1,N
             DO L=1,N
@@ -331,11 +331,11 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
-              CALL ZGEMM(op,'N', N, M2, N, alpha, A(1, 1), N, WORK(1, 1), N, beta, Mat(P(1), 1), M1)
+              CALL ZGEMM(op,'N', N, M2, N, alpha, A, N, WORK, N, beta, Mat(P(1), 1), M1)
             ELSE
               !additional space for result
               ALLOCATE(WORK2(N,M2))
-              CALL ZGEMM(op,'N', N, M2, N, alpha, A(1, 1), N, WORK(1, 1), N, beta, WORK2(1, 1), N)
+              CALL ZGEMM(op,'N', N, M2, N, alpha, A, N, WORK, N, beta, WORK2, N)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
                 CALL ZLACPY('A', DIMLIST(I), M2, WORK2(IDXLIST(I),1), N, Mat(P(IDXLIST(I)),1), M1)
@@ -494,11 +494,11 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
-              CALL ZGEMM('N',op, M1, N, N, alpha, WORK(1, 1), M1, A(1, 1), N, beta, Mat(1, P(1)), M1)
+              CALL ZGEMM('N',op, M1, N, N, alpha, WORK, M1, A, N, beta, Mat(1, P(1)), M1)
             ELSE
               !additional space for result
               ALLOCATE(WORK2(M1,N))
-              CALL ZGEMM('N',op, M1, N, N, alpha, WORK(1, 1), M1, A(1, 1), N, beta, WORK2(1, 1), M1)
+              CALL ZGEMM('N',op, M1, N, N, alpha, WORK, M1, A, N, beta, WORK2, M1)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
                 CALL ZLACPY('A', M1, DIMLIST(I), WORK2(1,IDXLIST(I)), M1, Mat(1,P(IDXLIST(I))), M1)
@@ -585,7 +585,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
           ENDIF
         ELSEIF(N>1) THEN
           ALLOCATE(WORK(N,N))
-          CALL ZLACPY(uplo, N, N, A(1,1), N, WORK(1,1), N)
+          CALL ZLACPY(uplo, N, N, A, N, WORK, N)
           ! Fill the rest of WORK (thereby ignoring uplo)
           IF(uplo=='U' .or. uplo=='u') THEN
             DO L=1,N
@@ -780,11 +780,11 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
-              CALL ZHEMM(side, uplo, N, M2, alpha, A(1, 1), N, WORK(1, 1), N, beta, Mat(P(1), 1), M1)
+              CALL ZHEMM(side, uplo, N, M2, alpha, A, N, WORK, N, beta, Mat(P(1), 1), M1)
             ELSE
               !additional space for result
               ALLOCATE(WORK2(N,M2))
-              CALL ZHEMM(side, uplo, N, M2, alpha, A(1, 1), N, WORK(1, 1), N, beta, WORK2(1, 1), N)
+              CALL ZHEMM(side, uplo, N, M2, alpha, A, N, WORK, N, beta, WORK2, N)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
                 CALL ZLACPY('A', DIMLIST(I), M2, WORK2(IDXLIST(I),1), N, Mat(P(IDXLIST(I)),1), M1)
@@ -940,11 +940,11 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
-              CALL ZHEMM(side, uplo, M1, N, alpha, A(1, 1), N, WORK(1, 1), M1, beta, Mat(1, P(1)), M1)
+              CALL ZHEMM(side, uplo, M1, N, alpha, A, N, WORK, M1, beta, Mat(1, P(1)), M1)
             ELSE
               !additional space for result
               ALLOCATE(WORK2(M1,N))
-              CALL ZHEMM(side, uplo, M1, N, alpha, A(1, 1), N, WORK(1, 1), M1, beta, WORK2(1, 1), M1)
+              CALL ZHEMM(side, uplo, M1, N, alpha, A, N, WORK, M1, beta, WORK2, M1)
               !distribute result back into mat using blocks
               DO I=1,NUMBLOCKS
                 CALL ZLACPY('A', M1, DIMLIST(I), WORK2(1,IDXLIST(I)), M1, Mat(1,P(IDXLIST(I))), M1)
