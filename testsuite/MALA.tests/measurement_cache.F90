@@ -118,6 +118,7 @@ program test_measurement_cache
   call Hop_mod_init
   call Control_init(Group_Comm)
   call CGR_work_alloc(Ndim)   ! CGR work arrays (normally allocated by Walker_alloc)
+  call Tau_m_work_alloc        ! Tau_m work arrays (normally allocated by Walker_alloc)
   allocate(left(1),right(1),storage(2,1),stab(0:2),gr(1,1,1),gr_tilde(1,1,1),work(1,1))
   stab=[0,1,2]
   call left(1)%init(Ndim,'l')

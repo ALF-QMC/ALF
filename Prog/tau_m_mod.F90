@@ -51,9 +51,35 @@
        use wrapur_mod, only: WRAPUR
        use cgr2_2_mod, only: CGR2_2
        Use files_mod, only: str_to_upper
-       
+       Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
+       Use iso_fortran_env, only: error_unit
+
+       ! Work arrays of TAU_M. They are allocated once per run by
+       ! Tau_m_work_alloc, called from Walker_alloc when time-displaced
+       ! quantities are measured, instead of on every call; this is where a
+       ! GPU build maps them to the device.
+       Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable, private :: GT0, G00, GTT, G0T
+       Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable, private :: GT0_T, G00_T, GTT_T, G0T_T
+       Complex (Kind=Kind(0.d0)), Dimension(:,:),   Allocatable, private :: HLP4, HLP5, HLP6
 
        Contains
+
+         !> Allocates the work arrays of TAU_M (the _T copies only if Symm).
+         SUBROUTINE Tau_m_work_alloc
+           Allocate( HLP4(Ndim,Ndim), HLP5(Ndim,Ndim), HLP6(Ndim,Ndim) )
+           Allocate( G00(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL), GT0(Ndim,Ndim,N_FL),  GTT(Ndim,Ndim,N_FL) )
+           If (Symm) Then
+              Allocate ( G00_T(Ndim,Ndim,N_FL), G0T_T(Ndim,Ndim,N_FL), GT0_T(Ndim,Ndim,N_FL),  GTT_T(Ndim,Ndim,N_FL) )
+           endif
+         END SUBROUTINE Tau_m_work_alloc
+
+         !> Releases the work arrays of TAU_M.
+         SUBROUTINE Tau_m_work_dealloc
+           If (allocated(G00_T)) Deallocate ( G00_T, G0T_T, GT0_T,  GTT_T )
+           Deallocate(HLP4, HLP5, HLP6)
+           Deallocate(G00, G0T, GT0, GTT)
+         END SUBROUTINE Tau_m_work_dealloc
+
 
          SUBROUTINE TAU_M(udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN) 
            
@@ -65,21 +91,16 @@
            Integer, Intent(In) :: STAB_NT(0:NSTM)         
            Integer, Intent(In) :: LOBS_ST, LOBS_EN
 
-           ! Local 
-           ! This could be placed as  private for the module 
-           Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  :: GT0, G00, GTT, G0T
-           Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  :: GT0_T,  G00_T, GTT_T, G0T_T
+           ! Local (the G and HLP work arrays are module arrays, see Tau_m_work_alloc)
            CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvr
-           Complex (Kind=Kind(0.d0)), Dimension(:,:), Allocatable  :: HLP4, HLP5, HLP6
            
            Complex (Kind=Kind(0.d0))  ::  Z
            Integer  ::  I, J, nf, nf_eff, NT, NT1, NTST, NST
            Real (Kind=Kind(0.d0))  ::  Mc_step_Weight
            
-           Allocate( HLP4(Ndim,Ndim), HLP5(Ndim,Ndim), HLP6(Ndim,Ndim) )
-           Allocate( G00(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL), GT0(Ndim,Ndim,N_FL),  GTT(Ndim,Ndim,N_FL) )
-           If (Symm) Then
-              Allocate ( G00_T(Ndim,Ndim,N_FL), G0T_T(Ndim,Ndim,N_FL), GT0_T(Ndim,Ndim,N_FL),  GTT_T(Ndim,Ndim,N_FL) )
+           if (.not. allocated(G00)) then
+              write(error_unit,*) "TAU_M: work arrays not allocated (call Tau_m_work_alloc)"
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
 
            
@@ -204,12 +225,6 @@
               CALL udvr(nf_eff)%dealloc
            ENDDO
            DEALLOCATE(udvr)
-           If (Symm) Then
-              Deallocate ( G00_T, G0T_T, GT0_T,  GTT_T )
-           endif
-
-           deallocate(HLP4, HLP5, HLP6)
-           deallocate(G00, G0T, GT0, GTT)
          END SUBROUTINE TAU_M
 
 !--------------------------------------------------------------------

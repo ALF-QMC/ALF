@@ -64,6 +64,8 @@ Module qmc_walker_mod
   Use wrapul_mod, only: WRAPUL
   Use cgr1_mod, only: CGR, CGR_work_alloc, CGR_work_dealloc
   Use Control, only: Control_PrecisionG, Control_PrecisionP
+  Use QMC_runtime_var, only: get_Ltau
+  Use Tau_m_mod, only: Tau_m_work_alloc, Tau_m_work_dealloc
 
   Implicit none
   private
@@ -127,6 +129,7 @@ Module qmc_walker_mod
       Allocate ( walker%Test(Ndim,Ndim), walker%GR(NDIM,NDIM,N_FL), walker%GR_Tilde(NDIM,NDIM,N_FL)  )
       ! Work arrays of the numerical kernels: module arrays, allocated once per run
       Call CGR_work_alloc(Ndim)
+      If (get_Ltau() == 1 .and. .not. Projector) Call Tau_m_work_alloc
       ALLOCATE(walker%udvl(N_FL_eff), walker%udvr(N_FL_eff), walker%udvst(walker%NSTM, N_FL_eff))
       do nf_eff = 1, N_FL_eff
          nf=Calc_Fl_map(nf_eff)
@@ -164,6 +167,7 @@ Module qmc_walker_mod
       DEALLOCATE(walker%GR, walker%TEST, walker%Stab_nt,walker%GR_Tilde)
       deallocate(walker%Phase_array)
       Call CGR_work_dealloc
+      If (get_Ltau() == 1 .and. .not. Projector) Call Tau_m_work_dealloc
     end Subroutine Walker_dealloc
 
     !--------------------------------------------------------------------
