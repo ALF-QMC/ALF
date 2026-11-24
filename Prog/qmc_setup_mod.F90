@@ -46,7 +46,7 @@ Module qmc_setup_mod
   Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Setup_flavor_map, &
        &                      N_FL, N_FL_eff, Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, &
        &                      Calc_Fl, Calc_Fl_map, Projector, Group_Comm, leap_frog_bulk
-  Use QMC_runtime_var, only: apply_CPU_MAX_policy, apply_Langevin_overrides, &
+  Use QMC_runtime_var, only: apply_Langevin_overrides, &
        &                     check_compatibility_reconstruct_greens_function, &
        &                     check_langevin_schemes_and_variables, check_MALA_variables, &
        &                     check_update_schemes_compatibility, get_Amplitude, get_CPU_MAX, &
@@ -96,8 +96,9 @@ Module qmc_setup_mod
     !--------------------------------------------------------------------
     !> @brief
     !> Allocates and sets the Hamiltonian, checks the time-dependent couplings
-    !> and the trial wave functions, sets the flavour map and the default
-    !> measuring interval. Returns N_op, the number of interaction operators.
+    !> and the trial wave functions, sets the flavour map, the default
+    !> measuring interval and the kinetic propagators (Hop_mod_init).
+    !> Returns N_op, the number of interaction operators.
     !--------------------------------------------------------------------
     Subroutine Setup_model(N_op)
       Integer, intent(out) :: N_op
@@ -149,36 +150,22 @@ Module qmc_setup_mod
       endif
 
       Call set_default_values_measuring_interval(Thtrot, Ltrot, Projector)
+
+      ! Kinetic propagators exp(-Dtau T)
+      Call Hop_mod_init
     end Subroutine Setup_model
 
 
     !--------------------------------------------------------------------
     !> @brief
-    !> Global-tau sampling parameters, auxiliary fields (types, initial
-    !> configuration), random number generator, hopping and the CPU_MAX policy.
+    !> Auxiliary fields: types and flip protocols, random number generator
+    !> and initial configuration.
     !--------------------------------------------------------------------
     Subroutine Setup_fields(N_op)
       Integer, intent(in) :: N_op
       Integer :: n, Seed_in
-      Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
       Character (len=64) :: file_seeds
       Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:) :: Initial_field
-
-      If ( .not. ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) )  then
-         ! This  corresponds to the default updating scheme
-         call set_default_global_tau_sampling(Size(OP_V,1))
-      else
-         !  Gives the possibility to set parameters in the Hamiltonian file
-         tmp_Nt_sequential_start = get_Nt_sequential_start()
-         tmp_Nt_sequential_end   = get_Nt_sequential_end()
-         tmp_N_Global_tau        = get_N_Global_tau()
-         tmp_N_Global_tau_MALA   = get_N_Global_tau_MALA()
-         Call ham%Overide_global_tau_sampling_parameters(tmp_Nt_sequential_start,tmp_Nt_sequential_end,tmp_N_Global_tau,tmp_N_Global_tau_MALA)
-         call set_Nt_sequential_start(tmp_Nt_sequential_start)
-         call set_Nt_sequential_end(tmp_Nt_sequential_end)
-         call set_N_Global_tau(tmp_N_Global_tau)
-         call set_N_Global_tau_MALA(tmp_N_Global_tau_MALA)
-      endif
 
       call nsigma%make(N_op, Ltrot)
       Do n = 1,N_op
@@ -197,23 +184,40 @@ Module qmc_setup_mod
       else
          Call nsigma%in(Group_Comm)
       endif
-      Call Hop_mod_init
-
-      Call apply_CPU_MAX_policy()
-      If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA() ) then
-         Call Wrapgr_alloc
-      endif
     end Subroutine Setup_fields
 
 
     !--------------------------------------------------------------------
     !> @brief
-    !> Sets up the Langevin/HMC and global MALA update schemes and checks
-    !> their compatibility.
+    !> Sets up the update schemes: global-tau sampling parameters (and the
+    !> Wrapgr work arrays), Langevin/HMC and global MALA; checks their
+    !> compatibility.
     !--------------------------------------------------------------------
     Subroutine Setup_update_schemes(N_op)
       Integer, intent(in) :: N_op
       Integer :: n
+      Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
+
+      ! Global-tau sampling parameters. This comes before the Langevin
+      ! overrides below, which switch Global_tau_moves off.
+      If ( .not. ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) )  then
+         ! This  corresponds to the default updating scheme
+         call set_default_global_tau_sampling(Size(OP_V,1))
+      else
+         !  Gives the possibility to set parameters in the Hamiltonian file
+         tmp_Nt_sequential_start = get_Nt_sequential_start()
+         tmp_Nt_sequential_end   = get_Nt_sequential_end()
+         tmp_N_Global_tau        = get_N_Global_tau()
+         tmp_N_Global_tau_MALA   = get_N_Global_tau_MALA()
+         Call ham%Overide_global_tau_sampling_parameters(tmp_Nt_sequential_start,tmp_Nt_sequential_end,tmp_N_Global_tau,tmp_N_Global_tau_MALA)
+         call set_Nt_sequential_start(tmp_Nt_sequential_start)
+         call set_Nt_sequential_end(tmp_Nt_sequential_end)
+         call set_N_Global_tau(tmp_N_Global_tau)
+         call set_N_Global_tau_MALA(tmp_N_Global_tau_MALA)
+      endif
+      If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA() ) then
+         Call Wrapgr_alloc
+      endif
 
     !   Sequential = .true.
       !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)

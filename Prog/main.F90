@@ -124,7 +124,7 @@ Program Main
              &                     get_n_global, get_n_global_tau, get_n_global_tau_mala, get_nbin, &
              &                     get_nsweep, get_nwrap, get_sequential, get_sequential_mala, &
              &                     get_tempering_calc_det, read_and_broadcast_qmc_var_and_ham_name, &
-             &                     set_mpi_per_parameter_set
+             &                     set_mpi_per_parameter_set, apply_CPU_MAX_policy
         Use Hamiltonian_main, only: ham, Clear_Ham_state, Set_Group_Comm, Ltrot, nsigma, Group_Comm
         Use files_mod, only: str_to_upper
         Use Natural_Constants, only: Eps_small
@@ -282,6 +282,9 @@ Program Main
         NBin_eff = get_NBin()
 
         Call Setup_model(N_op)
+
+        ! CPU_MAX > 0: run until the time limit (NBin is set very large)
+        Call apply_CPU_MAX_policy()
 
         Call Setup_fields(N_op)
         
