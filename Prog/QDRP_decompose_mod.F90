@@ -38,6 +38,7 @@
 !> This constructs a decompostion Mat = Q D R P^* using a pivoted QR decomposition
 !--------------------------------------------------------------------
 Module QDRP_mod
+  Use linalg_mod, only: la_zgeqp3
 
 Contains
 
@@ -68,18 +69,18 @@ Contains
       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout), Allocatable :: TAU
       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(INOUT), Allocatable :: WORK
       
-      COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
+      Real(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
       COMPLEX(Kind=Kind(0.d0)) :: WORK_QUERY(1)
       Integer :: info, i, j
       Real(Kind=Kind(0.d0)) :: X
       
       ALLOCATE(RWORK(2*Ndim))
       ! Query optimal amount of memory
-      call ZGEQP3(Ndim, N_part, Mat, Ndim, IPVT, TAU, WORK_QUERY, -1, RWORK, INFO)
+      call la_zgeqp3(Ndim, N_part, Mat, Ndim, IPVT, TAU, WORK_QUERY, -1, RWORK, INFO)
       LWORK = INT(DBLE(WORK_QUERY(1)))
       ALLOCATE(WORK(LWORK))
       ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-      call ZGEQP3(Ndim, N_part, Mat, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+      call la_zgeqp3(Ndim, N_part, Mat, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
       DEALLOCATE(RWORK)
       ! separate off D
       do i = 1, N_part
