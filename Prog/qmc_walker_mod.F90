@@ -62,7 +62,7 @@ Module qmc_walker_mod
        &                      ham, nsigma, Op_V, reconstruction_needed
   Use Operator_mod, only: Op_phase
   Use wrapul_mod, only: WRAPUL
-  Use cgr1_mod, only: CGR
+  Use cgr1_mod, only: CGR, CGR_work_alloc, CGR_work_dealloc
   Use Control, only: Control_PrecisionG, Control_PrecisionP
 
   Implicit none
@@ -125,6 +125,8 @@ Module qmc_walker_mod
 
       allocate(walker%Phase_array(N_FL))
       Allocate ( walker%Test(Ndim,Ndim), walker%GR(NDIM,NDIM,N_FL), walker%GR_Tilde(NDIM,NDIM,N_FL)  )
+      ! Work arrays of the numerical kernels: module arrays, allocated once per run
+      Call CGR_work_alloc(Ndim)
       ALLOCATE(walker%udvl(N_FL_eff), walker%udvr(N_FL_eff), walker%udvst(walker%NSTM, N_FL_eff))
       do nf_eff = 1, N_FL_eff
          nf=Calc_Fl_map(nf_eff)
@@ -161,6 +163,7 @@ Module qmc_walker_mod
       DEALLOCATE(walker%udvl, walker%udvr, walker%udvst)
       DEALLOCATE(walker%GR, walker%TEST, walker%Stab_nt,walker%GR_Tilde)
       deallocate(walker%Phase_array)
+      Call CGR_work_dealloc
     end Subroutine Walker_dealloc
 
     !--------------------------------------------------------------------

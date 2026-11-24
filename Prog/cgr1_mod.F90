@@ -32,7 +32,29 @@
 module cgr1_mod
   Use linalg_mod, only: la_zgemm, la_ztrsm, la_zscal, la_zgetrf, la_zgetrs, la_zunmqr
   implicit none
+  private
+  public :: CGR, CGRP, CGR_work_alloc, CGR_work_dealloc
+
+  ! Work arrays of CGR (finite temperature). They are allocated once per run
+  ! by CGR_work_alloc, called from Walker_alloc, instead of on every call;
+  ! this is where a GPU build maps them to the device.
+  COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable :: TPUP, RHS
+  COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable :: DUP, TAU
+  INTEGER,                   Dimension(:)  , Allocatable :: IPVT, VISITED
+
   contains
+
+      !> Allocates the work arrays of CGR for matrices of size N x N.
+      SUBROUTINE CGR_work_alloc(N)
+        Integer, intent(in) :: N
+        Allocate(TPUP(N,N), RHS(N,N), IPVT(N), TAU(N), DUP(N), VISITED(N))
+      END SUBROUTINE CGR_work_alloc
+
+      !> Releases the work arrays of CGR.
+      SUBROUTINE CGR_work_dealloc
+        Deallocate(TPUP, RHS, IPVT, TAU, DUP, VISITED)
+      END SUBROUTINE CGR_work_dealloc
+
 
       SUBROUTINE CGR(PHASE,NVAR, GRUP, udvr, udvl)
 
@@ -179,6 +201,7 @@ module cgr1_mod
         USE MyMats, only: DET_C, MMULT
         USE QDRP_mod, only: QDRP_decompose
         Use iso_fortran_env, only: error_unit
+        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
         
         Implicit None
         !Arguments.
@@ -191,9 +214,8 @@ module cgr1_mod
  
         !Local
         Logical, save :: Scale_warning_message = .true.
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS, TPUP_temp
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
-        INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
+        ! TPUP, RHS, DUP, TAU, IPVT, VISITED: module work arrays (CGR_work_alloc)
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP_temp
         COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z
 #if (defined(STAB3) || defined(STABLOG))
         COMPLEX (Kind=Kind(0.d0)) ::  DLJ
@@ -201,7 +223,7 @@ module cgr1_mod
         Integer :: I, J, N_size, info, LWORK, next, L
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         
-        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
+        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: WORK
         LOGICAL :: FORWRD
         
         if(udvl%side .ne. "L" .and. udvl%side .ne. "l" ) then
@@ -220,7 +242,14 @@ module cgr1_mod
         N_size = udvl%ndim
         alpha = 1.D0
         beta = 0.D0
-        Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
+        if (.not. allocated(TPUP)) then
+           write(error_unit,*) "CGR: work arrays not allocated (call CGR_work_alloc)"
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+        if (size(TPUP,1) /= N_size) then
+           write(error_unit,*) "CGR: work arrays allocated for size", size(TPUP,1), ", needed", N_size
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
         !Write(6,*) 'In CGR', N_size
         ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
@@ -314,7 +343,6 @@ module cgr1_mod
             Deallocate(TPUP_temp)
         ENDIF
         call QDRP_decompose(N_size, udvl%N_part, TPUP, DUP, IPVT, TAU, WORK, LWORK)
-        ALLOCATE(VISITED(N_size))
         ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
         ! is different from that of the LU decomposition of lapack
         VISITED = 0
@@ -368,7 +396,7 @@ module cgr1_mod
 #endif
             ! RHS = U^dagger * RHS
             CALL la_zunmqr('L', 'C', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
-            DEALLOCATE(TAU, WORK)
+            DEALLOCATE(WORK)
             !apply inverse of D to RHS from the left
             DO J = 1, N_size
                 sv = DBLE(DUP(J))
@@ -414,7 +442,7 @@ module cgr1_mod
             enddo
 #endif
             CALL la_zunmqr('R', 'N', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
-            DEALLOCATE(TAU, WORK)
+            DEALLOCATE(WORK)
             ! apply D^-1 to RHS from the right
             DO J = 1, N_size
                 sv = DBLE(DUP(J))
@@ -447,7 +475,6 @@ module cgr1_mod
             ! perform multiplication with URUP
             CALL la_zgemm('N', 'C', N_size, N_size, N_size, alpha, RHS, N_size, udvr%U, N_size, beta, GRUP, N_size)
         ENDIF
-        Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
 #endif
         
       END SUBROUTINE CGR
