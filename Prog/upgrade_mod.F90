@@ -253,22 +253,22 @@ module upgrade_mod
                     Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
                     alpha = -1.D0
                     Allocate(syu(n), sxv(n))
-                    call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
-                    call zgemv('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
+                    call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(:,n), 1, beta , syu, 1)
+                    call zgemv('T', NDim, n-1, alpha, x_v, Ndim, v(:,n), 1, beta , sxv, 1)
                     alpha = 1.D0
-                    call zgemv('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
-                    call zgemv('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
+                    call zgemv('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(:,n), 1)
+                    call zgemv('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(:,n), 1)
                     do m = 1,n-1
                         Z = Z - syu(m)*sxv(m)
                     enddo
                     Z = 1.D0/Z
-                    call zscal(Ndim, Z, x_v(1, n), 1)
+                    call zscal(Ndim, Z, x_v(:,n), 1)
                     Deallocate(syu, sxv)
                 enddo
                 IF (size(Op_V(n_op,nf)%P, 1) == 1) THEN
-                    CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
+                    CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v, 1)
                     Z = -x_v(Op_V(n_op,nf)%P(1), 1)
-                    CALL ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
+                    CALL ZGERU(Ndim, Ndim, Z, xp_v, 1, y_v, 1, gr(:,:,nf), Ndim)
                 ELSE
                     Allocate (zarr(op_dim_nf, op_dim_nf), grarr(NDim, op_dim_nf))
                     Zarr = x_v(Op_V(n_op,nf)%P(1:op_dim_nf), :)
@@ -279,7 +279,7 @@ module upgrade_mod
                     Deallocate(Zarr, grarr)
                     beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
                     alpha = -1.D0
-                    CALL ZGEMM('N','T',Ndim,Ndim,op_dim_nf,alpha,xp_v, Ndim, y_v, Ndim,beta,gr(1,1,nf), Ndim)
+                    CALL ZGEMM('N','T',Ndim,Ndim,op_dim_nf,alpha,xp_v, Ndim, y_v, Ndim,beta,gr(:,:,nf), Ndim)
                 ENDIF
               endif
 
