@@ -30,6 +30,7 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 module wrapul_mod
+  Use linalg_mod, only: la_zgemm
    implicit none
    contains
       
@@ -93,13 +94,13 @@ module wrapul_mod
            ENDDO
            
            !Carry out U,D,V decomposition.
-           CALL ZGEMM('C', 'N', Ndim, UDVL(nf_eff)%N_part, Ndim, Z_ONE, TMP, Ndim, udvl(nf_eff)%U, Ndim, beta, TMP1, Ndim)
+           CALL la_zgemm('C', 'N', Ndim, UDVL(nf_eff)%N_part, Ndim, Z_ONE, TMP, Ndim, udvl(nf_eff)%U, Ndim, beta, TMP1, Ndim)
            if( ALLOCATED(UDVL(nf_eff)%V) ) then
               DO n = 1,UDVL(nf_eff)%N_part
                   TMP1(:, n) = TMP1(:, n) * udvl(nf_eff)%D(n)
               ENDDO
               CALL UDV_WRAP_Pivot(TMP1,udvl(nf_eff)%U,udvl(nf_eff)%D,V1,NCON,Ndim,Ndim)
-              CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, udvl(nf_eff)%V, Ndim, V1, Ndim, beta, TMP1, Ndim)
+              CALL la_zgemm('N', 'C', Ndim, Ndim, Ndim, Z_ONE, udvl(nf_eff)%V, Ndim, V1, Ndim, beta, TMP1, Ndim)
               udvl(nf_eff)%V = TMP1
            else
               CALL UDV_WRAP_Pivot(TMP1(:,1:UDVL(nf_eff)%N_part),udvl(nf_eff)%U,udvl(nf_eff)%D,V1,NCON,Ndim,UDVL(nf_eff)%N_part)
