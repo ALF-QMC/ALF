@@ -179,7 +179,7 @@ module cgr2_2_mod
            !P * V3^* X = H1
            FORWRD = .true.
            CALL ZLAPMR(FORWRD, LQ2, LQ2, HLP(1, 1), LQ2, PIVT(1))
-           CALL ZTRSM('L', 'U', 'C', 'N', LQ2, LQ2, z, A(1, 1), LQ2, HLP(1, 1), LQ2)! Block structure of HLPB1 is not exploited
+           CALL ZTRSM('L', 'U', 'C', 'N', LQ2, LQ2, z, A, LQ2, HLP, LQ2)! Block structure of HLPB1 is not exploited
            DO J = 1,LQ2
               DO I = 1,LQ2
                  HLP(I, J)  = TMPVEC(I)*HLP(I, J)
@@ -187,7 +187,7 @@ module cgr2_2_mod
            ENDDO
            deallocate (TMPVEC)
            ! Res = U * HLP
-           CALL ZUNMQR('L', 'N', LQ2, LQ2, LQ2, A(1, 1), LQ2, TAU(1), HLP(1, 1), LQ2, WORK(1), LWORK, INFO)
+           CALL ZUNMQR('L', 'N', LQ2, LQ2, LQ2, A, LQ2, TAU, HLP, LQ2, WORK, LWORK, INFO)
          end subroutine solve_extended_System
 #endif
 
@@ -258,8 +258,8 @@ module cgr2_2_mod
         CALL INV(udv1%V,V1INV,Z)
         If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
-           call zlacpy('A',LQ,LQ,V1INV(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
-           call zlacpy('A',LQ,LQ,MYU2(1,1)  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
+           call zlacpy('A',LQ,LQ,V1INV ,LQ,HLPB2,LQ2)
+           call zlacpy('A',LQ,LQ,MYU2  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J+LQ ) =  udv1%D(I)*conjg(udv1%U(J,I))!udv1%U(I,J)
@@ -296,8 +296,8 @@ module cgr2_2_mod
            call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB1, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
-           call zlacpy('A',LQ,LQ,MYU2(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
-           call zlacpy('A',LQ,LQ,V1INV(1,1),LQ,HLPB2(1+LQ,1+LQ),LQ2)
+           call zlacpy('A',LQ,LQ,MYU2 ,LQ,HLPB2,LQ2)
+           call zlacpy('A',LQ,LQ,V1INV,LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J+LQ ) = -udv2%D(I)*udv2%V(I,J)
@@ -392,8 +392,8 @@ module cgr2_2_mod
         If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then
 #endif
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
-           call zlacpy('A',LQ,LQ,V1INV(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
-           call zlacpy('A',LQ,LQ,MYU2(1,1)  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
+           call zlacpy('A',LQ,LQ,V1INV ,LQ,HLPB2,LQ2)
+           call zlacpy('A',LQ,LQ,MYU2  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J+LQ ) =  D1m(I)*conjg(udv1%U(J,I))!udv1%U(I,J)
@@ -407,8 +407,8 @@ module cgr2_2_mod
            call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB2, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
-           call zlacpy('A',LQ,LQ,MYU2(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
-           call zlacpy('A',LQ,LQ,V1INV(1,1),LQ,HLPB2(1+LQ,1+LQ),LQ2)
+           call zlacpy('A',LQ,LQ,MYU2 ,LQ,HLPB2,LQ2)
+           call zlacpy('A',LQ,LQ,V1INV,LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J+LQ ) = -D2m(I)*udv2%V(I,J)
