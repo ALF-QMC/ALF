@@ -41,6 +41,7 @@
 !--------------------------------------------------------------------
 
 Module UDV_Wrap_mod
+  Use linalg_mod, only: la_zscal
 
      Use MyMats, only: Compare, DET_C, MMULT, SVD, UDV, QR
      Use Files_mod, only: File_i
@@ -98,9 +99,9 @@ Module UDV_Wrap_mod
        Call Pivot_Phase(phase,IVPT,size(D,1))
        beta=1/Phase
        !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-       call ZSCAL(size(V,2),beta,V,size(V,1))
+       call la_zscal(size(V,2),beta,V,size(V,1))
        ! scale first column of U to correct the scaling in V such that UDV is not changed
-       call ZSCAL(size(U,1),phase,U,1)
+       call la_zscal(size(U,1),phase,U,1)
        
        V1 = V
        DO I = 1,N2
@@ -171,9 +172,9 @@ Module UDV_Wrap_mod
        Call Pivot_Phase(phase,IVPT,size(D,1))
        beta=1/Phase
        !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-       call ZSCAL(size(V1,2),beta,V1,size(V1,1))
+       call la_zscal(size(V1,2),beta,V1,size(V1,1))
        ! scale first column of U to correct the scaling in V such that UDV is not changed
-       call ZSCAL(size(U,1),phase,U,1)
+       call la_zscal(size(U,1),phase,U,1)
 
        ! Finish the pivotting.
        DO I = 1,N2
