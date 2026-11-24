@@ -251,11 +251,10 @@ Program Main
         call Set_Group_Comm(comm_split)
         call MPI_Comm_size(Group_Comm, Isize_g, ierr)
         igroup           = irank/isize_g
-        !Write(6,*) 'irank, Irank_g, Isize_g', irank, irank_g, isize_g
         !read environment variable called ALF_SHM_CHUNK_SIZE_GB
         !it should be a positive integer setting the chunk size of shared memory blocks in GB
         !if it is not set, or set to a non-positive (including 0) integer, the routine defaults back to the
-        !usual Fortran allocation routines
+        !usual Fortran allocation routines.  The default is that ALF_SHM_CHUNK_SIZE_GB  is not set. 
         CALL GET_ENVIRONMENT_VARIABLE(Name, VALUE=chunk_size_str, STATUS=ierr)
         if (ierr==0) then
            read(chunk_size_str,*,IOSTAT=ierr) chunk_size_gb
