@@ -210,6 +210,7 @@
        END SUBROUTINE MMULT_R
 
        SUBROUTINE MMULT_C(C, A, B)
+         Use linalg_mod, only: la_zgemm
          IMPLICIT NONE
          COMPLEX (Kind=Kind(0.d0)), DIMENSION(:,:) :: A,B,C
          COMPLEX (Kind=Kind(0.d0)) :: ALP, BET
@@ -223,7 +224,7 @@
          ALP = CMPLX(1.D0,0.D0,Kind=Kind(0d0))
          BET = CMPLX(0.D0,0.D0,Kind=Kind(0d0))
 
-         CALL ZGEMM('n','n',N,P,M,ALP,A,LDA,B,LDB,BET,C,LDC)
+         CALL la_zgemm('n','n',N,P,M,ALP,A,LDA,B,LDB,BET,C,LDC)
 
 
          ! WRITE(6,*) 'In complex', N,M,P
