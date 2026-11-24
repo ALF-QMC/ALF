@@ -42,6 +42,7 @@
 !--------------------------------------------------------------------
 
 Module WaveFunction_mod
+  Use linalg_mod, only: la_zgemm
 
   Use MyMats, only: Det
 
@@ -90,7 +91,7 @@ Contains
 
     alpha=1.d0
     beta=0.d0
-    call ZGEMM('C','N',N_part,N_part,Ndim,alpha,WF_L%P,Ndim,WF_R%P,Ndim,beta,Mat,N_part)
+    call la_zgemm('C','N',N_part,N_part,Ndim,alpha,WF_L%P,Ndim,WF_R%P,Ndim,beta,Mat,N_part)
     ! Mat = (WL_L%P)^{dagger} WL_L%R 
     
     Z_norm =  Det(Mat,N_part)
