@@ -70,9 +70,21 @@ Program Main
      write (*,*) "ERROR: DET_C_LOGPHASE disagrees with DET_C", Z, Phase*exp(LogAbs)
      stop 2
   endif
+  ! where the raw product is safe, DET_C_PHASE returns it bit for bit (results of existing runs do not change)
   C = B
-  if (abs(DET_C_PHASE(C, 8) - Phase) > 1.d-13) then
-     write (*,*) "ERROR: DET_C_PHASE", DET_C_PHASE(C, 8), Phase
+  Phase = DET_C_PHASE(C, 8)
+  if (Phase /= Z) then
+     write (*,*) "ERROR: DET_C_PHASE is not the raw DET_C value where that is safe", Phase, Z
+     stop 2
+  endif
+
+  ! 5. Where the raw product underflows (case 1), DET_C_PHASE returns the unit-modulus phase.
+  A = 0.d0
+  do i = 1, N
+     A(i,i) = 1.d-3*cmplx(cos(0.37d0*i), sin(0.37d0*i), kind(0.d0))
+  enddo
+  if (abs(abs(DET_C_PHASE(A, N)) - 1.d0) > 1.d-13) then
+     write (*,*) "ERROR: DET_C_PHASE not of unit modulus where DET_C underflows"
      stop 2
   endif
 

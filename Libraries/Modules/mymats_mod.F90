@@ -1422,7 +1422,9 @@
 
 !--------------------------------------------------------------------
 !> @brief
-!> Phase det(Mat)/|det(Mat)| of unit modulus, safe for large N (see DET_C_LOGPHASE). The matrix is destroyed.
+!> Phase of det(Mat), safe for large N (see DET_C_LOGPHASE). The matrix is destroyed.
+!> If the raw product of DET_C is safe (finite, 1e-250 <= |raw| <= 1e250) it is returned unchanged, bit for bit as DET_C
+!> returns it, so results do not change wherever DET_C worked. Otherwise the unit-modulus phase from the normalised factors.
 !--------------------------------------------------------------------
       Complex (Kind=Kind(0.d0)) Function DET_C_PHASE(Mat,N)
 
@@ -1430,9 +1432,20 @@
 
         Integer, intent(in) :: N
         Complex(Kind=Kind(0.d0)), intent(inout) :: Mat(:,:)
-        Real (Kind=Kind(0.d0)) :: LogAbs
+        Real (Kind=Kind(0.d0)) :: LogAbs, a
+        Complex(Kind=Kind(0.d0)) :: Raw
+        Complex(Kind=Kind(0.d0)), allocatable :: Copy(:,:)
 
-        Call DET_C_LOGPHASE(Mat, N, LogAbs, DET_C_PHASE)
+        allocate(Copy(size(Mat,1), size(Mat,2)))
+        Copy = Mat
+        Raw  = DET_C(Mat, N)      ! the code that was used before, so the safe case is bit for bit unchanged
+        a = abs(Raw)
+        if (a >= 1.d-250 .and. a <= 1.d250) then
+           DET_C_PHASE = Raw
+        else
+           Call DET_C_LOGPHASE(Copy, N, LogAbs, DET_C_PHASE)
+        endif
+        deallocate(Copy)
       end function DET_C_PHASE
 
 !--------------------------------------------------------------------
