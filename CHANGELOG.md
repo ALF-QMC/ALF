@@ -16,7 +16,10 @@ The same function made `Op_set` stop at $N = 4096$ ("Eigenvector matrix has near
 2. Used where only the phase or $\ln|\det|$ is needed: `CGR` (`cgr1_mod.F90`, default stabilisation incl. `STAB3` and `STABLOG`),
    `UDV_WRAP`, `Compute_Fermion_Det` (`Global_mod.F90`) and `Op_set` (`Operator_mod.F90`).
 3. Not changed: the legacy `STAB1`/`STAB2` branch of `CGR` (it takes the determinant from `INV`/`DET_C`) and the tests.
-4. Test: `testsuite/matmod.tests/13-det-C-phase.F90`.
+4. Guard: `CGR` and `CGRP` now call `Control_Check_Phase`, and `Control_PrecisionP` tests its arguments, so a NaN phase (or
+   one of modulus 0 or far from 1) stops the run with an error instead of silently rejecting all proposals. The tests use
+   the bit pattern (`Control_Is_Finite`), because comparisons with NaN can be folded away under `-ffast-math`.
+5. Tests: `testsuite/matmod.tests/13-det-C-phase.F90`, `testsuite/Prog.tests/36` to `39-Control-phase-*.F90`.
 
 ### 2026-10-30 MALA updates: new argument of `Overide_global_tau_sampling_parameters`
 Author: A. Goetz, F. Assaad <br>

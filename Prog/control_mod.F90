@@ -444,10 +444,75 @@ module Control
       End Subroutine Control_Precision_tau
 
 
+!--------------------------------------------------------------------
+!> True if the double precision number x is neither NaN nor Inf.
+!> The test reads the bit pattern: comparisons such as x /= x, x > y or ieee_is_nan(x) can be folded to constants by
+!> compilers under -ffast-math / -ffinite-math-only, which silently disables a guard written with them.
+!--------------------------------------------------------------------
+      Logical Function Control_Is_Finite(x)
+        use iso_fortran_env, only: int64
+        Implicit none
+        Real (Kind=Kind(0.D0)), INTENT(IN) :: x
+        Integer (Kind=int64), parameter :: expmask = int(z'7FF0000000000000', int64)
+        Integer (Kind=int64) :: b
+        b = transfer(x, b)
+        Control_Is_Finite = ( iand(b, expmask) /= expmask )
+      End Function Control_Is_Finite
+
+!--------------------------------------------------------------------
+!> Abort because the determinant phase is not a finite number of unit modulus.
+!> A NaN phase makes the Metropolis weight W = S0 T0 |Re(Phase R)/Re(Phase)| NaN, so every proposal is rejected while the run
+!> ends with return code 0 and the Green function stays finite (see CHANGELOG.md, 2026-11-25).
+!--------------------------------------------------------------------
+      Subroutine Control_Fail_Phase(Z)
+#ifdef MPI
+        Use mpi
+#endif
+        use runtime_error_mod
+        Implicit none
+        Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z
+        Character (len=64) :: File1
+#if defined(TEMPERING)
+        write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+        File1 = "info"
+#endif
+        Open (Unit=50,file=file1, status="unknown", position="append")
+        write(50,*)
+#ifdef MPI
+        write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+        write(50,*) "Determinant phase is NaN or has |phase| /= 1: ", Z
+        write(50,*) "Every Metropolis proposal would be rejected; calculation is being aborted!"
+        write(50,*)
+        close(50)
+        write(error_unit,*)
+#ifdef MPI
+        write(error_unit,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+        write(error_unit,*) "Determinant phase is NaN or has |phase| /= 1: ", Z
+        write(error_unit,*) "Every Metropolis proposal would be rejected; calculation is being aborted!"
+        write(error_unit,*)
+        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+      End Subroutine Control_Fail_Phase
+
+!> Phase returned by CGR: finite and of unit modulus
+      Subroutine Control_Check_Phase(Z)
+        Implicit none
+        Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z
+        Real    (Kind=Kind(0.D0)) :: X
+        if ( .not. Control_Is_Finite(dble(Z)) .or. .not. Control_Is_Finite(aimag(Z)) ) call Control_Fail_Phase(Z)
+        X = ABS(Z)
+        if ( X <= 0.5d0 .or. X >= 2.d0 ) call Control_Fail_Phase(Z)
+      End Subroutine Control_Check_Phase
+
       Subroutine Control_PrecisionP(Z,Z1)
         Implicit none
         Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z,Z1
         Real    (Kind=Kind(0.D0)) :: X
+        ! NaN guard (a NaN would otherwise pass the comparison below unnoticed)
+        if ( .not. Control_Is_Finite(dble(Z))  .or. .not. Control_Is_Finite(aimag(Z))  ) call Control_Fail_Phase(Z)
+        if ( .not. Control_Is_Finite(dble(Z1)) .or. .not. Control_Is_Finite(aimag(Z1)) ) call Control_Fail_Phase(Z1)
         X = ABS(Z-Z1)
         if ( X > XMAXP ) XMAXP = X
       End Subroutine Control_PrecisionP
