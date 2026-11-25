@@ -44,7 +44,6 @@ Module UDV_Wrap_mod
   Use linalg_mod, only: la_zscal
 
      Use MyMats, only: Compare, DET_C, MMULT, SVD, UDV, QR
-     Use Files_mod, only: File_i
 
    Contains
 
@@ -211,9 +210,6 @@ Module UDV_Wrap_mod
 
 !***************************************************************
      Subroutine UDV_Wrap(A,U,D,V,NCON)
-#ifdef MPI
-       USE mpi
-#endif
 
        Implicit None
 
@@ -225,20 +221,7 @@ Module UDV_Wrap_mod
        !Local
        Complex (Kind=Kind(0.d0)), Allocatable ::  A1(:,:),U1(:,:)
        Integer :: N
-       character (len=64) :: file_sr, File
-#ifdef MPI
-       INTEGER :: Isize, Irank,Ierr
 
-       CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-       CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif
-
-       File_sr = "SDV"
-#ifdef MPI 
-       File = File_i(File_sr, Irank)
-#else
-       File = File_sr
-#endif 
        CALL QR(A,U,V,NCON)
        N = Size(A,1)
        Allocate (A1(N,N),U1(N,N))
