@@ -300,8 +300,8 @@ module cgr1_mod
 #endif
         ! calculate determinant of UR*UL
         ! as the D's are real and positive, they do not contribute the the phase of det so they can be ignored
-        PHASE = CONJG(DET_C(RHS, N_size))
-        PHASE = PHASE/ABS(PHASE)
+        ! DET_C_PHASE normalises every LU factor: the raw product of DET_C underflows for N >~ 3000 (phase 0/0 = NaN)
+        PHASE = CONJG(DET_C_PHASE(RHS, N_size))
         IPVT = 0
         IF (NVAR .NE. 1) THEN
             Allocate(TPUP_temp(N_size,N_size))

@@ -810,6 +810,7 @@ Module Global_mod
         Integer ::  N_size, NCON, I,  J, N_part, info, NSTM, N, nf, nst, nt, nt1, nf_eff
         Integer, allocatable :: ipiv(:)
         COMPLEX (Kind=Kind(0.d0)) :: alpha,beta, Z, Z1
+        REAL    (Kind=Kind(0.d0)) :: LogZ, LogZ1
         TYPE(UDV_State) :: udvlocal
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TP!, U, V
         COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: D
@@ -924,17 +925,18 @@ Module Global_mod
 
            !Call  UDV_WRAP_Pivot(TP,udvlocal%U, D, udvlocal%V, NCON,N_size,N_Size)
            Call  UDV_WRAP(TP,udvlocal%U, D, udvlocal%V, NCON )
-           Z  = DET_C(udvlocal%V, N_size) ! Det destroys its argument
+           ! Z, Z1: phases; LogZ, LogZ1: ln|det|. The raw product of DET_C underflows for N >~ 3000.
+           Call DET_C_LOGPHASE(udvlocal%V, N_size, LogZ, Z) ! destroys its argument
            !         Call MMULT(TP, udvl%U, udvlocal%U)
            CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl(nf_eff)%U(1,1), N_size, udvlocal%U(1,1), N_size, beta, TP, N_size)
-           Z1 = Det_C(TP, N_size)
+           Call DET_C_LOGPHASE(TP, N_size, LogZ1, Z1)
            Phase_det(nf_eff)   = Z*Z1/ABS(Z*Z1)
 #if !defined(STABLOG)
 #if !defined(STAB3)
            Det_vec(:,nf_eff) = log(real(D(:)))
-           Det_vec(1,nf_eff) = log(real(D(1))) + log(ABS(Z*Z1))
+           Det_vec(1,nf_eff) = log(real(D(1))) + LogZ + LogZ1
 #else
-           Det_vec(1,nf_eff) = log(real(D(1))*ABS(Z*Z1))
+           Det_vec(1,nf_eff) = log(real(D(1))) + LogZ + LogZ1
            if (dble(udvl(nf_eff)%D(1)) > 1.d0) Det_vec(1,nf_eff)=Det_Vec(1,nf_eff)+log(dble(udvl(nf_eff)%D(1)))
            Do J=2,Ndim
               if (dble(udvl(nf_eff)%D(J))<=1.d0) then
@@ -946,7 +948,7 @@ Module Global_mod
 #endif
 #else
            Det_vec(:,nf_eff) = log(real(D(:)))
-           Det_vec(1,nf_eff) = log(real(D(1))*ABS(Z*Z1))
+           Det_vec(1,nf_eff) = log(real(D(1))) + LogZ + LogZ1
            if (udvl(nf_eff)%L(1) > 0.d0) Det_vec(1,nf_eff)=Det_Vec(1,nf_eff)+udvl(nf_eff)%L(1)
            Do J=2,Ndim
               if (udvl(nf_eff)%L(J)<=0.d0) then

@@ -1366,6 +1366,76 @@
       end function DET_C
 
 !--------------------------------------------------------------------
+!> @brief
+!> Phase and logarithm of the modulus of det(Mat), from the LU decomposition. The matrix is destroyed.
+!>
+!> DET_C forms the determinant as the raw product of the diagonal of the LU factor. For large N that product under- or
+!> overflows double precision even when |det| = 1: the running product of the LU diagonal of a unitary matrix dips to about
+!> exp(-0.3 N), below the smallest double (exp(-745)) for N of a few thousand. The determinant is then 0 and a phase
+!> det/|det| is 0/0 = NaN. Here every factor is normalised, so the phase is exact, and ln|det| is a sum of logarithms.
+!> Use this routine wherever only the phase, or the modulus on a log scale, is needed.
+!>
+!> @param [inout] Mat  Matrix, destroyed (LU factors on output).
+!> @param [in]    N    Dimension.
+!> @param [out]   LogAbs  ln|det(Mat)|. -huge(1.d0) if the matrix is exactly singular.
+!> @param [out]   Phase   det(Mat)/|det(Mat)|, of unit modulus; (0,0) if the matrix is exactly singular.
+!--------------------------------------------------------------------
+      Subroutine DET_C_LOGPHASE(Mat, N, LogAbs, Phase)
+
+        Implicit none
+
+        Integer, intent(in) :: N
+        Complex(Kind=Kind(0.d0)), intent(inout) :: Mat(:,:)
+        Real   (Kind=Kind(0.d0)), intent(out)   :: LogAbs
+        Complex(Kind=Kind(0.d0)), intent(out)   :: Phase
+
+        integer :: i, info, LDmat
+        integer, allocatable :: ipiv(:)
+        Real (Kind=Kind(0.d0)) :: x
+
+        allocate(ipiv(N))
+        ipiv = 0
+
+        !Lapack LU decomposition
+        LDmat = size(Mat,1)
+        call zgetrf(N, N, Mat, LDmat, ipiv, info)
+
+        Phase  = cmplx(1.d0, 0.d0, kind(0.d0))
+        LogAbs = 0.d0
+        do i = 1, N
+           x = abs(Mat(i,i))
+           if (x == 0.d0) then
+              Phase  = cmplx(0.d0, 0.d0, kind(0.d0))
+              LogAbs = -huge(1.d0)
+              deallocate(ipiv)
+              return
+           endif
+           Phase  = Phase*(Mat(i,i)/x)
+           LogAbs = LogAbs + log(x)
+        enddo
+        do i = 1, N
+           if(ipiv(i) /= i)  Phase = -Phase
+        enddo
+
+        deallocate(ipiv)
+      end Subroutine DET_C_LOGPHASE
+
+!--------------------------------------------------------------------
+!> @brief
+!> Phase det(Mat)/|det(Mat)| of unit modulus, safe for large N (see DET_C_LOGPHASE). The matrix is destroyed.
+!--------------------------------------------------------------------
+      Complex (Kind=Kind(0.d0)) Function DET_C_PHASE(Mat,N)
+
+        Implicit none
+
+        Integer, intent(in) :: N
+        Complex(Kind=Kind(0.d0)), intent(inout) :: Mat(:,:)
+        Real (Kind=Kind(0.d0)) :: LogAbs
+
+        Call DET_C_LOGPHASE(Mat, N, LogAbs, DET_C_PHASE)
+      end function DET_C_PHASE
+
+!--------------------------------------------------------------------
 !> @author
 !> F.Assaad
 !

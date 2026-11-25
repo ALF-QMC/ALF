@@ -269,7 +269,8 @@ Contains
 #ifdef MPI
     Integer :: ierr
 #endif
-    Complex (Kind=Kind(0.d0)) :: Z
+    Complex (Kind=Kind(0.d0)) :: Z, Phase_Z
+    Real    (Kind=Kind(0.d0)) :: LogZ
     Type  (Fields)   :: nsigma_single
     
     ! --- Validate Op%type ---
@@ -377,9 +378,11 @@ Contains
           ! Write(6,*) "Op_set", np,N
           if (noderank == 0) then
              TMP = Op%U ! that way we have the changes to the determinant due to the permutation
-             Z = Det_C(TMP, N)
-             if (abs(Z) < 1.D-30) then
-                Write(error_unit, '(A,ES15.7)') ' Op_set: Eigenvector matrix has near-zero determinant: |det| = ', abs(Z)
+             ! |det| = 1 for a unitary matrix, but the raw product of Det_C underflows for N >~ 3000 (Op_set failed at N = 4096)
+             Call Det_C_LogPhase(TMP, N, LogZ, Phase_Z)
+             Z = Phase_Z*exp(LogZ)
+             if (LogZ < log(1.D-30)) then
+                Write(error_unit, '(A,ES15.7)') ' Op_set: Eigenvector matrix has near-zero determinant: |det| = ', exp(LogZ)
                 Write(error_unit, '(A)')        '   Cannot normalize to SU(N). Check operator matrix.'
                 Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
              endif

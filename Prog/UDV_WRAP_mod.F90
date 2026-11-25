@@ -94,7 +94,7 @@ Module UDV_Wrap_mod
        
        CALL UDV_Wrap(A1,U,D,V,NCON)
        V1 = V
-       Phase=Det_C(V1,N2)
+       Phase=Det_C_Phase(V1,N2)   ! phase only: the raw product of Det_C underflows for N >~ 3000
        Call Pivot_Phase(phase,IVPT,size(D,1))
        beta=1/Phase
        !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
