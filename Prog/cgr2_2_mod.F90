@@ -30,7 +30,7 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 module cgr2_2_mod
-  Use linalg_mod, only: la_ztrsm, la_zscal, la_zlacpy, la_zgetrf, la_zgetrs, la_zunmqr
+  Use linalg_mod, only: la_ztrsm, la_zscal, la_zlacpy, la_zgetrf, la_zgetrs, la_zunmqr, la_zlaset, la_zlapmr
    implicit none
    private
    public :: CGR2_2, solve_extended_system, get_blocks
@@ -112,7 +112,7 @@ module cgr2_2_mod
            ALLOCATE(TMPVEC(LQ2), HLPB1(LQ2, LQ2), IPVT(LQ2))
            TMPVEC = conjg(1.D0/D3)
            ! set HLPB1 equal to zero
-           call zlaset('A', LQ2, LQ2, zero, zero, HLPB1, LQ2)
+           call la_zlaset('A', LQ2, LQ2, zero, zero, HLPB1, LQ2)
            DO J = 1, LQ
               DO I = 1, LQ
                  HLPB1(I   , J    ) =  UCT(I, J)
@@ -149,7 +149,7 @@ module cgr2_2_mod
 !>              and the upper triangular matrix R in its upper part as returned by ?GETRF
 !> @param[in] D A vector containing the scales.
 !> @param[in] TAU A vector containing the scalar factors of the Householder decomposition
-!> @param[in] IPVT A permutation vector usable by ?LAPMR/?LAPMT
+!> @param[inout] PIVT A permutation vector usable by ?LAPMR/?LAPMT (unchanged on exit)
 !> @param[in] LQ The dimension of the matrices UCT and V1INV
 !> @param[inout] WORK work space
 !> @param[in] LWORK The size of the work space.
@@ -159,7 +159,7 @@ module cgr2_2_mod
            Integer, intent(in) :: LQ, LWORK
            Complex (Kind=Kind(0.D0)), intent(in) :: A(2*LQ, 2*LQ), D(2*LQ), TAU(2*LQ), UCT(LQ,LQ), VINV(LQ,LQ)
            Complex (Kind=Kind(0.D0)), intent(inout) :: WORK(LWORK)   ! workspace of ZUNMQR
-           Integer, intent(in) :: PIVT(2*LQ)
+           Integer, intent(inout) :: PIVT(2*LQ)   ! ZLAPMR permutes it and restores it on exit
            Complex (Kind=Kind(0.D0)), intent(inout) :: HLP(2*LQ, 2*LQ)
            Complex (Kind=Kind(0.D0)), Allocatable, Dimension(:) :: TMPVEC
            Integer :: LQ2, info, I, j
@@ -171,7 +171,7 @@ module cgr2_2_mod
            ALLOCATE(TMPVEC(LQ2))
            TMPVEC = conjg(1.D0/D)
            ! set HLP equal to zero
-           call zlaset('A', LQ2, LQ2, z, z, HLP, LQ2)
+           call la_zlaset('A', LQ2, LQ2, z, z, HLP, LQ2)
            DO I = 1, LQ
               DO J = 1, LQ
                  HLP(I   , J    ) =  UCT(I, J)
@@ -181,7 +181,7 @@ module cgr2_2_mod
            z = 1.D0
            !P * V3^* X = H1
            FORWRD = .true.
-           CALL ZLAPMR(FORWRD, LQ2, LQ2, HLP(1, 1), LQ2, PIVT(1))
+           CALL la_zlapmr(FORWRD, LQ2, LQ2, HLP, LQ2, PIVT)
            CALL la_ztrsm('L', 'U', 'C', 'N', LQ2, LQ2, z, A, LQ2, HLP, LQ2)! Block structure of HLPB1 is not exploited
            DO J = 1,LQ2
               DO I = 1,LQ2
