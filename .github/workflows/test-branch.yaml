@@ -62,8 +62,14 @@ jobs:
       matrix:
         compiler: [GNU]
     steps:
+      # Pin Python so that prebuilt h5py wheels are available
+      # (otherwise pip tries to build h5py from source, which needs HDF5)
+      - uses: actions/setup-python@v6
+        id: setup_python
+        with:
+          python-version: '3.13'
       - name: Install pyALF
-        run: pipx install pyALF
+        run: pipx install --python '${{ steps.setup_python.outputs.python-path }}' pyALF
 
       - name: macOS Toolchain install
         id: mac_toolchain
