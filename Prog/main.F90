@@ -298,7 +298,6 @@ Program Main
 #endif
 
 
-        Call control_init(Group_Comm)
         Call ham%Alloc_obs(get_Ltau())
 
         Call Walker_layout(walker, Ltrot, get_Nwrap())
@@ -321,6 +320,8 @@ Program Main
 
 
 
+        ! Reset the statistics and start the CPU clock here, so that they cover only
+        ! the Monte Carlo sweeps (CPU_MAX counts from this point).
         Call Control_init(Group_Comm)
 
         DO  NBC = 1, get_NBin()
