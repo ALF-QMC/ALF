@@ -31,7 +31,7 @@
 
 
 module upgrade_mod
-  Use linalg_mod, only: la_zgemm, la_zgemv, la_zgeru, la_zscal, la_zcopy
+  Use linalg_mod, only: la_zgemm, la_zgemv, la_zgeru, la_zscal, la_zcopy, la_zlaset
    use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
    implicit none
    contains
@@ -233,8 +233,8 @@ module upgrade_mod
               op_dim_nf = Op_V(n_op,nf)%N_non_zero
               if (op_dim_nf > 0) then
                 beta = 0.D0
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
+                call la_zlaset('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
+                call la_zlaset('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
                 do n = 1,op_dim_nf
                     u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf_eff)
                     do i = 1,Ndim
@@ -243,8 +243,8 @@ module upgrade_mod
                     v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
                 enddo
 
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, x_v, size(x_v, 1))
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, y_v, size(y_v, 1))
+                call la_zlaset('N', Ndim, op_dim_nf, beta, beta, x_v, size(x_v, 1))
+                call la_zlaset('N', Ndim, op_dim_nf, beta, beta, y_v, size(y_v, 1))
                 i = Op_V(n_op,nf)%P(1)
                 x_v(i, 1) = u(i, 1)/(1.d0 + v(i,1)*u(i,1) )
                 call la_zcopy(Ndim, v(:, 1), 1, y_v(:, 1), 1)
