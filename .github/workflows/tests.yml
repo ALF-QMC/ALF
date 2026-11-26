@@ -51,11 +51,14 @@ jobs:
         # backend changes one module. Excluded: Prog/Hamiltonians/ (user
         # models), Prog/Operator_mod.F90 (row/column scalings of the operators,
         # to be replaced by fused kernels in a GPU port) and
-        # Prog/matTypes_mod.F90 (not compiled).
+        # Prog/matTypes_mod.F90 (not compiled). Since 6G.E7 it also covers
+        # the complex routines of Libraries/Modules/mymats_mod.F90 and the
+        # LAPACK helpers zlaset, zlapmr, zlapmt and zgesvd, zheev, zgeev.
         run: |
           files="$(git ls-files -- 'Prog/*.F90' ':!:Prog/Hamiltonians/*' \
-                   ':!:Prog/Operator_mod.F90' ':!:Prog/matTypes_mod.F90') Libraries/Modules/Mat_subroutines_mod.F90"
-          bad=$(grep -n -i -E '^[^!]*\bcall\s+z(gemm|hemm|trsm|trmm|gemv|geru|scal|copy|lacpy|getrf|getrs|getri|geqrf|geqp3|ungqr|unmqr)\s*\(' $files || true)
+                   ':!:Prog/Operator_mod.F90' ':!:Prog/matTypes_mod.F90') Libraries/Modules/Mat_subroutines_mod.F90 \
+                 Libraries/Modules/mymats_mod.F90"
+          bad=$(grep -n -i -E '^[^!]*\bcall\s+z(gemm|hemm|trsm|trmm|gemv|geru|scal|copy|lacpy|getrf|getrs|getri|geqrf|geqp3|ungqr|unmqr|laset|lapmr|lapmt|gesvd|heev|geev)\s*\(' $files || true)
           if [ -n "$bad" ]; then
             echo "Direct BLAS/LAPACK calls (use the la_* wrappers of linalg_mod):"
             echo "$bad"
