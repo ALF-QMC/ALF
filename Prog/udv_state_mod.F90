@@ -42,7 +42,7 @@
 
 
 MODULE UDV_State_mod
-  Use linalg_mod, only: la_ztrmm, la_zscal, la_zlacpy, la_zungqr
+  Use linalg_mod, only: la_ztrmm, la_zscal, la_zlacpy, la_zungqr, la_zlaset, la_zlapmr, la_zlapmt
     use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
     use iso_fortran_env, only: output_unit, error_unit
 
@@ -335,8 +335,8 @@ CONTAINS
           endif
           CALL la_zlacpy('A', this%ndim, this%N_part, P, this%ndim, this%U, this%ndim)
        else
-          CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
-          CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
+          CALL la_zlaset('A', this%ndim, this%ndim, alpha, beta, this%U, this%ndim)
+          CALL la_zlaset('A', this%ndim, this%ndim, alpha, beta, this%V, this%ndim)
        endif
 #if !defined(STABLOG)
        this%D = beta
@@ -494,9 +494,9 @@ CONTAINS
           ! A V = A P P^-1 V = Q R P^-1 V
           FORWRD = .true.
           if(udvr%side == "R" .or. udvr%side == "r" ) then
-             CALL ZLAPMR(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1)) ! lapack 3.3
+             CALL la_zlapmr(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT) ! lapack 3.3
           else
-             CALL ZLAPMT(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1))
+             CALL la_zlapmt(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT)
           endif
        endif
 #else
