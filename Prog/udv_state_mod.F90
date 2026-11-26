@@ -42,6 +42,7 @@
 
 
 MODULE UDV_State_mod
+  Use linalg_mod, only: la_ztrmm, la_zscal, la_zlacpy, la_zungqr, la_zlaset, la_zlapmr, la_zlapmt
     use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
     use iso_fortran_env, only: output_unit, error_unit
 
@@ -332,10 +333,10 @@ CONTAINS
              CALL this%dealloc
              CALL this%alloc(size(P,1),size(P,2))
           endif
-          CALL ZLACPY('A', this%ndim, this%N_part, P(1, 1), this%ndim, this%U(1, 1), this%ndim)
+          CALL la_zlacpy('A', this%ndim, this%N_part, P, this%ndim, this%U, this%ndim)
        else
-          CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
-          CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
+          CALL la_zlaset('A', this%ndim, this%ndim, alpha, beta, this%U, this%ndim)
+          CALL la_zlaset('A', this%ndim, this%ndim, alpha, beta, this%V, this%ndim)
        endif
 #if !defined(STABLOG)
        this%D = beta
@@ -408,9 +409,9 @@ CONTAINS
        IF(.not. ALLOCATED(this%U)) ALLOCATE(this%U(this%ndim, this%n_part))
        IF(.not. ALLOCATED(this%V) .and. ALLOCATED(src%V)) ALLOCATE(this%V(this%n_part, this%n_part))
        ASSOCIATE(ndim => src%ndim)
-         CALL ZLACPY('A', ndim, this%n_part, src%U(1, 1), ndim, this%U(1, 1), ndim)
-         if (ALLOCATED(src%V)) CALL ZLACPY('A', this%n_part, this%n_part, src%V(1, 1), &
-              & this%n_part, this%V(1, 1), this%n_part)
+         CALL la_zlacpy('A', ndim, this%n_part, src%U, ndim, this%U, ndim)
+         if (ALLOCATED(src%V)) CALL la_zlacpy('A', this%n_part, this%n_part, src%V, &
+              & this%n_part, this%V, this%n_part)
        END ASSOCIATE
 #if !defined(STABLOG)
        IF(.not. ALLOCATED(this%D)) ALLOCATE(this%D(this%n_part))
@@ -488,14 +489,14 @@ CONTAINS
        beta=1/Phase
        If( ALLOCATED(UDVR%V) ) then
           !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-          call ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
+          call la_zscal(N_part,beta,UDVR%U,Ndim)
           ! Permute V. Since we multiply with V from the right we have to permute the rows.
           ! A V = A P P^-1 V = Q R P^-1 V
           FORWRD = .true.
           if(udvr%side == "R" .or. udvr%side == "r" ) then
-             CALL ZLAPMR(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1)) ! lapack 3.3
+             CALL la_zlapmr(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT) ! lapack 3.3
           else
-             CALL ZLAPMT(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1))
+             CALL la_zlapmt(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT)
           endif
        endif
 #else
@@ -548,7 +549,7 @@ CONTAINS
        beta=1/Phase
        If( ALLOCATED(UDVR%V) ) then
           !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-          call ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
+          call la_zscal(N_part,beta,UDVR%U,Ndim)
           do i=1,N_part
              do j=i+1,N_part
                 UDVR%U(i,j)=UDVR%U(i,j)*cmplx(exp(UDVR%L(j)-UDVR%L(I)),0.d0,kind(0.d0))
@@ -565,16 +566,16 @@ CONTAINS
        If( ALLOCATED(UDVR%V) ) then
           if(UDVR%side == "R" .or. UDVR%side == "r" ) then
              ! V = R * V
-             CALL ZTRMM('L', 'U', 'N', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
+             CALL la_ztrmm('L', 'U', 'N', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
           else
              ! V = V * R^dagger
-             CALL ZTRMM('R', 'U', 'C', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
+             CALL la_ztrmm('R', 'U', 'C', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
           endif
        endif
        ! Generate explicitly U in the previously abused storage of U
-       CALL ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
+       CALL la_zungqr(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
        ! scale first column of U to correct the scaling in V such that UDV is not changed
-       call ZSCAL(Ndim,phase,UDVR%U(1,1),1)
+       call la_zscal(Ndim,phase,UDVR%U,1)
 
        DEALLOCATE(TAU, WORK, IPVT)
 

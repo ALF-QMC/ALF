@@ -50,8 +50,37 @@
        Use MyMats, only: MMULT
        Use files_mod, only: str_to_upper
        use wrapur_mod, only: WRAPUR
+       Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
+       Use iso_fortran_env, only: error_unit
+
+       ! Work arrays of Tau_p. They are allocated once per run by
+       ! Tau_p_work_alloc, called from Walker_alloc when time-displaced
+       ! quantities are measured with the projector, instead of on every call;
+       ! this is where a GPU build maps them to the device.
+       Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable, private :: GRUPB, GRUP
+       Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable, private :: G00UP, G0TUP, GT0UP, GTTUP
+       Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable, private :: G00UP_T, G0TUP_T, GT0UP_T, GTTUP_T
+       Complex (Kind=Kind(0.d0)), Dimension(:,:),   Allocatable, private :: TEMP
 
      Contains
+
+        !> Allocates the work arrays of Tau_p (the _T copies only if Symm).
+        SUBROUTINE Tau_p_work_alloc
+          Integer :: LQ
+          LQ = Ndim
+          ALLOCATE (  GRUPB(LQ,LQ,N_FL), GRUP(LQ,LQ,N_FL), G00UP(LQ,LQ,N_FL), G0TUP(LQ,LQ,N_FL), &
+               &      GT0UP(LQ,LQ,N_FL),  GTTUP(LQ,LQ,N_FL), TEMP(LQ,LQ) )
+          If (Symm) Then
+             Allocate ( G00UP_T(LQ,LQ,N_FL), G0TUP_T(LQ,LQ,N_FL), GT0UP_T(LQ,LQ,N_FL),  GTTUP_T(LQ,LQ,N_FL) )
+          endif
+        END SUBROUTINE Tau_p_work_alloc
+
+        !> Releases the work arrays of Tau_p.
+        SUBROUTINE Tau_p_work_dealloc
+          DEALLOCATE (GRUPB, GRUP, G00UP, G0TUP, GT0UP,  GTTUP, TEMP)
+          If (allocated(G00UP_T)) Deallocate ( G00UP_T, G0TUP_T, GT0UP_T,  GTTUP_T )
+        END SUBROUTINE Tau_p_work_dealloc
+
 
 !--------------------------------------------------------------------
 !> @author
@@ -89,10 +118,7 @@
 !       Local.
         CLASS(UDV_State), Dimension(:), ALLOCATABLE :: udvr_local
         Complex (Kind=Kind(0.d0)) :: DETZ
-        Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  GRUPB, GRUP
-        Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  G00UP, G0TUP, GT0UP,  GTTUP
-        Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  G00UP_T, G0TUP_T, GT0UP_T,  GTTUP_T
-        Complex (Kind=Kind(0.d0)), allocatable  :: TEMP(:,:)
+        ! GRUPB, GRUP, G00UP, ..., TEMP: module work arrays, see Tau_p_work_alloc
 
         Integer :: LQ , I, NF, nf_eff, NT1, NT_ST, NT, NTAU, NTAU1, NCHECK
         Real (Kind=Kind(0.d0)) :: Mc_step_weight
@@ -103,12 +129,11 @@
         if ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" ) Mc_step_weight =  Langevin_HMC%get_Delta_t_running()
 
         
-        ALLOCATE (  GRUPB(LQ,LQ,N_FL), GRUP(LQ,LQ,N_FL), G00UP(LQ,LQ,N_FL), G0TUP(LQ,LQ,N_FL), &
-             &      GT0UP(LQ,LQ,N_FL),  GTTUP(LQ,LQ,N_FL), TEMP(LQ,LQ), udvr_local(N_FL_eff) )
-
-        If (Symm) Then
-           Allocate ( G00UP_T(LQ,LQ,N_FL), G0TUP_T(LQ,LQ,N_FL), GT0UP_T(LQ,LQ,N_FL),  GTTUP_T(LQ,LQ,N_FL) )
+        if (.not. allocated(GRUP)) then
+           write(error_unit,*) "Tau_p: work arrays not allocated (call Tau_p_work_alloc)"
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
+        ALLOCATE ( udvr_local(N_FL_eff) )
 
         do nf_eff=1,N_FL_eff
            call udvr_local(nf_eff)%alloc(ndim,udvr(nf_eff)%N_part)
@@ -329,10 +354,7 @@
         Do nf_eff=1,N_FL_eff
            call udvr_local(nf_eff)%dealloc
         enddo
-        DEALLOCATE (GRUPB, GRUP, G00UP, G0TUP, GT0UP,  GTTUP, TEMP, udvr_local)
-        If (Symm) Then
-           Deallocate ( G00UP_T, G0TUP_T, GT0UP_T,  GTTUP_T )
-        endif
+        DEALLOCATE (udvr_local)
         
       END SUBROUTINE Tau_p
       

@@ -6,7 +6,7 @@ SRCS = Hamiltonians/LRC_mod.F90 control_mod.F90 Fields_mod.F90 Operator_mod.F90 
 	Hamiltonian_main_mod.F90 QDRP_decompose_mod.F90 udv_state_mod.F90 Hop_mod.F90 UDV_WRAP_mod.F90 \
 	Predefined_Int_mod.F90 Predefined_Obs_mod.F90 Predefined_Latt_mod.F90 Predefined_Hop_mod.F90 Predefined_Trial_mod.F90 \
 	wrapul_mod.F90 cgr1_mod.F90 wrapur_mod.F90 cgr2_2_mod.F90 upgrade_mod.F90 Set_random_mod.F90 \
-	Global_mod.F90 Langevin_HMC_mod.F90 Wrapgr_mod.F90 tau_m_mod.F90 tau_p_mod.F90 QMC_runtime_var_mod.F90 \
+	Global_mod.F90 Langevin_HMC_mod.F90 Wrapgr_mod.F90 tau_m_mod.F90 tau_p_mod.F90 QMC_runtime_var_mod.F90 qmc_walker_mod.F90 qmc_sweep_mod.F90 qmc_driver_mod.F90 qmc_setup_mod.F90 \
 	main.F90
 
 # Dependency helper variables
@@ -32,6 +32,7 @@ Hamiltonian_main_mod.o: Hamiltonians_interface.h Hamiltonians_case.h
 $(OHAM): .parse_parameters Hamiltonian_main_mod.o
 
 main.o: git.h
+qmc_setup_mod.o: git.h
 
 # Regenerate git.h whenever the commit hash, branch, or dirty state changes.
 # .git/HEAD changes on branch switch; .git/index changes on commit/stage.

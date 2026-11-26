@@ -22,6 +22,7 @@ end interface
         INTEGER         :: NVAR, i, j, N_size
         
         N_size = 5
+        call CGR_work_alloc(N_size)   ! work arrays of CGR, once per run
         
         do NVAR = 1,2
         CALL udvl%alloc(N_size)
@@ -88,6 +89,7 @@ call CGRold(PHASEold, NVAR, GRUPold, udvr%U, DR, udvr%V, udvl%U, DL, udvl%V)
 deallocate(GRUPnew, GRUPold, Dr, DL)
 enddo
 write (*,*) "success"
+call CGR_work_dealloc
 end Program TESTCGR
 
       SUBROUTINE CGRold(PHASE,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)

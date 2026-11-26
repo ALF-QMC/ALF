@@ -195,6 +195,20 @@ else()
     set_tests_properties(36-Ham-smoke-${ham_name} PROPERTIES
       ENVIRONMENT "OMP_NUM_THREADS=1" TIMEOUT 60)
   endforeach()
+
+  # Unit test for qmc_walker_mod (walker layout, allocation, deallocation).
+  add_executable(40-walker 40-walker.F90)
+  target_compile_options(40-walker PRIVATE ${FLAG_LIST})
+  target_include_directories(40-walker PRIVATE "${PROG_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+  target_link_libraries(40-walker ${prog_objects} ${LIB_LIST})
+  if("${FLAG_LIST}" MATCHES "-DMPI")
+    add_test(NAME 40-walker
+      COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS}
+        $<TARGET_FILE:40-walker> ${MPIEXEC_POSTFLAGS})
+  else()
+    add_test(NAME 40-walker COMMAND 40-walker)
+  endif()
 endif()
 
 # Unit test for QMC_runtime_var (defaults, set/get round trip, lock).

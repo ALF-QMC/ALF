@@ -15,6 +15,7 @@ SRCS = Mat_subroutines_mod.F90 \
 	iso8601_datetime_mod.F90 \
 	lattices_interface_mod.F90 \
 	lattices_v3_mod.F90 \
+	linalg_mod.F90 \
 	log_mesh_mod.F90 \
 	matrix_mod.F90 \
 	maxent_mod.F90 \

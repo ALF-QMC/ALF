@@ -117,42 +117,19 @@ Program Main
 #ifdef MPI
         Use mpi
 #endif
-        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_HAMILTONIAN, &
-             &                       ERROR_RUNNING_FILE_FOUND
-        Use Operator_mod, only: Op_phase
-        Use mpi_shared_memory, only: mpi_shared_memory_init, deallocate_all_shared_memory, use_mpi_shm
-        Use QMC_runtime_var, only: check_compatibility_reconstruct_greens_function, &
-             &                     check_langevin_schemes_and_variables, check_mala_variables, &
-             &                     check_update_schemes_compatibility, get_amplitude, get_cpu_max, &
-             &                     get_delta_t_langevin_hmc, get_delta_t_mala_global, &
-             &                     get_delta_t_mala_global_tau, get_delta_t_mala_sequential, &
-             &                     get_global_mala_moves, get_global_moves, get_global_tau_mala_moves, &
-             &                     get_global_tau_moves, get_ham_name, get_hmc, get_langevin, &
-             &                     get_leapfrog_steps, get_lobs_en, get_lobs_st, get_ltau, get_max_force, &
-             &                     get_max_force_mala_global, get_max_force_mala_global_tau, &
-             &                     get_max_force_mala_sequential, get_mpi_per_parameter_set, get_n_global, &
-             &                     get_n_global_mala_sweeps, get_n_global_tau, get_n_global_tau_mala, &
-             &                     get_n_hmc_sweeps, get_nbin, get_nsweep, get_nt_sequential_end, &
-             &                     get_nt_sequential_start, get_nwrap, get_propose_s0, get_sequential, &
-             &                     get_sequential_mala, get_tempering_calc_det, &
-             &                     read_and_broadcast_qmc_var_and_ham_name, &
-             &                     set_default_values_measuring_interval, apply_Langevin_overrides, &
-             &                     set_default_global_tau_sampling, &
-             &                     set_mpi_per_parameter_set, set_n_global_tau, &
-             &                     set_n_global_tau_mala, apply_CPU_MAX_policy, set_nt_sequential_end, &
-             &                     set_nt_sequential_start
-        Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Setup_flavor_map, Clear_Ham_state, &
-             &                      Set_Group_Comm, &
-             &                      Ndim, N_FL, N_FL_eff, N_SUN, &
-             &                      Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, Calc_Fl, Calc_Fl_map, &
-             &                      Projector, Symm, Group_Comm, reconstruction_needed, leap_frog_bulk
+        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_RUNNING_FILE_FOUND
+        Use mpi_shared_memory, only: mpi_shared_memory_init, deallocate_all_shared_memory
+        Use QMC_runtime_var, only: get_cpu_max, get_global_mala_moves, get_global_moves, &
+             &                     get_global_tau_mala_moves, get_ltau, get_mpi_per_parameter_set, &
+             &                     get_n_global, get_n_global_tau, get_n_global_tau_mala, get_nbin, &
+             &                     get_nsweep, get_nwrap, get_sequential, get_sequential_mala, &
+             &                     get_tempering_calc_det, read_and_broadcast_qmc_var_and_ham_name, &
+             &                     set_mpi_per_parameter_set, apply_CPU_MAX_policy
+        Use Hamiltonian_main, only: ham, Clear_Ham_state, Set_Group_Comm, Ltrot, nsigma, Group_Comm
         Use files_mod, only: str_to_upper
         Use Natural_Constants, only: Eps_small
-        Use Control, only: Control_init, Control_Print, Control_PrecisionG, Control_PrecisionP, &
+        Use Control, only: Control_init, Control_Print, &
              &             make_truncation
-        Use Tau_m_mod, only: Tau_m
-        Use Tau_p_mod, only: Tau_p
-        Use Hop_mod, only: Hop_mod_init, Hop_mod_Symm
         Use Global_mod, only: Global_Updates, Global_Tempering_setup, Global_Tempering_init_obs, &
              &                Global_Tempering_Pr
 #if defined(TEMPERING)
@@ -160,62 +137,43 @@ Program Main
         Use QMC_runtime_var, only: read_and_broadcast_TEMPERING_var, get_N_exchange_steps, &
              &                     get_N_Tempering_frequency
 #endif
-        Use UDV_State_mod, only: UDV_State
-        Use Wrapgr_mod, only: Wrapgr_alloc, Wrapgr_dealloc, WrapgrUP, WrapgrDO
-        Use Fields_mod, only: Fields_init
+        Use Wrapgr_mod, only: Wrapgr_dealloc
         use entanglement_mod, only: Init_Entanglement_replicas
-        use iso_fortran_env, only: output_unit, error_unit
-        Use Langevin_HMC_mod, only: Langevin_HMC, Langevin_HMC_Reset_storage, Metropolis_Langevin
-        use wrapur_mod, only: WRAPUR
-        use wrapul_mod, only: WRAPUL
-        use cgr1_mod, only: CGR
-        use set_random, only: Set_Random_number_Generator
-        use iso8601_datetime_mod, only: iso8601_datetime
-         
-#ifdef HDF5
-        use hdf5
-        use h5lt
+        Use iso_fortran_env, only: error_unit
+        Use Langevin_HMC_mod, only: Langevin_HMC, Metropolis_Langevin
+#if defined(HDF5)
+        Use qmc_setup_mod, only: Init_hdf5_file
 #endif
+        Use qmc_setup_mod, only: Setup_model, Setup_fields, Setup_update_schemes, Write_info_parameters, Write_info_start, Write_info_end
+        Use comm_mod, only: is_root, comm_world
+        Use qmc_driver_mod, only: Langevin_update, HMC_update, MALA_update
+        Use qmc_sweep_mod, only: Sweep_up, Sweep_down
+        Use qmc_walker_mod, only: qmc_walker_t, Walker_layout, Walker_alloc, Walker_dealloc, &
+             &                    Walker_init_stack, Walker_init_GR
+         
         Implicit none
 
 #include "git.h"
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR, GR_Tilde
-        CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
+        ! State of the Monte Carlo walker: Green function, phase, UDV propagations and storage
+        Type (qmc_walker_t) :: walker
        
         Integer :: NBC, NSW
-        Integer :: NTAU, NTAU1
-        Character (len=64) :: file_seeds, file_info, file_git_info
-        Integer :: Seed_in
-        Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
+        Character (len=64) :: file_info, file_git_info
 
 #ifdef HDF5
         Character (len=64) :: file_dat
 #endif
 
-#ifdef HDF5
-        INTEGER(HID_T) :: file_id
-        Logical :: file_exists
-#endif
          
         !General
-        Integer :: NSTM, NT, NT1, NVAR
-        Integer :: I, nf, nf_eff, nst, n, n1, N_op, NBin_eff
-        Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
-        Logical :: Toggle,  Toggle1
-        Complex (Kind=Kind(0.d0)) :: Phase, Z, Z1
-        Real    (Kind=Kind(0.d0)) :: Mc_step_weight
+        Integer :: N_op, NBin_eff
+        Real    (Kind=Kind(0.d0)) :: chunk_size_gb   ! MPI shared memory chunk (GB); set with MPI only
 
-#if defined(MPI) || defined(HDF5)
+#if defined(MPI)
         Integer :: Ierr
 #endif
 
-        ! Storage for  stabilization steps
-        Integer, dimension(:), allocatable :: Stab_nt 
 
-        ! Space for storage.
-        CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
 
         ! For the truncation of the program:
         logical                   :: prog_truncation, run_file_exists
@@ -225,15 +183,14 @@ Program Main
 #ifdef MPI
         character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
         character(64) :: chunk_size_str
-        Real    (Kind=Kind(0.d0)) :: chunk_size_gb
-        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, comm_split
+        Integer        :: Isize, Irank, Isize_g, color, key, igroup, comm_split
 
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-        
-        If (  Irank == 0 ) then
 #endif
+        
+        If (is_root(comm_world())) then
            write (*,*) "ALF Copyright (C) 2016 - 2026 The ALF project contributors"
            write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
            write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
@@ -267,9 +224,7 @@ Program Main
              write (5,*) "ALF is running"
              close (5)
            end if
-#ifdef MPI
         endif
-#endif
 
 #if defined(TEMPERING) && defined(MPI)
         call read_and_broadcast_TEMPERING_var()
@@ -294,14 +249,12 @@ Program Main
         key   =  0
         call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,comm_split, ierr)
         call Set_Group_Comm(comm_split)
-        call MPI_Comm_rank(Group_Comm, Irank_g, ierr)
         call MPI_Comm_size(Group_Comm, Isize_g, ierr)
         igroup           = irank/isize_g
-        !Write(6,*) 'irank, Irank_g, Isize_g', irank, irank_g, isize_g
         !read environment variable called ALF_SHM_CHUNK_SIZE_GB
         !it should be a positive integer setting the chunk size of shared memory blocks in GB
         !if it is not set, or set to a non-positive (including 0) integer, the routine defaults back to the
-        !usual Fortran allocation routines
+        !usual Fortran allocation routines.  The default is that ALF_SHM_CHUNK_SIZE_GB  is not set. 
         CALL GET_ENVIRONMENT_VARIABLE(Name, VALUE=chunk_size_str, STATUS=ierr)
         if (ierr==0) then
            read(chunk_size_str,*,IOSTAT=ierr) chunk_size_gb
@@ -324,112 +277,16 @@ Program Main
         file_git_info = "info_git"
 #endif
 
-#if defined(MPI)
-        if ( Irank_g == 0 ) then
-#endif
-           Open (Unit = 50,file=file_info,status="unknown",position="append")
-           write(50,*) "START TIME: " // iso8601_datetime()
-           close(50)
-#if defined(GIT)
-           Open (Unit=50, file=file_git_info, status="unknown", position="append")
-           write(50,*) "=================================="
-#include "git_status.h"
-           write(50,*) "=================================="
-           close(50)
-#endif
-#if defined(MPI)
-        endif
-#endif
+        Call Write_info_start(file_info, file_git_info)
         call read_and_broadcast_QMC_var_and_ham_name(Group_Comm)
         NBin_eff = get_NBin()
 
-        Call Fields_init(get_Amplitude())
-        Call Alloc_Ham(get_ham_name())
-        leap_frog_bulk = .false.
-        Call ham%Ham_set()
-        Call Validate_Ham_Variables()
-        If ( allocated(Calc_Fl) ) then
-           if ( any(.not. Calc_Fl) ) call check_compatibility_reconstruct_greens_function()
-        endif
-        ! Test  if  user  has  specified  correct  array  size  for time dependent Hamiltonians
-        N_op = Size(OP_V,1)
-        do n = 1, N_op
-            do i = 1, N_Fl
-                if (Op_V(n,i)%get_g_t_alloc()) then
-                    if (size(Op_V(n,i)%g_t,1) /= Ltrot) then
-                        write(error_unit,*) "Array size of time-dependent coupling Op_V%g_t has to be Ltrot!"
-                        CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-                    endif
-                endif
-            enddo
-        enddo
-        do n = 1, size(Op_T,1)
-            do i = 1, N_Fl
-                if (Op_T(n,i)%get_g_t_alloc()) then
-                    if (size(Op_T(n,i)%g_t,1) /= Ltrot) then
-                        write(error_unit,*) "Array size of time-dependent coupling Op_T%g_t has to be Ltrot!"
-                        CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-                    endif
-                endif
-            enddo
-        enddo
-         
+        Call Setup_model(N_op)
 
-        ! Flavours to compute: Calc_Fl (default all), N_FL_eff, Calc_Fl_map, reconstruction_needed
-        Call Setup_flavor_map()
-        allocate(Phase_array(N_FL))
-
-        if(Projector) then
-           do nf_eff=1,N_fl_eff
-              nf=Calc_Fl_map(nf_eff)
-              if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) then
-                 write(error_unit,*) "Projector is selected but there are no trial wave functions!"
-                 CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-              endif
-           enddo
-        endif
-        
-        Call set_default_values_measuring_interval(Thtrot, Ltrot, Projector)
-
-        If ( .not. ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) )  then
-           ! This  corresponds to the default updating scheme
-           call set_default_global_tau_sampling(Size(OP_V,1))
-        else
-           !  Gives the possibility to set parameters in the Hamiltonian file
-           tmp_Nt_sequential_start = get_Nt_sequential_start()
-           tmp_Nt_sequential_end   = get_Nt_sequential_end()
-           tmp_N_Global_tau        = get_N_Global_tau()
-           tmp_N_Global_tau_MALA   = get_N_Global_tau_MALA()
-           Call ham%Overide_global_tau_sampling_parameters(tmp_Nt_sequential_start,tmp_Nt_sequential_end,tmp_N_Global_tau,tmp_N_Global_tau_MALA)
-           call set_Nt_sequential_start(tmp_Nt_sequential_start)
-           call set_Nt_sequential_end(tmp_Nt_sequential_end)
-           call set_N_Global_tau(tmp_N_Global_tau)
-           call set_N_Global_tau_MALA(tmp_N_Global_tau_MALA)
-        endif
-        
-        call nsigma%make(N_op, Ltrot)
-        Do n = 1,N_op
-           nsigma%t(n)              = OP_V(n,1)%type
-           nsigma%flip_protocol(n)  = OP_V(n,1)%flip_protocol
-        Enddo
-           
-        File_seeds="seeds"
-        Call Set_Random_number_Generator(File_seeds,Seed_in)
-        !Write(6,*) Seed_in
-               
-        Call ham%Hamiltonian_set_nsigma(Initial_field)
-        if (allocated(Initial_field)) then
-           Call nsigma%in(Group_Comm,Initial_field)
-           deallocate(Initial_field)
-        else
-           Call nsigma%in(Group_Comm)
-        endif
-        Call Hop_mod_init
-
+        ! CPU_MAX > 0: run until the time limit (NBin is set very large)
         Call apply_CPU_MAX_policy()
-        If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA() ) then
-           Call Wrapgr_alloc
-        endif
+
+        Call Setup_fields(N_op)
         
 #if defined(HDF5)
 #if defined(TEMPERING)
@@ -437,252 +294,24 @@ Program Main
 #else
         file_dat = "data.h5"
 #endif
-#if defined(MPI)
-        if ( Irank_g == 0 ) then
-#endif
-          CALL h5open_f(ierr)
-          inquire (file=file_dat, exist=file_exists)
-          IF (.not. file_exists) THEN
-            ! Create HDF5 file
-            CALL h5fcreate_f(file_dat, H5F_ACC_TRUNC_F, file_id, ierr)
-            call h5ltset_attribute_string_f(file_id, '/', 'program_name', 'ALF', ierr)
-            call h5fclose_f(file_id, ierr)
-          endif
-          call ham%write_parameters_hdf5(file_dat)
-
-#if defined(MPI)
-        endif
-#endif
+        Call Init_hdf5_file(file_dat)
 #endif
 
 
-        Call control_init(Group_Comm)
         Call ham%Alloc_obs(get_Ltau())
 
-        If ( mod(Ltrot,get_Nwrap()) == 0  ) then
-           Nstm = Ltrot/get_Nwrap()
-        else
-           nstm = Ltrot/get_Nwrap() + 1
-        endif
-        allocate ( Stab_nt(0:Nstm) )
-        Stab_nt(0) = 0
-        do n = 1,Nstm -1
-           Stab_nt(n) = get_Nwrap()*n
-        enddo
+        Call Walker_layout(walker, Ltrot, get_Nwrap())
 
-        Stab_nt(Nstm) = Ltrot
+        Call Setup_update_schemes(N_op)
 
-      !   Sequential = .true.
-        !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)
-        if ( get_Langevin() .or.  get_HMC() ) then
-           if ( get_Langevin() ) then
-#if defined(MPI)
-                if ( Irank_g == 0 ) then
-#endif
-                    Call check_langevin_schemes_and_variables()
-#if defined(TEMPERING)
-                    if ( get_N_exchange_steps() > 0 ) then
-                        write(output_unit,*) "Langevin mode does not allow tempering updates."
-                        write(output_unit,*) "Overwriting N_exchange_steps to 0."
-                    endif
-#endif
-#if defined(MPI)
-                endif
-#endif
-               call apply_Langevin_overrides()
-           endif
-           Call Langevin_HMC%make(get_Langevin(), get_HMC() , get_Global_MALA_moves(), get_Delta_t_Langevin_HMC(), get_Max_Force(), get_Leapfrog_Steps())
-        else
-           Call Langevin_HMC%set_Update_scheme(get_Langevin(), get_HMC(), .false. )
-        endif
-        if (get_Global_MALA_moves()) then
-           Call Metropolis_Langevin%make(.False., .False., get_Global_MALA_moves(), get_Delta_t_MALA_global(), get_MAX_Force_MALA_global(), get_Leapfrog_Steps())
-        else
-           Call Metropolis_Langevin%set_Update_scheme(.False., .False., get_Global_MALA_moves() )
-        endif 
-        Call check_MALA_variables()
-        Call check_update_schemes_compatibility()
-
-        if ( get_Sequential_MALA() .or. get_Global_tau_MALA_moves() ) then
-         Do n = 1,N_op
-          if ( nsigma%t(n) /= 3 ) then
-             write(output_unit,*)
-             WRITE(output_unit,*) 'Warning:    Not all fields are of type 3.'
-             WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated with MALA updates.'
-             write(output_unit,*)
-           exit
-          endif
-         enddo
-        endif
-
-#if defined(MPI)
-        if ( Irank_g == 0 ) then
-#endif
-           Open (Unit = 50,file=file_info,status="unknown",position="append")
-           Write(50,*) 'Sweeps                              : ', get_NSweep()
-           If ( abs(get_CPU_MAX()) < Eps_small ) then
-              Write(50,*) 'Bins                                : ', get_NBin()
-              Write(50,*) 'No CPU-time limitation '
-           else
-              Write(50,'(" Prog will stop after hours:",2x,F8.4)') get_CPU_MAX()
-           endif
-           Write(50,*) 'Measure Int.                        : ', get_LOBS_ST(), get_LOBS_EN()
-           Write(50,*) 'Stabilization,Wrap                  : ', get_Nwrap()
-           Write(50,*) 'Nstm                                : ', NSTM
-           Write(50,*) 'Ltau                                : ', get_Ltau()
-           Write(50,*) '# of interacting Ops per time slice : ', Size(OP_V,1)
-           If ( get_Propose_S0() ) &
-                &  Write(50,*) 'Propose Ising moves according to  bare Ising action'
-           if ( get_sequential() ) then
-               Write(50,*)  '-------  Space-sequential Time-sequential moves -------' 
-               Write(50,*) 'Nt_sequential_start: ', get_Nt_sequential_start()
-               Write(50,*) 'Nt_sequential_end  : ', get_Nt_sequential_end()
-               If (get_Sequential_MALA()) then 
-                  Write(50,*) 'MALA Update          '
-                  Write(50,*) 'delta_t            : ', get_Delta_t_MALA_sequential() 
-                  Write(50,*) 'Max_force          : ', get_Max_Force_MALA_sequential()
-               endif
-            endif    
-            if ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) Then
-               Write(50,*)  '-------  Space-global     Time-sequential moves -------' 
-               If ( get_Global_tau_moves() ) Then
-                  Write(50,*) 'Metropolis'
-                  Write(50,*) 'N_Global_tau       : ', get_N_Global_tau()
-               endif
-               If ( get_Global_tau_MALA_moves() ) Then
-                  Write(50,*) 'MALA'
-                  Write(50,*) 'N_Global_tau_MALA  : ', get_N_Global_tau_MALA()
-                  Write(50,*) 'delta_t            : ', get_Delta_t_MALA_global_tau()
-                  Write(50,*) 'Max_Force          : ', get_Max_Force_MALA_global_tau()
-               endif
-            endif
-            if ( get_Global_moves() .or. get_Langevin() .or. get_HMC() .or. get_Global_MALA_moves() ) then 
-               Write(50,*)  '-------  Space-global     Time-global     moves -------' 
-               if ( get_HMC() ) then
-                  Write(50,*) ' HMC '
-                  Write(50,*) 'Leapfrog_Steps    : ', get_Leapfrog_steps()
-                  Write(50,*) 'delta _t          : ', get_Delta_t_Langevin_HMC()
-                  Write(50,*) 'HMC_Sweeps        : ', get_N_HMC_sweeps()
-               endif
-               if ( get_Global_MALA_moves() ) then
-                  Write(50,*) 'User Defined MALA '
-                  Write(50,*) '# moves / sweep    : ', get_N_Global_MALA_sweeps()
-                  Write(50,*) 'delta_t            : ', get_Delta_t_MALA_global()
-                  Write(50,*) 'Max_Force          : ', get_MAX_Force_MALA_global()
-               endif
-               If ( get_Global_moves() ) Then
-                  Write(50,*) 'User Defined Metropolis   '
-                  Write(50,*) '#  moves / sweep   :', get_N_Global()
-               Endif
-               if (get_Langevin() ) then
-                  Write(50,*) 'Langevin '     
-                  Write(50,*) 'delta_t            : ', get_Delta_t_Langevin_HMC()
-                  Write(50,*) 'Max_Force          : ', get_Max_Force()
-               endif
-            endif
-          
-
-           !Write out info  for  amplitude and flip_protocol
-           Toggle  = .false.
-           Do n = 1,N_op
-              if (nsigma%t(n) == 3 .or. nsigma%t(n) == 4)  Toggle = .true.
-           Enddo
-           if ( Toggle .and. (.not.get_Sequential_MALA()) ) then
-              Write(50,*) 'Amplitude  for  t=3,4  vertices is  set to: ', get_Amplitude()
-           endif
-           Toggle  = .false.
-           Do n = 1,N_op
-              if (nsigma%t(n) == 4)  Toggle = .true.
-           Enddo
-           If (Toggle)  then 
-              Write(50,"('Flip protocal  for  t=4  vertices is  set to')",advance="no")
-              do n1  =  1,4 
-                 Toggle1 = .false.
-                 do n =1,N_op
-                    if (nsigma%Flip_protocol(n)  ==  n1  .and. nsigma%t(n) == 4  )  Toggle1 = .true.
-                 enddo
-                 if  (Toggle1)   Write(50,"(I2,2x)",advance="no")   n1 
-              enddo
-              Write(50,*)
-           endif
-           
-#if defined(MPI)
-           Write(50,*) 'Number of mpi-processes : ', isize_g
-           if(use_mpi_shm) Write(50,*) 'Using mpi-shared memory in chunks of ', chunk_size_gb, 'GB.'
-#endif
-#if defined(GIT)
-           Write(50,*) 'This executable represents commit '&
-                &      , GIT_COMMIT_HASH , ' of branch ' , GIT_BRANCH , '.'
-#endif
-#if defined(STAB1)
-           Write(50,*) 'STAB1 is defined '
-#endif
-#if defined(STAB2)
-           Write(50,*) 'STAB2 is defined '
-#endif
-#if defined(STAB3)
-           Write(50,*) 'STAB3 is defined '
-#endif
-#if defined(STABLOG)
-           Write(50,*) 'LOG is defined '
-#endif
-#if defined(QRREF)
-           Write(50,*) 'QRREF is defined '
-#endif
-#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
-           Write(50,*) '# of exchange steps  ', get_N_exchange_steps()
-           Write(50,*) 'Tempering frequency  ', get_N_Tempering_frequency()
-           Write(50,*) 'Tempering Calc_det   ', get_Tempering_calc_det()
-#endif
-           close(50)
-#if defined(MPI)
-        endif
-#endif
+        Call Write_info_parameters(file_info, walker%NSTM, N_op, chunk_size_gb)
         
         !Call Test_Hamiltonian
-        Allocate ( Test(Ndim,Ndim), GR(NDIM,NDIM,N_FL), GR_Tilde(NDIM,NDIM,N_FL)  )
-        ALLOCATE(udvl(N_FL_eff), udvr(N_FL_eff), udvst(NSTM, N_FL_eff))
-        do nf_eff = 1, N_FL_eff
-           nf=Calc_Fl_map(nf_eff)
-           do n = 1, NSTM
-              CALL udvst(n,nf_eff)%alloc(ndim)
-           ENDDO
-           if (Projector) then
-              CALL udvl(nf_eff)%init(ndim,'l',WF_L(nf)%P)
-              CALL udvr(nf_eff)%init(ndim,'r',WF_R(nf)%P)
-              CALL udvst(NSTM, nf_eff)%reset('l',WF_L(nf)%P)
-           else
-              CALL udvl(nf_eff)%init(ndim,'l')
-              CALL udvr(nf_eff)%init(ndim,'r')
-              CALL udvst(NSTM, nf_eff)%reset('l')
-           endif
-        enddo
+        Call Walker_alloc(walker)
 
-        DO NST = NSTM-1,1,-1
-           NT1 = Stab_nt(NST+1)
-           NT  = Stab_nt(NST  )
-           !Write(6,*)'Hi', NT1,NT, NST
-           CALL WRAPUL(NT1, NT, UDVL)
-           Do nf_eff = 1,N_FL_eff
-              UDVST(NST, nf_eff) = UDVL(nf_eff)
-           ENDDO
-        ENDDO
-        NT1 = stab_nt(1)
-        CALL WRAPUL(NT1, 0, UDVL)
-
-
-
-        NVAR = 1
-        Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
-        do nf_eff = 1,N_Fl_eff
-           nf=Calc_Fl_map(nf_eff)
-           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
-           call Op_phase(Z,OP_V,Nsigma,nf)
-           Phase_array(nf)=Z
-        Enddo
-        if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-        Phase=product(Phase_array)
-        Phase=Phase**N_SUN
+        ! Initial storage from Ltrot down to 0, then the Green function and phase on time slice 0
+        Call Walker_init_stack(walker)
+        Call Walker_init_GR(walker)
 #ifdef MPI
         !WRITE(6,*) 'Phase is: ', Irank, PHASE, GR(1,1,1)
 #else
@@ -691,6 +320,8 @@ Program Main
 
 
 
+        ! Reset the statistics and start the CPU clock here, so that they cover only
+        ! the Monte Carlo sweeps (CPU_MAX counts from this point).
         Call Control_init(Group_Comm)
 
         DO  NBC = 1, get_NBin()
@@ -709,288 +340,29 @@ Program Main
 #if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
               IF (MOD(NSW,get_N_Tempering_frequency()) == 0) then
                  !Write(6,*) "Irank, Call tempering", Irank, NSW, get_N_exchange_steps()
-                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, get_N_exchange_steps(), get_Tempering_calc_det())
+                 CALL Exchange_Step(walker%Phase,walker%GR,walker%udvr, walker%udvl,walker%Stab_nt, walker%udvst, get_N_exchange_steps(), get_Tempering_calc_det())
               endif
 #endif
               ! Global updates
-              If ( get_Global_moves() ) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst, get_N_Global() )
+              If ( get_Global_moves() ) Call Global_Updates(walker%Phase, walker%GR, walker%udvr, walker%udvl, walker%Stab_nt, walker%udvst, get_N_Global() )
 
 
               If ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" )  then
-                 !  Carry out a Langevin update and calculate equal time observables.
-                 Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
-                      &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
-                 
-                 IF ( get_Ltau() == 1 ) then
-                    If (Projector) then 
-                       NST = 0 
-                       Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
-                       call Langevin_HMC%set_L_Forces(.true.)
-                    else
-                       Call Tau_m( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
-                       call Langevin_HMC%set_L_Forces(.true.)
-                    endif
-                 endif
+                 Call Langevin_update(walker)
               endif
 
               If (  str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" )  then
-                 ! A preceding MALA sweep may have changed both the forces and determinants.
-                 if ( get_sequential() .or. get_Global_MALA_moves() ) call Langevin_HMC%set_L_Forces(.False.)
-                 Do n=1, get_N_HMC_sweeps()
-                     !  Carry out a Langevin update and calculate equal time observables.
-                     Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
-                          &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
-                     if (n /= get_N_HMC_sweeps()) then
-                        Call Langevin_HMC%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
-                             &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                        Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
-                        call Langevin_HMC%set_L_Forces(.true.)
-                     endif
-                 enddo
-                 
-                 !Do time-displaced measurements if needed, else set Calc_Obser_eq=.True. for the very first leapfrog ONLY
-                 If ( .not. get_sequential() ) then
-                    IF ( get_Ltau() == 1 ) then
-                       If (Projector) then 
-                          NST = 0 
-                          Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
-                       else
-                          Call Tau_m( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
-                       endif
-                    else
-                       Call Langevin_HMC%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
-                       &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                       Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
-                    endif
-                    call Langevin_HMC%set_L_Forces(.true.)
-                 endif
+                 Call HMC_update(walker)
               endif
 
               If (  str_to_upper(Metropolis_Langevin%get_Update_scheme()) == "MALA" )  then
-                 ! The stored forces and determinants are only valid if no other update
-                 ! has changed the configuration since they were computed.
-                 if ( get_sequential() .or. get_Global_moves() .or. get_HMC() .or. get_Langevin() ) then
-                    call Metropolis_Langevin%set_L_Forces(.False.)
-                 endif
-#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
-                 IF (MOD(NSW,get_N_Tempering_frequency()) == 0) call Metropolis_Langevin%set_L_Forces(.False.)
-#endif
-                 Do n=1, get_N_Global_MALA_sweeps()
-                     Call Metropolis_Langevin%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
-                          &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
-                     if (n /= get_N_Global_MALA_sweeps()) then
-                        Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
-                             &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                        Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
-                        call Metropolis_Langevin%set_L_Forces(.true.)
-                     endif
-                 enddo
-
-                 ! Measure only after the MALA acceptance/rejection decision and storage reset.
-                 If ( .not. get_sequential() ) then
-                    IF ( get_Ltau() == 1 ) then
-                       ! Tau_m/Tau_p measure equal-time observables only for Langevin/HMC.
-                       ! Without HMC, measure the retained MALA configuration here, including
-                       ! the restored old configuration after a rejected proposal.
-                       if ( .not. get_HMC() ) then
-                          Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
-                               &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                          Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
-                       endif
-                       If (Projector) then
-                          NST = 0
-                          Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
-                       else
-                          Call Tau_m( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
-                       endif
-                    else
-                       Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
-                       &  get_LOBS_ST(), get_LOBS_EN(), .True. )
-                       Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
-                    endif
-                    call Metropolis_Langevin%set_L_Forces(.true.)
-                 endif
+                 Call MALA_update(walker, NSW)
               endif
 
               If (get_sequential())  then 
-                 ! Propagation from 1 to Ltrot
-                 ! Set the right storage to 1
-                 do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    if (Projector) then
-                       CALL udvr(nf_eff)%reset('r',WF_R(nf)%P)
-                    else
-                       CALL udvr(nf_eff)%reset('r')
-                    endif
-                 Enddo
+                 Call Sweep_up(walker)
                  
-                 NST = 1
-                 DO NTAU = 0, LTROT-1
-                    NTAU1 = NTAU + 1
-                    CALL WRAPGRUP(GR,NTAU,PHASE,get_Propose_S0(), get_Nt_sequential_start(), get_Nt_sequential_end(), &    
-                         &        get_N_Global_tau(), &
-                         &        get_Sequential_MALA(), get_Delta_t_MALA_sequential(), get_Max_Force_MALA_sequential(), &
-                         &        get_N_Global_tau_MALA(), get_delta_t_MALA_global_tau(), get_Max_Force_MALA_global_tau())
-                    
-                    If (NTAU1 == Stab_nt(NST) ) then
-                       NT1 = Stab_nt(NST-1)
-                       CALL WRAPUR(NT1, NTAU1, udvr)
-                       Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
-                       Do nf_eff = 1, N_FL_eff
-                          nf=Calc_Fl_map(nf_eff)
-                          ! Read from storage left propagation from LTROT to  NTAU1
-                          udvl(nf_eff) = udvst(NST, nf_eff)
-                          ! Write in storage right prop from 1 to NTAU1
-                          udvst(NST, nf_eff) = udvr(nf_eff)
-                          NVAR = 1
-                          IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                          TEST(:,:) = GR(:,:,nf)
-                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
-                          Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-                          call Op_phase(Z1,OP_V,Nsigma,nf)
-                          Phase_array(nf)=Z1
-                       ENDDO
-                       if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                       Z=product(Phase_array)
-                       Z=Z**N_SUN
-                       Call Control_PrecisionP(Z,Phase)
-                       Phase = Z
-                       NST = NST + 1
-                    ENDIF
-                    
-                    IF (NTAU1.GE. get_LOBS_ST() .AND. NTAU1.LE. get_LOBS_EN() ) THEN
-                       !Call  Global_tau_mod_Test(Gr,ntau1)
-                       !Stop
-                       !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
-                       !write(*,*) "Phase before obser : ",phase
-                       Mc_step_weight = 1.d0
-                       If (Symm) then
-                          Call Hop_mod_Symm(GR_Tilde,GR,ntau1)
-                          !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
-                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
-                       else
-                          !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( GR )
-                          CALL ham%Obser( GR, PHASE, Ntau1, Mc_step_weight  )
-                       endif
-                    ENDIF
-                 ENDDO
-                 
-                 Do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    if (Projector) then
-                       CALL udvl(nf_eff)%reset('l',WF_L(nf)%P)
-                    else
-                       CALL udvl(nf_eff)%reset('l')
-                    endif
-                 ENDDO
-                 
-                 NST = NSTM-1
-                 DO NTAU = LTROT,1,-1
-                    NTAU1 = NTAU - 1
-                    CALL WRAPGRDO(GR,NTAU, PHASE,get_Propose_S0(),get_Nt_sequential_start(), get_Nt_sequential_end(), & 
-                         &        get_N_Global_tau(), &
-                         &        get_Sequential_MALA(), get_Delta_t_MALA_sequential(), get_Max_Force_MALA_sequential(), &
-                         &        get_N_Global_tau_MALA(), get_delta_t_MALA_global_tau(), get_Max_Force_MALA_global_tau())
-                    IF (NTAU1.GE. get_LOBS_ST() .AND. NTAU1.LE. get_LOBS_EN() ) THEN
-                       !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
-                       !write(*,*) "Phase before obser : ",phase
-                       Mc_step_weight = 1.d0
-                       If (Symm) then
-                          Call Hop_mod_Symm(GR_Tilde,GR,ntau1)
-                          !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
-                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
-                       else
-                          !reconstruction of NOT calculated block!!!
-                          If (reconstruction_needed) Call ham%GR_reconstruction( GR )
-                          CALL ham%Obser( GR, PHASE, Ntau1,Mc_step_weight )
-                       endif
-                    ENDIF
-                    IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
-                       NT1 = Stab_nt(NST+1)
-                       !Write(6,*) 'Wrapul : ', NT1, NTAU1
-                       CALL WRAPUL(NT1, NTAU1, udvl)
-                       !Write(6,*)  'Write UL, read UR ', NTAU1, NST
-                       Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
-                       do nf_eff = 1,N_FL_eff
-                          nf=Calc_Fl_map(nf_eff)
-                          ! Read from store the right prop. from 1 to LTROT/NWRAP-1
-                          udvr(nf_eff) = udvst(NST, nf_eff)
-                          ! WRITE in store the left prop. from LTROT/NWRAP-1 to 1
-                          udvst(NST, nf_eff) = udvl(nf_eff)
-                          NVAR = 1
-                          IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                          TEST(:,:) = GR(:,:,nf)
-                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
-                          Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-                          call Op_phase(Z1,OP_V,Nsigma,nf)
-                          Phase_array(nf)=Z1
-                       ENDDO
-                       if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                       Z=product(Phase_array)
-                       Z=Z**N_SUN
-                       Call Control_PrecisionP(Z,Phase)
-                       Phase = Z
-                       IF( get_Ltau() == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
-                          Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST,  get_LOBS_ST(), get_LOBS_EN() )
-                       endif
-                       NST = NST -1
-                    ENDIF
-                 ENDDO
-                 
-                 !Calculate and compare green functions on time slice 0.
-                 NT1 = Stab_nt(0)
-                 NT  = Stab_nt(1)
-                 CALL WRAPUL(NT, NT1, udvl)
-                 
-                 do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    if (Projector) then
-                       CALL udvr(nf_eff)%reset('r',WF_R(nf)%P)
-                    else
-                       CALL udvr(nf_eff)%reset('r')
-                    endif
-                 ENDDO
-                 Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
-                 do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    TEST(:,:) = GR(:,:,nf)
-                    NVAR = 1
-                    CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
-                    Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-                    call Op_phase(Z1,OP_V,Nsigma,nf)
-                    Phase_array(nf)=Z1
-                 ENDDO
-                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                 Z=product(Phase_array)
-                 Z=Z**N_SUN
-                 Call Control_PrecisionP(Z,Phase)
-                 Phase = Z
-                 NST =  NSTM
-                 Do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    if (Projector) then
-                       CALL udvst(NST, nf_eff)%reset('l',WF_L(nf)%P)
-                    else
-                       CALL udvst(NST, nf_eff)%reset('l')
-                    endif
-                 enddo
-                 
-                 IF ( get_Ltau() == 1 .and. .not. Projector ) then
-                    Call TAU_M( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
-                 endif
-                 ! When Nwrap > Thtrot+1, the smallest Stab_nt(1)=Nwrap already exceeds
-                 ! THTROT+1, so the backward-loop condition Stab_nt(NST)<=THTROT+1 was
-                 ! never met and tau_p was not called above.  At this point GR has just
-                 ! been recomputed at time 0 = Stab_nt(0) via CGR (line ~991), and
-                 ! udvl/udvr are set up such that CGRP reproduces GR.  The storage
-                 ! udvst(1..Nstm) contains fresh left propagations from the backward
-                 ! sweep, so calling tau_p with NST_IN=0 is correct here.
-                 IF ( get_LTAU() == 1 .and. Projector .and. Stab_nt(1) > THTROT+1 ) then
-                    Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, 0, get_LOBS_ST(), get_LOBS_EN() )
-                 endif
+                 Call Sweep_down(walker)
               endif
 
            ENDDO
@@ -1013,15 +385,7 @@ Program Main
         Enddo
 
         ! Deallocate things
-        DO nf_eff = 1, N_FL_eff
-           CALL udvl(nf_eff)%dealloc
-           CALL udvr(nf_eff)%dealloc
-           do n = 1, NSTM
-              CALL udvst(n,nf_eff)%dealloc
-           ENDDO
-        ENDDO
-        DEALLOCATE(udvl, udvr, udvst)
-        DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
+        Call Walker_dealloc(walker)
         If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA()) then
            Call Wrapgr_dealloc
         endif
@@ -1037,32 +401,16 @@ Program Main
         Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), get_Global_MALA_moves(), &
              &              get_Sequential_MALA(), get_Global_tau_MALA_moves())
 
-#if defined(MPI)
-        If (Irank_g == 0 ) then
-#endif
-           Open (Unit=50,file=file_info, status="unknown", position="append")
-           if ( abs(get_CPU_MAX()) > Eps_small ) then
-              Write(50,*)' Effective number of bins   : ', Nbin_eff
-           endif
-           write(50,*)'FIN TIME: ' // iso8601_datetime()
-           Close(50)
-#if defined(MPI)
-        endif
-#endif
+        Call Write_info_end(file_info, NBin_eff)
         
         Call Langevin_HMC%clean()
         Call Metropolis_Langevin%clean()
-        deallocate(Phase_array)
 
          ! Delete the file RUNNING since the simulation finished successfully
-#if defined(MPI)
-        If (  Irank == 0 ) then
-#endif
+        If (is_root(comm_world())) then
            open(unit=5, file='RUNNING', status='old')
            close(5, status='delete')
-#if defined(MPI)
         endif
-#endif
 
 #ifdef MPI
         CALL MPI_FINALIZE(ierr)

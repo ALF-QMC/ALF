@@ -47,7 +47,13 @@ CALL ZUNGQR(LQ2, LQ2, LQ2, U3, LQ2, TAU, WORK, LWORK, INFO)
 call ZLACPY('U', LQ2, LQ2, input, LQ2, V3, LQ2)
 FORWRD = .false.
 CALL ZLAPMT(FORWRD, LQ2, LQ2, V3, LQ2, IPVT)
+#if (defined(STAB2) || defined(STAB1)) && !defined(STABLOG)
+! STAB1/STAB2 version: takes U3, D3, V3 and overwrites V3 with its LU factors
+V3t = V3
+call solve_extended_System(HLPn, UCT, VINV, U3, D3, V3t, LQ)
+#else
 call solve_extended_System(HLPn, UCT, VINV, input, D3, TAU, IPVT, LQ, WORK, LWORK)
+#endif
 
 ! check old version
 ! by using the testo matrices that can be generated after the matrix inversion it was found 

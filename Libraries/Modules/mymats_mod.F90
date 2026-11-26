@@ -43,6 +43,7 @@
 
 
     MODULE MyMats
+      Use linalg_mod, only: la_zlacpy, la_zgetrf, la_zgetri, la_zgeqrf, la_zungqr, la_zlaset, la_zgesvd, la_zheev, la_zgeev
       use iso_fortran_env, only: output_unit, error_unit
       use runtime_error_mod
 
@@ -133,7 +134,7 @@
          LWORK = 2*N
          ALLOCATE (WORK(LWORK), RWORK(LWORK) )
 
-         CALL ZGEEV( JOBVL, JOBVR, N, A, LDA, W, VL, LDVL, VR, LDVR, &
+         CALL la_zgeev( JOBVL, JOBVR, N, A, LDA, W, VL, LDVL, VR, LDVR, &
               &      WORK, LWORK, RWORK, INFO )
 
          IF (LR == "R" .or. LR == 'r')  THEN
@@ -210,6 +211,7 @@
        END SUBROUTINE MMULT_R
 
        SUBROUTINE MMULT_C(C, A, B)
+         Use linalg_mod, only: la_zgemm
          IMPLICIT NONE
          COMPLEX (Kind=Kind(0.d0)), DIMENSION(:,:) :: A,B,C
          COMPLEX (Kind=Kind(0.d0)) :: ALP, BET
@@ -223,7 +225,7 @@
          ALP = CMPLX(1.D0,0.D0,Kind=Kind(0d0))
          BET = CMPLX(0.D0,0.D0,Kind=Kind(0d0))
 
-         CALL ZGEMM('n','n',N,P,M,ALP,A,LDA,B,LDB,BET,C,LDC)
+         CALL la_zgemm('n','n',N,P,M,ALP,A,LDA,B,LDB,BET,C,LDC)
 
 
          ! WRITE(6,*) 'In complex', N,M,P
@@ -562,7 +564,7 @@
          ALLOCATE ( WORK(LDA) )
 
          AINV = A
-         CALL ZGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
+         CALL la_zgetrf(LDA, LDA, AINV, LDA, IPVT, INFO)
          DET = (1.D0, 0.D0)
          SGN = 1.D0
          DO i = 1, LDA
@@ -572,7 +574,7 @@
          ENDIF
          enddo
          DET = SGN * DET
-         CALL ZGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
+         CALL la_zgetri(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
@@ -610,7 +612,7 @@
          ALLOCATE ( WORK(LDA) )
 
          AINV = A
-         CALL ZGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
+         CALL la_zgetrf(Ndim, Ndim, AINV, LDA, IPVT, INFO)
          DET = 1.D0
          SGN = 1.D0
          DO i = 1, Ndim
@@ -620,7 +622,7 @@
          ENDIF
          ENDDO
          DET = SGN * DET
-         CALL ZGETRI(Ndim, AINV, LDA, IPVT, WORK, LDA, INFO)
+         CALL la_zgetri(Ndim, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
@@ -660,7 +662,7 @@
          ALLOCATE ( WORK(LDA) )
 
          AINV = A
-         CALL ZGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
+         CALL la_zgetrf(LDA, LDA, AINV, LDA, IPVT, INFO)
          DET(1) = (1.D0, 0.D0)
          DET(2) = 0.D0
          DO i = 1, LDA
@@ -674,7 +676,7 @@
             DET(1) = -DET(1)
          ENDIF
          ENDDO
-         CALL ZGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
+         CALL la_zgetri(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_C1
@@ -960,7 +962,7 @@
 #if defined(QRREF)
         CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
 #else
-        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
+        CALL la_zgeqrf(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
 #endif
         LWORK = INT(DBLE(WORK(1)))
         DEALLOCATE(WORK)
@@ -970,11 +972,11 @@
 #if defined(QRREF)
         CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #elif !defined(OLDNAG)
-        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+        CALL la_zgeqrf(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #else
         CALL F01RCF(LQ,NE,TMP,LQ,TAU,INFO)
 #endif
-        CALL ZLACPY('U', NE, NE, TMP, LQ, V, Size(V,1))
+        CALL la_zlacpy('U', NE, NE, TMP, LQ, V, Size(V,1))
 
         DETV = 1.D0
         !V is an NE by NE upper triangular matrix with real diagonal elements.
@@ -987,12 +989,12 @@
 #if defined(QRREF)
         CALL ZUNGQR_REF(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #elif !defined(OLDNAG)
-        CALL ZUNGQR(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+        CALL la_zungqr(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #else
         CALL F01REF('Separate', LQ,NE, NE, TMP, &
             & LQ, TAU, WORK, INFO)
 #endif
-        CALL ZLACPY('A', LQ, NE, TMP, LQ, U, Size(U,1))
+        CALL la_zlacpy('A', LQ, NE, TMP, LQ, U, Size(U,1))
         DEALLOCATE(TAU, TMP, WORK)
         IF (DBLE(DETV).LT.0.D0) THEN
            DO I = 1,LQ
@@ -1060,10 +1062,10 @@
         DV2 = SIZE(V,2)
         DU2 = SIZE(U,2)
         Z = 0.D0
-        call ZLASET('A', LDU, DU2, Z, Z, U, LDU)
-        call ZLASET('A', LDV, DV2, Z, Z, V, LDV)
+        call la_zlaset('A', LDU, DU2, Z, Z, U, LDU)
+        call la_zlaset('A', LDV, DV2, Z, Z, V, LDV)
         ALLOCATE (TMP(LQ,NE), TAU(NE), WORK(NE))
-        call ZLACPY('A', LQ, NE, A, LQ, TMP, LQ)
+        call la_zlacpy('A', LQ, NE, A, LQ, TMP, LQ)
 
         !You now want to UDV TMP. Nag routines.
         INFO = 0
@@ -1073,7 +1075,7 @@
 #if defined(QRREF)
         CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
 #else
-        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
+        CALL la_zgeqrf(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
 #endif
         LWORK = INT(DBLE(WORK(1)))
         DEALLOCATE(WORK)
@@ -1082,11 +1084,11 @@
 #if defined(QRREF)
         CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #elif !defined(OLDNAG)
-        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+        CALL la_zgeqrf(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #else
         CALL F01RCF(LQ,NE,TMP,LQ,TAU,INFO)
 #endif
-        call ZLACPY('U', NE, NE, TMP, LQ, V, LDV)
+        call la_zlacpy('U', NE, NE, TMP, LQ, V, LDV)
         DETV = 1.D0
         !V is an NE by NE upper triangular matrix with real diagonal elements.
         DO I = 1,NE
@@ -1097,12 +1099,12 @@
 #if defined(QRREF)
         CALL ZUNGQR_REF(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #elif !defined(OLDNAG)
-        CALL ZUNGQR(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+        CALL la_zungqr(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #else
         CALL F01REF('Separate', LQ,NE, NE, TMP, &
             & LQ, TAU, WORK, INFO)
 #endif
-        call ZLACPY('A', LQ, NE, TMP, LQ, U, LDU)
+        call la_zlacpy('A', LQ, NE, TMP, LQ, U, LDU)
         DEALLOCATE(WORK, TAU, TMP)
         IF (DBLE(DETV).LT.0.D0) THEN
            DO I = 1,LQ
@@ -1177,12 +1179,12 @@
         LDVT = N
         ALLOCATE( RWORK(5*MIN(M,N)), WORK(10))
 ! Query optimal amount of memory
-        CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
+        CALL la_zgesvd( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
              &        WORK, -1, RWORK, INFO )
         LWORK = INT(DBLE(WORK(1)))
         DEALLOCATE(WORK)
         ALLOCATE(WORK(LWORK))
-        CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
+        CALL la_zgesvd( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
              &        WORK, LWORK, RWORK, INFO )
         DO I = 1,N
            D(I) = cmplx(S(I), 0.d0, kind(0.D0))
@@ -1278,7 +1280,7 @@
 
         !Write(6,*) 'In Diag'
 
-        Call ZHEEV (JOBZ, UPLO, N, U, N, W, WORK, LWORK, RWORK, INFO)
+        Call la_zheev(JOBZ, UPLO, N, U, N, W, WORK, LWORK, RWORK, INFO)
 
         Deallocate (WORK, RWORK)
 
@@ -1349,7 +1351,7 @@
 
         !Lapack LU decomposition
         LDmat=size(mat,1)
-        call zgetrf(N, N, mat, LDmat, ipiv, info)
+        call la_zgetrf(N, N, mat, LDmat, ipiv, info)
 
         det_C = cmplx(1.d0, 0.d0, kind(0.d0) )
         do i = 1, N
@@ -1395,7 +1397,7 @@
         ipiv = 0
 
         !Lapack LU decomposition
-        call zgetrf(N, N, mat, N, ipiv, info)
+        call la_zgetrf(N, N, mat, N, ipiv, info)
 
         do i = 1,N
            D(i) = mat(i,i)

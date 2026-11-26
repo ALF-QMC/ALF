@@ -41,9 +41,9 @@
 !--------------------------------------------------------------------
 
 Module UDV_Wrap_mod
+  Use linalg_mod, only: la_zscal
 
      Use MyMats, only: Compare, DET_C, MMULT, SVD, UDV, QR
-     Use Files_mod, only: File_i
 
    Contains
 
@@ -98,9 +98,9 @@ Module UDV_Wrap_mod
        Call Pivot_Phase(phase,IVPT,size(D,1))
        beta=1/Phase
        !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-       call ZSCAL(size(V,2),beta,V(1,1),size(V,1))
+       call la_zscal(size(V,2),beta,V,size(V,1))
        ! scale first column of U to correct the scaling in V such that UDV is not changed
-       call ZSCAL(size(U,1),phase,U(1,1),1)
+       call la_zscal(size(U,1),phase,U,1)
        
        V1 = V
        DO I = 1,N2
@@ -171,9 +171,9 @@ Module UDV_Wrap_mod
        Call Pivot_Phase(phase,IVPT,size(D,1))
        beta=1/Phase
        !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-       call ZSCAL(size(V1,2),beta,V1(1,1),size(V1,1))
+       call la_zscal(size(V1,2),beta,V1,size(V1,1))
        ! scale first column of U to correct the scaling in V such that UDV is not changed
-       call ZSCAL(size(U,1),phase,U(1,1),1)
+       call la_zscal(size(U,1),phase,U,1)
 
        ! Finish the pivotting.
        DO I = 1,N2
@@ -210,9 +210,6 @@ Module UDV_Wrap_mod
 
 !***************************************************************
      Subroutine UDV_Wrap(A,U,D,V,NCON)
-#ifdef MPI
-       USE mpi
-#endif
 
        Implicit None
 
@@ -222,34 +219,18 @@ Module UDV_Wrap_mod
        INTEGER, INTENT(IN) :: NCON
 
        !Local
-       Complex (Kind=Kind(0.d0)), Allocatable ::  A1(:,:),U1(:,:)
-       Integer :: N
-       character (len=64) :: file_sr, File
-#ifdef MPI
-       INTEGER :: Isize, Irank,Ierr
+       ! A is N1 x N2 (N2 < N1 with projector): U is N1 x N2, D has N2 entries, V is N2 x N2
+       Complex (Kind=Kind(0.d0)), Allocatable ::  A1(:,:),U1(:,:),A2(:,:)
+       Integer :: N1, N2
 
-       CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-       CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif
-
-       File_sr = "SDV"
-#ifdef MPI 
-       File = File_i(File_sr, Irank)
-#else
-       File = File_sr
-#endif 
        CALL QR(A,U,V,NCON)
-       N = Size(A,1)
-       Allocate (A1(N,N),U1(N,N))
-       !DO I = 1,N
-       !   DO J = 1,N
-       !      WRITE(6,*) I,J,V(I,J)
-       !   ENDDO
-       !ENDDO
+       N1 = Size(A,1)
+       N2 = Size(A,2)
+       Allocate (A1(N2,N2),U1(N2,N2),A2(N1,N2))
        A1 = V
        CALL SVD(A1,U1,D,V,NCON)
-       Call MMULT(A1,U,U1)
-       U = A1
+       Call MMULT(A2,U,U1)
+       U = A2
 
      End Subroutine UDV_Wrap
 

@@ -95,7 +95,9 @@ module wrapur_mod
               ENDDO
               TMP = udvr(nf_eff)%V
            endif
-           CALL UDV_WRAP_Pivot(TMP1(:,1:UDVR(nf_eff)%N_part), udvr(nf_eff)%U, udvr(nf_eff)%D, V1,NCON,Ndim,UDVR(nf_eff)%N_part)
+           ! V is N_part x N_part (N_part < Ndim with projector), so pass only that block of V1
+           CALL UDV_WRAP_Pivot(TMP1(:,1:UDVR(nf_eff)%N_part), udvr(nf_eff)%U, udvr(nf_eff)%D, &
+                &              V1(1:UDVR(nf_eff)%N_part,1:UDVR(nf_eff)%N_part),NCON,Ndim,UDVR(nf_eff)%N_part)
            if(allocated(udvr(nf_eff)%V)) CALL MMULT(udvr(nf_eff)%V, V1, TMP)
            ! Test if scales in D are appraoching the limit of double precision.
            CALL UDVR(nf_eff)%testscale

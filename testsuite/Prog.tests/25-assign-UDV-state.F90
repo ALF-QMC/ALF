@@ -71,6 +71,7 @@ Subroutine Check_assign_UDV_state(udv1, udv2, zero_in)
   
   Integer :: I, I1
   Real (Kind=Kind(0.d0)) :: zero
+  Complex (Kind=Kind(0.d0)) :: D1, D2   ! scales; getscale also works in the STABLOG build
   
   if ( present(zero_in) ) then
      zero = zero_in
@@ -83,7 +84,9 @@ Subroutine Check_assign_UDV_state(udv1, udv2, zero_in)
   if ( udv1%side   .ne. udv2%side   ) stop 3 !"side does not match"
   
   Do I = 1,udv1%Ndim
-     if ( abs( udv1%D(I) - udv2%D(I) ) > zero ) stop 4 !"difference too big"
+     call udv1%getscale(D1, I)
+     call udv2%getscale(D2, I)
+     if ( abs( D1 - D2 ) > zero ) stop 4 !"difference too big"
      Do I1 = 1,udv1%Ndim
         if ( abs( udv1%U(I1,I) - udv2%U(I1,I) ) > zero ) stop 5 !"difference too big"
         if ( abs( udv1%V(I1,I) - udv2%V(I1,I) ) > zero ) stop 6 !"difference too big"
