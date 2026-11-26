@@ -30,7 +30,7 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 module cgr1_mod
-  Use linalg_mod, only: la_zgemm, la_ztrsm, la_zscal, la_zgetrf, la_zgetrs, la_zunmqr
+  Use linalg_mod, only: la_zgemm, la_ztrsm, la_zscal, la_zgetrf, la_zgetrs, la_zunmqr, la_zlapmr, la_zlapmt
   implicit none
   private
   public :: CGR, CGRP, CGR_work_alloc, CGR_work_dealloc
@@ -413,7 +413,7 @@ module cgr1_mod
             CALL la_ztrsm('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP, N_size, RHS, N_size)
             ! apply permutation matrix
             FORWRD = .false.
-            CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
+            CALL la_zlapmr(FORWRD, N_size, N_size, RHS, N_size, IPVT)
 #if (defined(STAB3) || defined(STABLOG))
             !scale RHS=L_+^-1*RHS
             do J=1,N_size
@@ -461,7 +461,7 @@ module cgr1_mod
             CALL la_ztrsm('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP, N_size, RHS, N_size)
             ! apply inverse permutation matrix
             FORWRD = .false.
-            CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
+            CALL la_zlapmt(FORWRD, N_size, N_size, RHS, N_size, IPVT)
 #if (defined(STAB3) || defined(STABLOG))
             ! first scale RHS=RHS*R_+^-1
             do J=1,N_size
