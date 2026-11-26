@@ -54,6 +54,7 @@ module cgr1_mod
 !--------------------------------------------------------------------
 
         Use UDV_State_mod
+        Use Control, only: Control_Check_Phase
 
 #if (defined(STAB2) || defined(STAB1)) && !defined(STABLOG)
         Use UDV_Wrap_mod
@@ -300,7 +301,8 @@ module cgr1_mod
 #endif
         ! calculate determinant of UR*UL
         ! as the D's are real and positive, they do not contribute the the phase of det so they can be ignored
-        PHASE = CONJG(DET_C(RHS, N_size))
+        ! DET_C_PHASE normalises every LU factor: the raw product of DET_C underflows for N >~ 3000 (phase 0/0 = NaN)
+        PHASE = CONJG(DET_C_PHASE(RHS, N_size))
         PHASE = PHASE/ABS(PHASE)
         IPVT = 0
         IF (NVAR .NE. 1) THEN
@@ -445,6 +447,8 @@ module cgr1_mod
         ENDIF
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
 #endif
+        ! the phase has to be finite and of unit modulus (a NaN phase rejects every Monte Carlo proposal)
+        Call Control_Check_Phase(PHASE)
         
       END SUBROUTINE CGR
       
@@ -463,6 +467,7 @@ module cgr1_mod
 !--------------------------------------------------------------------
       SUBROUTINE CGRP(phase, GRUP, udvr, udvl)
         Use UDV_State_mod
+        Use Control, only: Control_Check_Phase
         CLASS(UDV_State), INTENT(IN) :: udvl, udvr
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Intent(OUT) :: GRUP
         COMPLEX (Kind=Kind(0.d0)), Intent(OUT) :: phase
@@ -511,6 +516,7 @@ module cgr1_mod
           GRUP(n,n)=GRUP(n,n)+cmplx(1.d0, 0.d0, kind(0.d0))
         enddo
         Deallocate(sMat, rMat, ipiv)
+        Call Control_Check_Phase(phase)
       
       END SUBROUTINE CGRP
 end module cgr1_mod

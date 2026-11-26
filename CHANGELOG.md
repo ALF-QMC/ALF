@@ -1,5 +1,26 @@
 # Log of backward compatibility changes and critical bugs
 
+### 2026-11-25 Fix: determinant phase underflows for N >~ 3000 (NaN phase, all Monte Carlo proposals rejected)
+Author: L. Thremer (with Claude Sonnet 5.5)
+
+`DET_C` computed the determinant as the raw product of the diagonal of the LU factor. For a unitary-type matrix
+$|\det| = 1$, but the running product dips to about $\exp(-0.3 N)$ and underflows double precision
+(smallest double $\approx e^{-745}$) for $N$ of a few thousand. The determinant is then 0 and the phase `DET_C/ABS(DET_C)`
+that `CGR` returns is $0/0$ = NaN. The Metropolis weight contains the phase, so every proposal is rejected until the next
+stabilisation; the run ends with return code 0 and the observables are NaN. Measured on the CPU (Hubbard, square lattice,
+`Nwrap = 10`, 1 sweep): acceptance 0.32 at $L = 48$ and 0.22 at $L = 64$ ($N_\tau = 16$, healthy value about 0.33).
+The same function made `Op_set` stop at $N = 4096$ ("Eigenvector matrix has near-zero determinant").
+
+1. New routines in `MyMats`: `DET_C_LOGPHASE(Mat, N, LogAbs, Phase)` (phase and $\ln|\det|$, every factor normalised) and
+   `DET_C_PHASE(Mat, N)` (phase only). `DET_C` itself is unchanged.
+2. Used where only the phase or $\ln|\det|$ is needed: `CGR` (`cgr1_mod.F90`, default stabilisation incl. `STAB3` and `STABLOG`),
+   `UDV_WRAP`, `Compute_Fermion_Det` (`Global_mod.F90`) and `Op_set` (`Operator_mod.F90`).
+3. Not changed: the legacy `STAB1`/`STAB2` branch of `CGR` (it takes the determinant from `INV`/`DET_C`) and the tests.
+4. Guard: `CGR` and `CGRP` now call `Control_Check_Phase`, and `Control_PrecisionP` tests its arguments, so a NaN phase (or
+   one of modulus 0 or far from 1) stops the run with an error instead of silently rejecting all proposals. The tests use
+   the bit pattern (`Control_Is_Finite`), because comparisons with NaN can be folded away under `-ffast-math`.
+5. Tests: `testsuite/matmod.tests/13-det-C-phase.F90`, `testsuite/Prog.tests/36` to `39-Control-phase-*.F90`.
+
 ### 2026-10-30 MALA updates: new argument of `Overide_global_tau_sampling_parameters`
 Author: A. Goetz, F. Assaad <br>
 [GitHub](https://github.com/ALF-QMC/ALF/pull/592) | [Issue](https://github.com/ALF-QMC/ALF/issues/305)
