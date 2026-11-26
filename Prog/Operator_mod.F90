@@ -41,13 +41,16 @@
 !--------------------------------------------------------------------
 Module Operator_mod
 
-  Use mpi_shared_memory
-  Use mat_subroutines
-  Use MyMats
-  Use Fields_mod
-  Use runtime_error_mod
+  Use mpi_shared_memory, only: allocate_shared_memory, use_mpi_shm
+  Use mat_subroutines, only: ZSLGEMM
+  Use MyMats, only: DET_C, Diag
+  Use Fields_mod, only: Fields
+  Use runtime_error_mod, only: Terminate_on_error, ERROR_HAMILTONIAN
   Use iso_fortran_env, only: error_unit
   Use Natural_Constants, only: Eps_machine, Eps_small
+#ifdef MPI
+  Use mpi
+#endif
   
   Implicit none
   
@@ -263,7 +266,7 @@ Contains
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)), parameter :: Zero = Eps_small
-    Real    (Kind=Kind(0.d0)) :: herm_tol = Eps_machine
+    Real    (Kind=Kind(0.d0)), parameter :: herm_tol = Eps_machine
     Real    (Kind=Kind(0.d0)) :: herm_dev
     Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3)
 #ifdef MPI

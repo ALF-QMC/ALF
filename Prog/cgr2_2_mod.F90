@@ -94,7 +94,7 @@ module cgr2_2_mod
 !> @param[in] LQ The dimension of the matrices UCT and V1INV
 !--------------------------------------------------------------------
            Subroutine solve_extended_System(HLP, UCT, VINV, U3, D3, V3, LQ)
-           Use MyMats
+           Use MyMats, only: MMULT
            Implicit none
            Integer, intent(in) :: LQ
            Complex (Kind=Kind(0.D0)), intent(in) :: U3(2*LQ, 2*LQ), D3(2*LQ), V3(2*LQ,2*LQ), UCT(LQ,LQ), VINV(LQ,LQ)
@@ -221,11 +221,11 @@ module cgr2_2_mod
 !
 !--------------------------------------------------------------------
 
-        Use MyMats
-        Use UDV_State_mod
+        Use MyMats, only: CT, INV
+        Use UDV_State_mod, only: UDV_State
 #if (defined(STAB2) || defined(STAB1)) && !defined(STABLOG)   
 
-        Use UDV_WRAP_mod
+        Use UDV_WRAP_mod, only: UDV_WRAP_Pivot
         Implicit none
 
         !  Arguments
@@ -315,7 +315,7 @@ module cgr2_2_mod
         DEALLOCATE(MYU2, HLPB1, HLPB2, U3B, V3B)
         deallocate(V1INV, D3B)
 #else
-        Use QDRP_mod
+        Use QDRP_mod, only: QDRP_decompose
         Implicit none
 
         !  Arguments

@@ -42,14 +42,17 @@
 
     Module Predefined_Trial
 
-      Use runtime_error_mod
-      Use Lattices_v3
-      Use Operator_mod
-      Use WaveFunction_mod
-      Use MyMats
-      Use Predefined_Hoppings
+      Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
+      Use Lattices_v3, only: Lattice, Unit_cell, Make_Lattice, Inv_R, Iscalar, Print_latt
+      Use Operator_mod, only: Operator, Op_make, Op_set, Op_clear
+      Use WaveFunction_mod, only: WaveFunction, WF_alloc, WF_overlap
+      Use MyMats, only: Diag
+      Use Predefined_Hoppings, only: Hopping_Matrix_type, Predefined_Hoppings_clear, Predefined_Hoppings_set_OPT, &
+           &                         Set_Default_hopping_parameters_square, Set_Default_hopping_parameters_n_leg_ladder, &
+           &                         Set_Default_hopping_parameters_triangular, Set_Default_hopping_parameters_kagome, &
+           &                         Set_Default_hopping_parameters_Bilayer_square, Set_Default_hopping_parameters_Bilayer_honeycomb
       use iso_fortran_env, only: output_unit, error_unit
-      use Files_mod
+      use Files_mod, only: str_to_upper
 
       Implicit none
 
@@ -131,11 +134,12 @@
 
         Type (Lattice)                                :: Latt_Kekule
         Real (Kind=Kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2),x1_p(2), hop(3), del_p(2)
-        Real (Kind=Kind(0.d0))  :: delta = 1.d-2, Ham_T1, Ham_T2, Ham_Tperp, dom, om
+        Real (Kind=Kind(0.d0))  :: delta, Ham_T1, Ham_T2, Ham_Tperp, dom, om
 
-        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, N_Phi,  den_file, Nom = 200 , nw
+        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, N_Phi,  den_file, nw
+        Integer, parameter :: Nom = 200
         Logical, parameter :: Test=.false.
-        Logical :: Bulk =.true.
+        Logical :: Bulk
         Complex (Kind=Kind(0.d0)) :: Z_norm, Z
 
         Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
@@ -143,6 +147,8 @@
         Integer, allocatable ::   N_Phi_vec(:)
 
 
+
+        delta = 1.d-2
 
         Allocate(WF_L(N_FL),WF_R(N_FL))
         do n=1,N_FL

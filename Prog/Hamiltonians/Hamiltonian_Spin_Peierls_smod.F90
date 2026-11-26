@@ -957,7 +957,7 @@
              Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
 
              Integer ::  N_op,  nt,  nc  ,  I, no
-             Logical ::  Test_Dimer  =.False. 
+             Logical, parameter ::  Test_Dimer  =.False.
 
              If  (Test_Dimer)  then 
                 N_op  = Size(Op_V,1)

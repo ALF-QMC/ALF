@@ -47,13 +47,12 @@
 
     Module Hop_mod
 
-      Use Hamiltonian_main
-      Use Operator_mod
-      Use Random_wrap
-      Use DynamicMatrixArray_mod
-      Use ContainerElementBase_mod
-      Use OpTTypes_mod
-      Use OpT_time_dependent_mod
+      Use Hamiltonian_main, only: Op_T, N_FL, N_FL_eff, Calc_Fl_map, Symm
+      Use Operator_mod, only: Operator, Op_is_real
+      Use DynamicMatrixArray_mod, only: DynamicMatrixArray
+      Use ContainerElementBase_mod, only: ContainerElementBase
+      Use OpTTypes_mod, only: RealExpOpT, CmplxExpOpT
+      Use OpT_time_dependent_mod, only: OpT_time_dependent
       use iso_fortran_env, only: output_unit, error_unit
 
       ! Private variables
@@ -76,7 +75,7 @@
 !
 !--------------------------------------------------------------------
         subroutine OpT_postprocess(ExpOpT_vec, op)
-            use Operator_mod
+            use Operator_mod, only: Operator, Op_is_real
             implicit none
             
             Type(DynamicMatrixArray), intent(inout) :: ExpOpT_vec
@@ -116,7 +115,7 @@
 !
 !--------------------------------------------------------------------
         subroutine Hop_mod_init
-          use runtime_error_mod
+          use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC
           Implicit none
 
           Integer :: nc, nf

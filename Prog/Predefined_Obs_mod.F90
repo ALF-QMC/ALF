@@ -42,11 +42,12 @@
 
     Module Predefined_Obs
 
-      use runtime_error_mod
-      use Operator_mod
-      Use Observables
-      Use Lattices_v3
-      Use entanglement_mod
+      use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_MISSING_OBS
+      use Operator_mod, only: Operator
+      Use Observables, only: Obser_Vec, Obser_Latt
+      Use Lattices_v3, only: Lattice, Unit_cell
+      Use entanglement_mod, only: Calc_Mutual_Inf_indep, Calc_Mutual_Inf_gen_fl, Calc_Mutual_Inf_gen_all, &
+           &                      Calc_Renyi_Ent_indep,  Calc_Renyi_Ent_gen_fl,  Calc_Renyi_Ent_gen_all
       use iso_fortran_env, only: output_unit, error_unit
 
       Implicit none

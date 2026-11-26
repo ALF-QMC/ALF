@@ -53,11 +53,13 @@ module wrapul_mod
 !> \endverbatim
 !--------------------------------------------------------------------
 
-        Use UDV_State_mod
+        Use UDV_State_mod, only: UDV_State
 #if defined(STAB2) ||  defined(STAB1) 
-        Use Hamiltonian_main
-        Use Hop_mod
-        Use UDV_Wrap_mod
+        Use Hamiltonian_main, only: Ndim, N_FL_eff, Calc_Fl_map, Op_V, nsigma
+        Use Hop_mod, only: Hop_mod_mmthl
+        Use UDV_Wrap_mod, only: UDV_WRAP_Pivot
+        Use Operator_mod, only: Op_mmultL
+        Use MyMats, only: INITD
 
         Implicit none
 
@@ -69,7 +71,8 @@ module wrapul_mod
         ! Working space.
         COMPLEX (Kind=Kind(0.d0)) ::  U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        Integer :: NT, NCON, n, nf, nf_eff, sign=1
+        Integer :: NT, NCON, n, nf, nf_eff
+        Integer, parameter :: sign = 1
         Real    (Kind=Kind(0.d0)) ::  X
  
 
@@ -106,7 +109,9 @@ module wrapul_mod
         ENDDO
 
 #else
-        Use Hop_mod
+        Use Hamiltonian_main, only: N_FL_eff, Calc_Fl_map, Op_V, nsigma
+        Use Hop_mod, only: Hop_mod_mmthlc
+        Use Operator_mod, only: Op_mmultR
         Implicit none
         
         ! Arguments

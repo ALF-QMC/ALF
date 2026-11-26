@@ -40,15 +40,16 @@
 !--------------------------------------------------------------------
 
      Module Tau_p_mod
-       Use Hamiltonian_main
-       Use Operator_mod
-       Use Control
-       Use Hop_mod
-       Use UDV_State_mod
-       Use Langevin_HMC_mod
-       Use tau_m_mod  !, only propr, proprm1
+       Use Hamiltonian_main, only: ham, Ndim, N_FL, N_FL_eff, Calc_Fl_map, Ltrot, Thtrot, Symm, reconstruction_needed
+       Use Control, only: Control_Precision_tau
+       Use Hop_mod, only: Hop_mod_Symm
+       Use UDV_State_mod, only: UDV_State
+       Use Langevin_HMC_mod, only: Langevin_HMC
+       Use tau_m_mod, only: PropR, PropRm1
        use cgr1_mod, only: cgrp
-       use wrapur_mod
+       Use MyMats, only: MMULT
+       Use files_mod, only: str_to_upper
+       use wrapur_mod, only: WRAPUR
 
      Contains
 

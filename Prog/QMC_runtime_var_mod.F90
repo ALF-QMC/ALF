@@ -31,8 +31,9 @@
 
 Module QMC_runtime_var
         
-        Use runtime_error_mod
+        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_FILE_NOT_FOUND
         Use iso_fortran_env, only: output_unit, error_unit
+        Use Natural_Constants, only: Eps_small
 
 #ifdef MPI
         Use mpi
@@ -105,6 +106,9 @@ Module QMC_runtime_var
     public :: read_and_broadcast_QMC_var_and_ham_name
 
     public :: lock_QMC_runtime_settings
+    public :: apply_CPU_MAX_policy
+    public :: apply_Langevin_overrides
+    public :: set_default_global_tau_sampling
 
     ! Accessors (getters/setters) for runtime variables
     public :: get_Nwrap,             set_Nwrap
@@ -308,6 +312,52 @@ Module QMC_runtime_var
             call lock_QMC_runtime_settings()
             
         end subroutine check_update_schemes_compatibility
+
+        !--------------------------------------------------------------------
+        !> @brief
+        !> With a CPU-time limit (CPU_MAX > 0) the run stops on time, so the
+        !> number of bins is set to a large value.
+        !> Has to be called before the settings are locked.
+        !--------------------------------------------------------------------
+        subroutine apply_CPU_MAX_policy()
+            call ensure_settings_unlocked("apply_CPU_MAX_policy")
+            if (abs(CPU_MAX) > Eps_small) NBin = 10000000
+        end subroutine apply_CPU_MAX_policy
+
+        !--------------------------------------------------------------------
+        !> @brief
+        !> Langevin dynamics updates all fields at once: sequential, HMC,
+        !> global and MALA updates (and tempering exchanges) are switched off.
+        !> Has to be called before the settings are locked.
+        !--------------------------------------------------------------------
+        subroutine apply_Langevin_overrides()
+            call ensure_settings_unlocked("apply_Langevin_overrides")
+            Sequential            = .false.
+            HMC                   = .false.
+            Global_MALA_moves     = .false.
+            Global_moves          = .false.
+            Global_tau_moves      = .false.
+            Global_tau_MALA_moves = .false.
+#if defined(TEMPERING)
+            N_exchange_steps      = 0
+#endif
+        end subroutine apply_Langevin_overrides
+
+        !--------------------------------------------------------------------
+        !> @brief
+        !> Default sampling without global tau moves: the sequential sweep
+        !> covers all N_op interaction vertices and no global tau updates
+        !> (plain or MALA) are done.
+        !> Has to be called before the settings are locked.
+        !--------------------------------------------------------------------
+        subroutine set_default_global_tau_sampling(N_op)
+            integer, intent(in) :: N_op
+            call ensure_settings_unlocked("set_default_global_tau_sampling")
+            Nt_sequential_start = 1
+            Nt_sequential_end   = N_op
+            N_Global_tau        = 0
+            N_Global_tau_MALA   = 0
+        end subroutine set_default_global_tau_sampling
 
         !--------------------------------------------------------------------
         !> @brief

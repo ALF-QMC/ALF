@@ -136,3 +136,111 @@ add_test(33-Op-equal 33-Op-equal)
 add_test(34-Op-V-symm-pass 34-Op-V-symm-pass)
 add_test(35-Op-V-symm-fail 35-Op-V-symm-fail)
 set_tests_properties(35-Op-V-symm-fail PROPERTIES WILL_FAIL TRUE)
+
+# Hamiltonian smoke test: Alloc_Ham + Ham_set + Validate_Ham_Variables with
+# default parameters, one ctest per model in Prog/Hamiltonians.list (and
+# Prog/Hamiltonians.list.d/*), so newly registered models are covered
+# automatically. The executable links all Prog objects except main.o (object
+# list from Prog/.deps.mk, as in MALA.tests). Each model runs in its own
+# directory because Ham_set reads ./parameters and writes ./info. With
+# TEMPERING the parameters are read from Temp_<n>/, so the test is only
+# built without it.
+if("${FLAG_LIST}" MATCHES "-DTEMPERING")
+  message(STATUS "Hamiltonian smoke tests skipped for TEMPERING builds")
+else()
+  if("${FLAG_LIST}" MATCHES "-DMPI")
+    find_package(MPI REQUIRED COMPONENTS Fortran)
+  endif()
+  set(PROG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog")
+  file(STRINGS "${PROG_DIR}/Hamiltonians.list" ham_lines)
+  file(GLOB ham_list_d "${PROG_DIR}/Hamiltonians.list.d/*")
+  foreach(list_file ${ham_list_d})
+    file(STRINGS "${list_file}" more_lines)
+    list(APPEND ham_lines ${more_lines})
+  endforeach()
+  set(ham_names)
+  foreach(line ${ham_lines})
+    string(STRIP "${line}" line)
+    if(line AND NOT line MATCHES "^#")
+      string(REGEX MATCH "^[^ \t]+" ham_name "${line}")
+      list(APPEND ham_names ${ham_name})
+    endif()
+  endforeach()
+  file(READ "${PROG_DIR}/.deps.mk" dependencies)
+  string(FIND "${dependencies}" "\n\n" objects_end)
+  string(SUBSTRING "${dependencies}" 0 ${objects_end} object_list)
+  string(REGEX MATCHALL "[A-Za-z0-9_./+-]+\\.o" objects "${object_list}")
+  list(REMOVE_ITEM objects main.o)
+  set(prog_objects)
+  foreach(object ${objects})
+    list(APPEND prog_objects "${PROG_DIR}/${object}")
+  endforeach()
+  add_executable(36-Ham-smoke 36-Ham-smoke.F90)
+  target_compile_options(36-Ham-smoke PRIVATE ${FLAG_LIST})
+  target_include_directories(36-Ham-smoke PRIVATE "${PROG_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+  target_link_libraries(36-Ham-smoke ${prog_objects} ${LIB_LIST})
+  foreach(ham_name ${ham_names})
+    set(run_dir "${CMAKE_CURRENT_BINARY_DIR}/36-Ham-smoke.${ham_name}")
+    file(MAKE_DIRECTORY "${run_dir}")
+    if("${FLAG_LIST}" MATCHES "-DMPI")
+      add_test(NAME 36-Ham-smoke-${ham_name}
+        COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS}
+          $<TARGET_FILE:36-Ham-smoke> ${MPIEXEC_POSTFLAGS} ${ham_name}
+        WORKING_DIRECTORY "${run_dir}")
+    else()
+      add_test(NAME 36-Ham-smoke-${ham_name} COMMAND 36-Ham-smoke ${ham_name}
+        WORKING_DIRECTORY "${run_dir}")
+    endif()
+    set_tests_properties(36-Ham-smoke-${ham_name} PROPERTIES
+      ENVIRONMENT "OMP_NUM_THREADS=1" TIMEOUT 60)
+  endforeach()
+endif()
+
+# Unit test for QMC_runtime_var (defaults, set/get round trip, lock).
+# In MPI builds it is started with mpiexec, like 36-Ham-smoke.
+if("${FLAG_LIST}" MATCHES "-DMPI")
+  find_package(MPI REQUIRED COMPONENTS Fortran)
+endif()
+add_executable(37-QMC-runtime-var 37-QMC-runtime-var.F90)
+target_compile_options(37-QMC-runtime-var PRIVATE ${FLAG_LIST})
+target_include_directories(37-QMC-runtime-var PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+target_link_libraries(37-QMC-runtime-var
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/QMC_runtime_var_mod.o" ${LIB_LIST})
+if("${FLAG_LIST}" MATCHES "-DMPI")
+  add_test(NAME 37-QMC-runtime-var
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS}
+      $<TARGET_FILE:37-QMC-runtime-var> ${MPIEXEC_POSTFLAGS})
+else()
+  add_test(NAME 37-QMC-runtime-var COMMAND 37-QMC-runtime-var)
+endif()
+
+# A setter after the lock must terminate the program.
+add_executable(38-QMC-runtime-lock-fail 38-QMC-runtime-lock-fail.F90)
+target_compile_options(38-QMC-runtime-lock-fail PRIVATE ${FLAG_LIST})
+target_include_directories(38-QMC-runtime-lock-fail PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+target_link_libraries(38-QMC-runtime-lock-fail
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/QMC_runtime_var_mod.o" ${LIB_LIST})
+if("${FLAG_LIST}" MATCHES "-DMPI")
+  add_test(NAME 38-QMC-runtime-lock-fail
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS}
+      $<TARGET_FILE:38-QMC-runtime-lock-fail> ${MPIEXEC_POSTFLAGS})
+else()
+  add_test(NAME 38-QMC-runtime-lock-fail COMMAND 38-QMC-runtime-lock-fail)
+endif()
+set_tests_properties(38-QMC-runtime-lock-fail PROPERTIES WILL_FAIL TRUE TIMEOUT 60)
+
+# Unit test for the communication layer comm_mod (Libraries/Modules).
+add_executable(39-comm-mod 39-comm-mod.F90)
+target_compile_options(39-comm-mod PRIVATE ${FLAG_LIST})
+target_include_directories(39-comm-mod PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules")
+target_link_libraries(39-comm-mod ${LIB_LIST})
+if("${FLAG_LIST}" MATCHES "-DMPI")
+  add_test(NAME 39-comm-mod
+    COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS}
+      $<TARGET_FILE:39-comm-mod> ${MPIEXEC_POSTFLAGS})
+else()
+  add_test(NAME 39-comm-mod COMMAND 39-comm-mod)
+endif()

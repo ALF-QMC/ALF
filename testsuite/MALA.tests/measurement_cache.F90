@@ -83,6 +83,7 @@ program test_measurement_cache
   use measurement_fixture
   use Langevin_HMC_mod
   use Hop_mod
+  use Operator_mod, only: Operator, Op_make, Op_set
   use Control
   use Random_wrap
   use UDV_State_mod
@@ -95,19 +96,22 @@ program test_measurement_cache
   integer, allocatable :: stab(:), seed_before(:), seed_after(:), seed_fresh(:)
   integer :: i, scheme, k, accepted, rejected, count_before
   integer :: seed(1) = [8752143]
+  type(Operator), allocatable :: model_Op_T(:,:), model_Op_V(:,:)
 
-  Ndim=1; N_FL=1; N_FL_eff=1; N_SUN=1; Ltrot=2; Thtrot=0; Group_Comm=0
-  Projector=.false.; Symm=.false.; reconstruction_needed=.false.; leap_frog_bulk=.false.
+  call Set_Group_Comm(0)
+  leap_frog_bulk=.false.
   allocate(fixture_hamiltonian :: ham)
-  allocate(Calc_Fl(1),Calc_Fl_map(1),Op_T(1,1),Op_V(1,1))
-  Calc_Fl=.true.; Calc_Fl_map=1
-  call Op_make(Op_T(1,1),1)
-  Op_T(1,1)%P=1; Op_T(1,1)%O=0.d0; Op_T(1,1)%g=1.d0; Op_T(1,1)%type=0
-  call Op_set(Op_T(1,1))
-  call Op_make(Op_V(1,1),1)
-  Op_V(1,1)%P=1; Op_V(1,1)%O=1.d0; Op_V(1,1)%g=0.7d0
-  Op_V(1,1)%alpha=-0.5d0; Op_V(1,1)%type=3
-  call Op_set(Op_V(1,1))
+  allocate(model_Op_T(1,1),model_Op_V(1,1))
+  call Op_make(model_Op_T(1,1),1)
+  model_Op_T(1,1)%P=1; model_Op_T(1,1)%O=0.d0; model_Op_T(1,1)%g=1.d0; model_Op_T(1,1)%type=0
+  call Op_set(model_Op_T(1,1))
+  call Op_make(model_Op_V(1,1),1)
+  model_Op_V(1,1)%P=1; model_Op_V(1,1)%O=1.d0; model_Op_V(1,1)%g=0.7d0
+  model_Op_V(1,1)%alpha=-0.5d0; model_Op_V(1,1)%type=3
+  call Op_set(model_Op_V(1,1))
+  ! Ndim=1, N_FL=1, N_SUN=1, Ltrot=2, Thtrot=0, no projector, no symmetric decomposition
+  call Set_model_for_testing(1, 1, 1, 2, 0, .false., .false., model_Op_T, model_Op_V)
+  call Setup_flavor_map()   ! Calc_Fl=[T], N_FL_eff=1, Calc_Fl_map=[1], no reconstruction
   call nsigma%make(1,Ltrot)
   nsigma%t=3
   call Hop_mod_init

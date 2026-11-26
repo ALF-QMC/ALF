@@ -119,17 +119,38 @@
 !> \f$ \prod_{\tau} \; \;  \prod_{n=N_T}^{1}e^{T_n/2} \prod_{n=1}^{N_V}e^{V_n(\tau)}  \prod_{n=1}^{N_T}e^{T_n/2}  \f$
 !>
 !>
+!> @par Write access
+!> Op_V, Op_T, WF_L, WF_R, Calc_Fl, Calc_Fl_map, Ndim, N_FL, N_FL_eff, N_SUN, Ltrot, Thtrot,
+!> Projector, Group_Comm, Symm and reconstruction_needed are PUBLIC, PROTECTED: every module can
+!> read them, but only this module and its submodules (the Hamiltonians) can change them.
+!> They are fixed once Ham_set and Setup_flavor_map have run. The Monte Carlo core sets
+!> Group_Comm with Set_Group_Comm and releases the model with Clear_Ham_state. Unit tests that
+!> build a model without a Hamiltonian use Set_model_for_testing.
+!> nsigma (the auxiliary fields), leap_frog_bulk and ham stay writable from outside, because the
+!> Monte Carlo updates change them during the run.
+!>
 !> You still have to add some docu for the other private variables in this module.
 !>
 !--------------------------------------------------------------------
 
 
+! nvfortran (PGI) wrongly rejects ALLOCATE/DEALLOCATE of PROTECTED module arrays in submodules,
+! although submodules access them by host association (Fortran 2008). For nvfortran the arrays are
+! therefore not protected; the other compilers still enforce the read-only rule.
+#if defined(__PGI) || defined(__NVCOMPILER)
+#define PROTECTED_ARRAY
+#else
+#define PROTECTED_ARRAY , protected
+#endif
+
     Module Hamiltonian_main
-      Use runtime_error_mod
-      Use files_mod
-      Use Operator_mod, only: Operator, Op_V_is_symmetric
-      Use WaveFunction_mod, only: WaveFunction
-      Use Observables
+      Use runtime_error_mod, only: Terminate_on_error, ERROR_HAMILTONIAN
+      Use files_mod, only: str_to_upper
+      Use Operator_mod, only: Operator, Op_V_is_symmetric, Op_clear
+      Use WaveFunction_mod, only: WaveFunction, WF_clear
+      Use Observables, only: Obser_Vec, Obser_Latt, Obser_Latt_Local, &
+           &                 Obser_Vec_Init, Obser_Latt_Init, Obser_Latt_Local_Init, &
+           &                 Print_bin_Vec, Print_bin_Latt, Print_bin_Latt_Local
       Use Fields_mod, only: Fields
       use iso_fortran_env, only: output_unit, error_unit
       
@@ -137,6 +158,7 @@
     
     private
     public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED, Validate_Ham_Variables
+    public :: Setup_flavor_map, Clear_Ham_state, Set_Group_Comm, Set_model_for_testing
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
@@ -181,22 +203,22 @@
       
       class(ham_base), allocatable :: ham
 
-      Type (Operator),     dimension(:,:), allocatable, public :: Op_V
-      Type (Operator),     dimension(:,:), allocatable, public :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable, public :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable, public :: WF_R
-      Logical            , dimension(:),   allocatable, public :: Calc_Fl
-      Integer            , dimension(:),   allocatable, public :: Calc_Fl_map
+      Type (Operator),     dimension(:,:), allocatable, public PROTECTED_ARRAY :: Op_V
+      Type (Operator),     dimension(:,:), allocatable, public PROTECTED_ARRAY :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable, public PROTECTED_ARRAY :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable, public PROTECTED_ARRAY :: WF_R
+      Logical            , dimension(:),   allocatable, public PROTECTED_ARRAY :: Calc_Fl
+      Integer            , dimension(:),   allocatable, public PROTECTED_ARRAY :: Calc_Fl_map
       Type (Fields), public        :: nsigma
-      Integer      , public        :: Ndim
-      Integer      , public        :: N_FL, N_FL_eff
-      Integer      , public        :: N_SUN
-      Integer      , public        :: Ltrot
-      Integer      , public        :: Thtrot
-      Logical      , public        :: Projector
-      Integer      , public        :: Group_Comm
-      Logical      , public        :: Symm
-      Logical      , public        :: reconstruction_needed
+      Integer      , public, protected        :: Ndim
+      Integer      , public, protected        :: N_FL, N_FL_eff
+      Integer      , public, protected        :: N_SUN
+      Integer      , public, protected        :: Ltrot
+      Integer      , public, protected        :: Thtrot
+      Logical      , public, protected        :: Projector
+      Integer      , public, protected        :: Group_Comm
+      Logical      , public, protected        :: Symm
+      Logical      , public, protected        :: reconstruction_needed
       Logical      , public        :: leap_frog_bulk
 
 
@@ -234,7 +256,7 @@
 #include "Hamiltonians_case.h"
 !!$       This file will be dynamically generated and appended
        Case default
-          write(error_unit, '("A","A","A")') 'Hamiltonian ', ham_name, ' not yet implemented!'
+          write(error_unit, '(A,A,A)') 'Hamiltonian ', trim(ham_name), ' not yet implemented!'
           CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
        end Select
        
@@ -1204,6 +1226,119 @@
       endif
 
     end subroutine Validate_Ham_Variables
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Sets up the flavours that are actually computed.
+    !> @details
+    !> Called from main.F90 after ham_set. If the Hamiltonian did not
+    !> allocate Calc_Fl, all flavours are computed. N_FL_eff counts the
+    !> computed flavours, Calc_Fl_map(1:N_FL_eff) lists them, and
+    !> reconstruction_needed is set if some flavours are reconstructed
+    !> instead of computed.
+    !--------------------------------------------------------------------
+    subroutine Setup_flavor_map()
+      implicit none
+      Integer :: I
+
+      If ( .not. allocated(Calc_Fl)) then
+        allocate(Calc_Fl(N_FL))
+        Calc_Fl=.True.
+      endif
+      ! Count number of flavors to be calculated
+      N_FL_eff=0
+      Do I=1,N_Fl
+        if (Calc_Fl(I)) N_FL_eff=N_FL_eff+1
+      Enddo
+      reconstruction_needed=.false.
+      If (N_FL_eff /= N_FL) reconstruction_needed=.true.
+      !initialize the flavor map
+      allocate(Calc_Fl_map(N_FL_eff))
+      N_FL_eff=0
+      Do I=1,N_Fl
+        if (Calc_Fl(I)) then
+           N_FL_eff=N_FL_eff+1
+           Calc_Fl_map(N_FL_eff)=I
+        endif
+      Enddo
+
+    end subroutine Setup_flavor_map
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Releases the model state at the end of the run.
+    !> @details
+    !> Called from main.F90 after the bin loop: clears the trial wave
+    !> functions (projector code), the interaction and hopping operators,
+    !> and the flavour map.
+    !--------------------------------------------------------------------
+    subroutine Clear_Ham_state()
+      implicit none
+      Integer :: n, nf
+
+      if (Projector) then
+         DO nf = 1, N_FL
+            CALL WF_clear(WF_R(nf))
+            CALL WF_clear(WF_L(nf))
+         ENDDO
+         DEALLOCATE(WF_R, WF_L)
+      endif
+      do nf = 1, N_FL
+        do n = 1, size(OP_V,1)
+          call Op_clear(Op_V(n,nf),Op_V(n,nf)%N)
+        enddo
+        do n = 1, size(OP_T,1)
+          call Op_clear(Op_T(n,nf),Op_T(n,nf)%N)
+        enddo
+      enddo
+      deallocate(Calc_Fl_map)
+
+    end subroutine Clear_Ham_state
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Sets the communicator of the group of MPI ranks that simulate the
+    !> same parameter set (created in main.F90 by MPI_COMM_SPLIT).
+    !--------------------------------------------------------------------
+    subroutine Set_Group_Comm(comm)
+      implicit none
+      Integer, intent(in) :: comm
+
+      Group_Comm = comm
+
+    end subroutine Set_Group_Comm
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Installs a model built outside a Hamiltonian. For unit tests only.
+    !> @details
+    !> Production runs set the model state in ham_set. Unit tests that
+    !> need a small hand-made model call this routine instead; the
+    !> operator arrays are moved in (Op_T_in and Op_V_in are deallocated
+    !> on return). Call Setup_flavor_map afterwards.
+    !--------------------------------------------------------------------
+    subroutine Set_model_for_testing(Ndim_in, N_FL_in, N_SUN_in, Ltrot_in, Thtrot_in, &
+         &                           Projector_in, Symm_in, Op_T_in, Op_V_in)
+      implicit none
+      Integer, intent(in) :: Ndim_in, N_FL_in, N_SUN_in, Ltrot_in, Thtrot_in
+      Logical, intent(in) :: Projector_in, Symm_in
+      Type (Operator), dimension(:,:), allocatable, intent(inout) :: Op_T_in, Op_V_in
+
+      Ndim      = Ndim_in
+      N_FL      = N_FL_in
+      N_SUN     = N_SUN_in
+      Ltrot     = Ltrot_in
+      Thtrot    = Thtrot_in
+      Projector = Projector_in
+      Symm      = Symm_in
+      call move_alloc(Op_T_in, Op_T)
+      call move_alloc(Op_V_in, Op_V)
+
+    end subroutine Set_model_for_testing
 
 
     end Module Hamiltonian_main

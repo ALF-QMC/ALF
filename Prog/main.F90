@@ -117,29 +117,60 @@ Program Main
 #ifdef MPI
         Use mpi
 #endif
-        Use runtime_error_mod
-        Use Operator_mod
-        Use QMC_runtime_var
-        Use Lattices_v3
-        Use MyMats
-        Use Hamiltonian_main
-        Use Control
-        Use Tau_m_mod
-        Use Tau_p_mod
-        Use Hop_mod
-        Use Global_mod
-        Use UDV_State_mod
-        Use Wrapgr_mod
-        Use Fields_mod
-        Use WaveFunction_mod
-        use entanglement_mod
+        Use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_HAMILTONIAN, &
+             &                       ERROR_RUNNING_FILE_FOUND
+        Use Operator_mod, only: Op_phase
+        Use mpi_shared_memory, only: mpi_shared_memory_init, deallocate_all_shared_memory, use_mpi_shm
+        Use QMC_runtime_var, only: check_compatibility_reconstruct_greens_function, &
+             &                     check_langevin_schemes_and_variables, check_mala_variables, &
+             &                     check_update_schemes_compatibility, get_amplitude, get_cpu_max, &
+             &                     get_delta_t_langevin_hmc, get_delta_t_mala_global, &
+             &                     get_delta_t_mala_global_tau, get_delta_t_mala_sequential, &
+             &                     get_global_mala_moves, get_global_moves, get_global_tau_mala_moves, &
+             &                     get_global_tau_moves, get_ham_name, get_hmc, get_langevin, &
+             &                     get_leapfrog_steps, get_lobs_en, get_lobs_st, get_ltau, get_max_force, &
+             &                     get_max_force_mala_global, get_max_force_mala_global_tau, &
+             &                     get_max_force_mala_sequential, get_mpi_per_parameter_set, get_n_global, &
+             &                     get_n_global_mala_sweeps, get_n_global_tau, get_n_global_tau_mala, &
+             &                     get_n_hmc_sweeps, get_nbin, get_nsweep, get_nt_sequential_end, &
+             &                     get_nt_sequential_start, get_nwrap, get_propose_s0, get_sequential, &
+             &                     get_sequential_mala, get_tempering_calc_det, &
+             &                     read_and_broadcast_qmc_var_and_ham_name, &
+             &                     set_default_values_measuring_interval, apply_Langevin_overrides, &
+             &                     set_default_global_tau_sampling, &
+             &                     set_mpi_per_parameter_set, set_n_global_tau, &
+             &                     set_n_global_tau_mala, apply_CPU_MAX_policy, set_nt_sequential_end, &
+             &                     set_nt_sequential_start
+        Use Hamiltonian_main, only: ham, Alloc_Ham, Validate_Ham_Variables, Setup_flavor_map, Clear_Ham_state, &
+             &                      Set_Group_Comm, &
+             &                      Ndim, N_FL, N_FL_eff, N_SUN, &
+             &                      Ltrot, Thtrot, Op_T, Op_V, nsigma, WF_L, WF_R, Calc_Fl, Calc_Fl_map, &
+             &                      Projector, Symm, Group_Comm, reconstruction_needed, leap_frog_bulk
+        Use files_mod, only: str_to_upper
+        Use Natural_Constants, only: Eps_small
+        Use Control, only: Control_init, Control_Print, Control_PrecisionG, Control_PrecisionP, &
+             &             make_truncation
+        Use Tau_m_mod, only: Tau_m
+        Use Tau_p_mod, only: Tau_p
+        Use Hop_mod, only: Hop_mod_init, Hop_mod_Symm
+        Use Global_mod, only: Global_Updates, Global_Tempering_setup, Global_Tempering_init_obs, &
+             &                Global_Tempering_Pr
+#if defined(TEMPERING)
+        Use Global_mod, only: Exchange_Step
+        Use QMC_runtime_var, only: read_and_broadcast_TEMPERING_var, get_N_exchange_steps, &
+             &                     get_N_Tempering_frequency
+#endif
+        Use UDV_State_mod, only: UDV_State
+        Use Wrapgr_mod, only: Wrapgr_alloc, Wrapgr_dealloc, WrapgrUP, WrapgrDO
+        Use Fields_mod, only: Fields_init
+        use entanglement_mod, only: Init_Entanglement_replicas
         use iso_fortran_env, only: output_unit, error_unit
-        Use Langevin_HMC_mod
-        use wrapur_mod
-        use wrapul_mod
-        use cgr1_mod
-        use set_random
-        use iso8601_datetime_mod
+        Use Langevin_HMC_mod, only: Langevin_HMC, Langevin_HMC_Reset_storage, Metropolis_Langevin
+        use wrapur_mod, only: WRAPUR
+        use wrapul_mod, only: WRAPUL
+        use cgr1_mod, only: CGR
+        use set_random, only: Set_Random_number_Generator
+        use iso8601_datetime_mod, only: iso8601_datetime
          
 #ifdef HDF5
         use hdf5
@@ -174,7 +205,6 @@ Program Main
         Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau, tmp_N_Global_tau_MALA
         Logical :: Toggle,  Toggle1
         Complex (Kind=Kind(0.d0)) :: Phase, Z, Z1
-        Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8
         Real    (Kind=Kind(0.d0)) :: Mc_step_weight
 
 #if defined(MPI) || defined(HDF5)
@@ -196,7 +226,7 @@ Program Main
         character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
         character(64) :: chunk_size_str
         Real    (Kind=Kind(0.d0)) :: chunk_size_gb
-        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
+        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, comm_split
 
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
@@ -262,7 +292,8 @@ Program Main
 #ifdef MPI
         color = irank/get_mpi_per_parameter_set()
         key   =  0
-        call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,Group_comm, ierr)
+        call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,comm_split, ierr)
+        call Set_Group_Comm(comm_split)
         call MPI_Comm_rank(Group_Comm, Irank_g, ierr)
         call MPI_Comm_size(Group_Comm, Isize_g, ierr)
         igroup           = irank/isize_g
@@ -344,27 +375,9 @@ Program Main
         enddo
          
 
-        ! Test if user has initialized Calc_FL array
-        If ( .not. allocated(Calc_Fl)) then
-          allocate(Calc_Fl(N_FL))
-          Calc_Fl=.True.
-        endif
-        ! Count number of flavors to be calculated
-        N_FL_eff=0
-        Do I=1,N_Fl
-          if (Calc_Fl(I)) N_FL_eff=N_FL_eff+1
-        Enddo
-        reconstruction_needed=.false.
-        If (N_FL_eff /= N_FL) reconstruction_needed=.true.
-        !initialize the flavor map
-        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL))
-        N_FL_eff=0
-        Do I=1,N_Fl
-          if (Calc_Fl(I)) then
-             N_FL_eff=N_FL_eff+1
-             Calc_Fl_map(N_FL_eff)=I
-          endif
-        Enddo
+        ! Flavours to compute: Calc_Fl (default all), N_FL_eff, Calc_Fl_map, reconstruction_needed
+        Call Setup_flavor_map()
+        allocate(Phase_array(N_FL))
 
         if(Projector) then
            do nf_eff=1,N_fl_eff
@@ -380,10 +393,7 @@ Program Main
 
         If ( .not. ( get_Global_tau_moves() .or. get_Global_tau_MALA_moves() ) )  then
            ! This  corresponds to the default updating scheme
-           call set_Nt_sequential_start(1)
-           call set_Nt_sequential_end(Size(OP_V,1))
-           call set_N_Global_tau(0)
-           call set_N_Global_tau_MALA(0)
+           call set_default_global_tau_sampling(Size(OP_V,1))
         else
            !  Gives the possibility to set parameters in the Hamiltonian file
            tmp_Nt_sequential_start = get_Nt_sequential_start()
@@ -416,7 +426,7 @@ Program Main
         endif
         Call Hop_mod_init
 
-        IF (ABS(get_CPU_MAX()) > Zero ) call set_NBin(10000000)
+        Call apply_CPU_MAX_policy()
         If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA() ) then
            Call Wrapgr_alloc
         endif
@@ -479,15 +489,7 @@ Program Main
 #if defined(MPI)
                 endif
 #endif
-               call set_sequential(.False.)
-               call set_HMC(.False.)
-               call set_Global_MALA_moves(.False.)
-               call set_Global_moves(.False.)
-               call set_Global_tau_moves(.False.)
-               call set_Global_tau_MALA_moves(.False.)
-#if defined(TEMPERING)
-              call set_N_exchange_steps(0)
-#endif
+               call apply_Langevin_overrides()
            endif
            Call Langevin_HMC%make(get_Langevin(), get_HMC() , get_Global_MALA_moves(), get_Delta_t_Langevin_HMC(), get_Max_Force(), get_Leapfrog_Steps())
         else
@@ -518,7 +520,7 @@ Program Main
 #endif
            Open (Unit = 50,file=file_info,status="unknown",position="append")
            Write(50,*) 'Sweeps                              : ', get_NSweep()
-           If ( abs(get_CPU_MAX()) < ZERO ) then
+           If ( abs(get_CPU_MAX()) < Eps_small ) then
               Write(50,*) 'Bins                                : ', get_NBin()
               Write(50,*) 'No CPU-time limitation '
            else
@@ -1001,7 +1003,7 @@ Program Main
 
            call system_clock(count_bin_end)
            prog_truncation = .false.
-           if ( abs(get_CPU_MAX()) > Zero ) then
+           if ( abs(get_CPU_MAX()) > Eps_small ) then
               Call make_truncation(prog_truncation,get_CPU_MAX(),count_bin_start,count_bin_end,group_comm)
            endif
            If (prog_truncation) then
@@ -1018,26 +1020,13 @@ Program Main
               CALL udvst(n,nf_eff)%dealloc
            ENDDO
         ENDDO
-        if (Projector) then
-           DO nf = 1, N_FL
-              CALL WF_clear(WF_R(nf))
-              CALL WF_clear(WF_L(nf))
-           ENDDO
-        endif
         DEALLOCATE(udvl, udvr, udvst)
         DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
-        if (Projector) DEALLOCATE(WF_R, WF_L)
         If (get_N_Global_tau() > 0 .or. get_N_Global_tau_MALA() > 0 .or. get_Sequential_MALA()) then
            Call Wrapgr_dealloc
         endif
-        do nf = 1, N_FL
-          do n = 1, size(OP_V,1)
-            call Op_clear(Op_V(n,nf),Op_V(n,nf)%N)
-          enddo
-          do n = 1, size(OP_T,1)
-            call Op_clear(Op_T(n,nf),Op_T(n,nf)%N)
-          enddo
-        enddo
+        ! Release the model state: trial wave functions, operators, flavour map
+        Call Clear_Ham_state()
 
 #if defined(MPI)  
         ! Gracefully deallocate all shared MPI memory (thw whole chunks)
@@ -1052,7 +1041,7 @@ Program Main
         If (Irank_g == 0 ) then
 #endif
            Open (Unit=50,file=file_info, status="unknown", position="append")
-           if ( abs(get_CPU_MAX()) > Zero ) then
+           if ( abs(get_CPU_MAX()) > Eps_small ) then
               Write(50,*)' Effective number of bins   : ', Nbin_eff
            endif
            write(50,*)'FIN TIME: ' // iso8601_datetime()
@@ -1063,7 +1052,7 @@ Program Main
         
         Call Langevin_HMC%clean()
         Call Metropolis_Langevin%clean()
-        deallocate(Calc_Fl_map,Phase_array)
+        deallocate(Phase_array)
 
          ! Delete the file RUNNING since the simulation finished successfully
 #if defined(MPI)

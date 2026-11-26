@@ -41,8 +41,10 @@
 
     Module Predefined_Int
       
-      Use Operator_mod
-      
+      Use Operator_mod,      only: Operator, Op_make, Op_set
+      Use runtime_error_mod, only: Terminate_on_error, ERROR_HAMILTONIAN
+      Use iso_fortran_env,   only: error_unit
+
       Implicit none
       
       

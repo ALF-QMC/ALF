@@ -316,7 +316,7 @@
 
           Implicit none
 
-          Real (Kind=Kind(0.d0) ) ::  Ham_Lambda = 0.d0
+          Real (Kind=Kind(0.d0) ) ::  Ham_Lambda
 
           Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
                &                                  Ham_T2_vec(:),  Ham_Lambda_vec(:)
@@ -334,6 +334,7 @@
           Phi_X_vec      = Phi_X
           Phi_Y_vec      = Phi_Y
           Ham_T2_vec     = Ham_T2
+          Ham_Lambda     = 0.d0
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
 

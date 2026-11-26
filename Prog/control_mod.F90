@@ -45,8 +45,8 @@
 
 module Control
 
-    use files_mod
-    Use MyMats
+    use files_mod, only: str_to_upper
+    Use MyMats, only: Compare
     use iso_fortran_env, only: output_unit, error_unit
     Implicit none
 
@@ -341,7 +341,7 @@ module Control
 #ifdef MPI
         Use mpi
 #endif
-        use runtime_error_mod
+        use runtime_error_mod, only: Terminate_on_error, ERROR_GENERIC, ERROR_UNSTABLE_MATRIX
         Implicit none
 
         Integer :: Ndim
@@ -485,9 +485,7 @@ module Control
 
 
       Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA, MALA_seq, MALA_gtau)
-#ifdef MPI
-        Use mpi
-#endif
+        Use comm_mod, only: comm_reduce_mean, comm_reduce_max, comm_reduce_sum, is_root, comm_world_rank, comm_size
         Implicit none
 
         Integer, Intent(IN) :: Group_Comm
@@ -498,16 +496,10 @@ module Control
         Character (len=64) :: file1
         Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC, Acc_HMC
         Real (Kind=Kind(0.d0)) :: Acc_MALA
-#ifdef MPI
-        REAL (Kind=Kind(0.d0))  :: X
-        Integer (Kind=Kind(0.d0)) :: N
-        Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
+#if defined(TEMPERING)
+        Integer        :: igroup
 
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-        call MPI_Comm_size(Group_Comm, isize_g, ierr)
-        igroup           = irank/isize_g
+        igroup           = comm_world_rank()/comm_size(Group_Comm)
 #endif
 
         ACC = 0.d0
@@ -553,129 +545,67 @@ module Control
            Force_0_mean_MALA_global = Force_0_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
         endif
         
-#if defined(MPI)
+        ! Average/maximum over the ranks of the group (no-ops without MPI)
         If (str_to_upper(Global_update_scheme) == "LANGEVIN")  then
-           X = 0.d0
-           CALL MPI_REDUCE(Force_mean,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max= X
+           Call comm_reduce_mean(Force_mean, Group_Comm)
+           Call comm_reduce_max(Force_max, Group_Comm)
         endif
         ! Collectives are guarded by parameters, which are identical on all ranks.
         If (MALA_seq)  then
-           X = 0.d0
-           CALL MPI_REDUCE(Force_mean_MALA_seq,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean_MALA_seq= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max_MALA_seq,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max_MALA_seq= X
-           X = 0.d0
-           CALL MPI_REDUCE(Force_0_mean_MALA_seq,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_0_mean_MALA_seq= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_0_max_MALA_seq,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_0_max_MALA_seq= X
+           Call comm_reduce_mean(Force_mean_MALA_seq, Group_Comm)
+           Call comm_reduce_max(Force_max_MALA_seq, Group_Comm)
+           Call comm_reduce_mean(Force_0_mean_MALA_seq, Group_Comm)
+           Call comm_reduce_max(Force_0_max_MALA_seq, Group_Comm)
         endif
         If (MALA_gtau)  then
-           X = 0.d0
-           CALL MPI_REDUCE(Force_mean_MALA_gtau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean_MALA_gtau= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max_MALA_gtau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max_MALA_gtau= X
-           X = 0.d0
-           CALL MPI_REDUCE(Force_0_mean_MALA_gtau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_0_mean_MALA_gtau= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_0_max_MALA_gtau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_0_max_MALA_gtau= X
+           Call comm_reduce_mean(Force_mean_MALA_gtau, Group_Comm)
+           Call comm_reduce_max(Force_max_MALA_gtau, Group_Comm)
+           Call comm_reduce_mean(Force_0_mean_MALA_gtau, Group_Comm)
+           Call comm_reduce_max(Force_0_max_MALA_gtau, Group_Comm)
         endif
         If (MALA)  then
-           X = 0.d0
-           CALL MPI_REDUCE(Force_mean_MALA_global,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean_MALA_global= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max_MALA_global,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max_MALA_global= X
-           X = 0.d0
-           CALL MPI_REDUCE(Force_0_mean_MALA_global,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_0_mean_MALA_global= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_0_max_MALA_global,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_0_max_MALA_global= X
-           X = 0.d0
-           CALL MPI_REDUCE(XMEANP_MALA,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           XMEANP_MALA = X
-           CALL MPI_REDUCE(XMAXP_MALA,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           XMAXP_MALA = X
-           N = 0
-           CALL MPI_REDUCE(NC_Phase_MALA,N,1,MPI_INTEGER8,MPI_SUM, 0,Group_Comm,IERR)
-           NC_Phase_MALA = N
+           Call comm_reduce_mean(Force_mean_MALA_global, Group_Comm)
+           Call comm_reduce_max(Force_max_MALA_global, Group_Comm)
+           Call comm_reduce_mean(Force_0_mean_MALA_global, Group_Comm)
+           Call comm_reduce_max(Force_0_max_MALA_global, Group_Comm)
+           Call comm_reduce_sum(XMEANP_MALA, Group_Comm)
+           Call comm_reduce_max(XMAXP_MALA, Group_Comm)
+           Call comm_reduce_sum(NC_Phase_MALA, Group_Comm)
         endif
         If (str_to_upper(Global_update_scheme) == "HMC")  then
-           X = 0.d0
-           CALL MPI_REDUCE(XMEANP_HMC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           XMEANP_HMC = X
-           CALL MPI_REDUCE(XMAXP_HMC,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           XMAXP_HMC = X
-           N = 0
-           CALL MPI_REDUCE(NC_Phase_HMC,N,1,MPI_INTEGER8,MPI_SUM, 0,Group_Comm,IERR)
-           NC_Phase_HMC = N
+           Call comm_reduce_sum(XMEANP_HMC, Group_Comm)
+           Call comm_reduce_max(XMAXP_HMC, Group_Comm)
+           Call comm_reduce_sum(NC_Phase_HMC, Group_Comm)
         endif
-        X = 0.d0
-        CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_eff,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_eff = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_Glob = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_HMC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_HMC = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_Temp ,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_Temp  = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(ACC_MALA,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_MALA = X/dble(Isize_g)
+        Call comm_reduce_mean(ACC, Group_Comm)
+        Call comm_reduce_mean(ACC_eff, Group_Comm)
+        Call comm_reduce_mean(ACC_Glob, Group_Comm)
+        Call comm_reduce_mean(ACC_HMC, Group_Comm)
+        Call comm_reduce_mean(ACC_Temp, Group_Comm)
+        Call comm_reduce_mean(ACC_MALA, Group_Comm)
 
-        X = 0.d0
-        CALL MPI_REDUCE(size_clust_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        size_clust_Glob = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(size_clust_Glob_ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        size_clust_Glob_ACC = X/dble(Isize_g)
+        Call comm_reduce_mean(size_clust_Glob, Group_Comm)
+        Call comm_reduce_mean(size_clust_Glob_ACC, Group_Comm)
 
-        X = 0.d0
-        CALL MPI_REDUCE(XMEANG,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        XMEANG = X/dble(Isize_g)
-        X = 0.d0
-        CALL MPI_REDUCE(XMEAN_tau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        XMEAN_tau = X/dble(Isize_g)
+        Call comm_reduce_mean(XMEANG, Group_Comm)
+        Call comm_reduce_mean(XMEAN_tau, Group_Comm)
 
-        X = 0.d0
-        CALL MPI_REDUCE(XMEANP_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        XMEANP_Glob = X/dble(Isize_g)
+        Call comm_reduce_mean(XMEANP_Glob, Group_Comm)
 
-        X = 0.d0
-        CALL MPI_REDUCE(Time,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        Time = X/dble(Isize_g)
+        Call comm_reduce_mean(Time, Group_Comm)
 
 
-        CALL MPI_REDUCE(XMAXG,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXG = X
-        CALL MPI_REDUCE(XMAX_tau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAX_tau= X
+        Call comm_reduce_max(XMAXG, Group_Comm)
+        Call comm_reduce_max(XMAX_tau, Group_Comm)
 
-        CALL MPI_REDUCE(XMAXP,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXP = X
+        Call comm_reduce_max(XMAXP, Group_Comm)
 
-        CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXP_GLOB = X
+        Call comm_reduce_max(XMAXP_GLOB, Group_Comm)
 
-        CALL MPI_REDUCE(XMAXP_HMC,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXP_HMC = X
+        Call comm_reduce_max(XMAXP_HMC, Group_Comm)
 
-        CALL MPI_REDUCE(XMAXP_MALA,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-        XMAXP_MALA = X
+        Call comm_reduce_max(XMAXP_MALA, Group_Comm)
 
-#endif
 
 #if defined(TEMPERING)
         write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
@@ -683,9 +613,7 @@ module Control
         File1 = "info"
 #endif
 
-#if defined(MPI)
-        If (Irank_g == 0 ) then
-#endif
+        If (is_root(Group_Comm)) then
 
 
            Open (Unit=50,file=file1, status="unknown", position="append")
@@ -744,9 +672,7 @@ module Control
            
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)
-#if defined(MPI)
         endif
-#endif
 
       end Subroutine Control_Print
 
@@ -757,9 +683,7 @@ module Control
       ! The subroutine contains a hard-coded threshold (in unit of bins):
       ! if time_remain/time_bin_duration < threshold the program terminates.
 
-#ifdef MPI
-      Use mpi
-#endif
+      Use comm_mod, only: comm_reduce_mean, comm_bcast, comm_world
 
       logical, intent(out)                 :: prog_truncation
       real(kind=kind(0.d0)), intent(in)    :: cpu_max
@@ -767,19 +691,10 @@ module Control
       integer, intent(in)                  :: group_comm
       real(kind=kind(0.d0))                :: count_alloc_end
       real(kind=kind(0.d0))                :: time_bin_duration,time_remain,bins_remain,threshold
-#ifdef MPI
-      real(kind=kind(0.d0))                :: bins_remain_mpi
-      integer                              :: err_mpi, irank, isize, irank_g, isize_g
-#endif
+      integer                              :: comm
       threshold = 1.5d0
       prog_truncation = .false.
 
-#ifdef MPI
-      call mpi_comm_size(mpi_comm_world, isize, err_mpi)
-      call mpi_comm_rank(mpi_comm_world, irank, err_mpi)
-      call mpi_comm_size(group_comm, isize_g, err_mpi)
-      call mpi_comm_rank(group_comm, irank_g, err_mpi)
-#endif
       count_alloc_end   = count_CPU_start + cpu_max*3600*count_rate
       time_bin_duration = (count_bin_end-count_bin_start)/dble(count_rate)
       time_remain       = (count_alloc_end - count_bin_end)/dble(count_rate)
@@ -789,18 +704,15 @@ module Control
       endif
       bins_remain       = time_remain/time_bin_duration
 
-#ifdef MPI
+      ! Average over the ranks (the group with PARALLEL_PARAMS, all ranks otherwise),
+      ! so that all ranks take the same decision. No-op without MPI.
 #ifdef PARALLEL_PARAMS
-      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,group_comm,err_mpi)
-      if (irank_g .eq. 0) bins_remain_mpi = bins_remain_mpi/isize_g
-      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, group_comm,err_mpi)
+      comm = group_comm
 #else
-      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,mpi_comm_world,err_mpi)
-      if (irank .eq. 0) bins_remain_mpi = bins_remain_mpi/isize
-      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, mpi_comm_world,err_mpi)
+      comm = comm_world()
 #endif
-      bins_remain = bins_remain_mpi
-#endif
+      call comm_reduce_mean(bins_remain, comm)
+      call comm_bcast(bins_remain, comm)
       if (bins_remain .lt. threshold) prog_truncation = .true.
       end subroutine make_truncation
 

@@ -42,8 +42,8 @@
 
 Module UDV_Wrap_mod
 
-     Use MyMats
-     Use Files_mod
+     Use MyMats, only: Compare, DET_C, MMULT, SVD, UDV, QR
+     Use Files_mod, only: File_i
 
    Contains
 
@@ -52,7 +52,7 @@ Module UDV_Wrap_mod
 
 #if defined(STAB1) 
      Subroutine UDV_Wrap_Pivot(A,U,D,V,NCON,N1,N2)
-        Use QDRP_mod
+        Use QDRP_mod, only: Pivot_Phase
        
        Implicit NONE
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN),    DIMENSION(:,:) :: A
@@ -123,7 +123,7 @@ Module UDV_Wrap_mod
      End Subroutine UDV_Wrap_Pivot
 #else
      Subroutine UDV_Wrap_Pivot(A,U,D,V,NCON,N1,N2)
-        Use QDRP_mod
+        Use QDRP_mod, only: Pivot_Phase
 
        Implicit NONE
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN),    DIMENSION(:,:) :: A

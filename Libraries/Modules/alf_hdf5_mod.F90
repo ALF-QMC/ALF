@@ -977,9 +977,9 @@
            INTEGER(HID_T)   :: attr_id       ! Attribute identifier
            INTEGER(HID_T)   :: space_id      ! Attribute Dataspace identifier
            INTEGER(HID_T)   :: type_id       ! Attribute datatype identifier
-           INTEGER          :: rank = 1      ! Attribure rank
+           INTEGER, PARAMETER :: rank = 1   ! Attribure rank
            INTEGER(HSIZE_T) :: dims(1)       ! Attribute dimensions
-           INTEGER(SIZE_T)  :: attrlen = 64  ! Length of the attribute string
+           INTEGER(SIZE_T), PARAMETER :: attrlen = 64  ! Length of the attribute string
            
            ! Create scalar data space for the attribute.
            dims(1) = size(comment)

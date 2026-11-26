@@ -44,14 +44,16 @@
 
 Module Global_mod
 
-      Use runtime_error_mod
-      Use Hamiltonian_main
-      Use MyMats
-      Use Operator_mod
-      Use Control
-      Use Observables
-      Use Fields_mod
-      Use Random_Wrap
+      Use runtime_error_mod, only: Terminate_on_error, ERROR_GLOBAL_UPDATES
+      Use Hamiltonian_main, only: ham, Ndim, N_FL, N_FL_eff, N_SUN, Calc_Fl_map, Ltrot, Op_V, nsigma, &
+           &                      Projector, WF_L, WF_R, Group_Comm, reconstruction_needed, LOG_T0_REJECTED
+      Use MyMats, only: DET_C, DET_C_LU
+      Use Operator_mod, only: Op_phase
+      Use Control, only: Control_upgrade_Glob, Control_PrecisionP_Glob, Control_upgrade_Temp
+      Use files_mod, only: str_to_upper
+      Use Observables, only: Obser_Vec, Obser_Vec_make, Obser_Vec_Init, Print_bin_Vec
+      Use Fields_mod, only: Fields
+      Use Random_Wrap, only: ranf_wrap
       use iso_fortran_env, only: output_unit, error_unit
 
       Implicit none
@@ -106,10 +108,10 @@ Module Global_mod
 !>
 !--------------------------------------------------------------------
       Subroutine Exchange_Step(Phase,GR, udvr, udvl, Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
-        Use UDV_State_mod
+        Use UDV_State_mod, only: UDV_State
         Use mpi
-        use wrapul_mod
-        use cgr1_mod
+        use wrapul_mod, only: WRAPUL
+        use cgr1_mod, only: CGR
         Implicit none
 
         !  Arguments
@@ -449,9 +451,9 @@ Module Global_mod
 !--------------------------------------------------------------------
       Subroutine Global_Updates(Phase,GR, udvr, udvl, Stab_nt, udvst,N_Global)
 
-        Use UDV_State_mod
-        use wrapul_mod
-        use cgr1_mod
+        Use UDV_State_mod, only: UDV_State
+        use wrapul_mod, only: WRAPUL
+        use cgr1_mod, only: CGR
         Implicit none
 
         !  Arguments
@@ -792,9 +794,9 @@ Module Global_mod
       Subroutine Compute_Fermion_Det(Phase_det,Det_Vec, udvl, udvst, Stab_nt, storage)
 !--------------------------------------------------------------------
 
-        Use UDV_Wrap_mod
-        Use UDV_State_mod
-        use wrapul_mod
+        Use UDV_Wrap_mod, only: UDV_WRAP
+        Use UDV_State_mod, only: UDV_State
+        use wrapul_mod, only: WRAPUL
 
         Implicit none
 
