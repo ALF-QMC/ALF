@@ -219,21 +219,18 @@ Module UDV_Wrap_mod
        INTEGER, INTENT(IN) :: NCON
 
        !Local
-       Complex (Kind=Kind(0.d0)), Allocatable ::  A1(:,:),U1(:,:)
-       Integer :: N
+       ! A is N1 x N2 (N2 < N1 with projector): U is N1 x N2, D has N2 entries, V is N2 x N2
+       Complex (Kind=Kind(0.d0)), Allocatable ::  A1(:,:),U1(:,:),A2(:,:)
+       Integer :: N1, N2
 
        CALL QR(A,U,V,NCON)
-       N = Size(A,1)
-       Allocate (A1(N,N),U1(N,N))
-       !DO I = 1,N
-       !   DO J = 1,N
-       !      WRITE(6,*) I,J,V(I,J)
-       !   ENDDO
-       !ENDDO
+       N1 = Size(A,1)
+       N2 = Size(A,2)
+       Allocate (A1(N2,N2),U1(N2,N2),A2(N1,N2))
        A1 = V
        CALL SVD(A1,U1,D,V,NCON)
-       Call MMULT(A1,U,U1)
-       U = A1
+       Call MMULT(A2,U,U1)
+       U = A2
 
      End Subroutine UDV_Wrap
 

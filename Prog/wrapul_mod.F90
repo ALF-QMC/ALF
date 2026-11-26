@@ -103,7 +103,9 @@ module wrapul_mod
               CALL la_zgemm('N', 'C', Ndim, Ndim, Ndim, Z_ONE, udvl(nf_eff)%V, Ndim, V1, Ndim, beta, TMP1, Ndim)
               udvl(nf_eff)%V = TMP1
            else
-              CALL UDV_WRAP_Pivot(TMP1(:,1:UDVL(nf_eff)%N_part),udvl(nf_eff)%U,udvl(nf_eff)%D,V1,NCON,Ndim,UDVL(nf_eff)%N_part)
+              ! Projector: V is N_part x N_part, so pass only that block of the work array V1
+              CALL UDV_WRAP_Pivot(TMP1(:,1:UDVL(nf_eff)%N_part),udvl(nf_eff)%U,udvl(nf_eff)%D, &
+                   &              V1(1:UDVL(nf_eff)%N_part,1:UDVL(nf_eff)%N_part),NCON,Ndim,UDVL(nf_eff)%N_part)
            endif
            ! Test if scales in D are appraoching the limit of double precision.
            CALL UDVL(nf_eff)%testscale
