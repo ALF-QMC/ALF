@@ -7,10 +7,12 @@ program test_linalg
   complex(dp), parameter :: alpha = (0.7d0, -0.3d0), beta = (0.2d0, 0.5d0)
   complex(dp) :: A(n,n), B(n,n), C1(n,n), C2(n,n), H(n,n), x(n), y1(n), y2(n)
   complex(dp) :: tau1(n), tau2(n), work1(4*n*n), work2(4*n*n)
-  real(dp)    :: rwork1(2*n), rwork2(2*n)
+  real(dp)    :: rwork1(5*n), rwork2(5*n), s1(n), s2(n)
+  complex(dp) :: U1(n,n), U2(n,n), V1(n,n), V2(n,n), w1(n), w2(n)
   integer     :: ipiv1(n), ipiv2(n), jpvt1(n), jpvt2(n), info1, info2, n_fail
   external :: zgemm, zhemm, ztrsm, ztrmm, zgemv, zgeru, zscal, zcopy, zlacpy, &
-       &      zgetrf, zgetrs, zgetri, zgeqrf, zgeqp3, zungqr, zunmqr
+       &      zgetrf, zgetrs, zgetri, zgeqrf, zgeqp3, zungqr, zunmqr, &
+       &      zlaset, zlapmr, zlapmt, zgesvd, zheev, zgeev
 
   n_fail = 0
   call fill(A); call fill(B); call fill(H); H = H + conjg(transpose(H)); call fillv(x)
@@ -95,6 +97,37 @@ program test_linalg
   call zgeqp3(n, n, C1, n, jpvt1, tau1, work1, size(work1), rwork1, info1)
   call la_zgeqp3(n, n, C2, n, jpvt2, tau2, work2, size(work2), rwork2, info2)
   call check('zgeqp3', all(C1 == C2) .and. all(tau1 == tau2) .and. all(jpvt1 == jpvt2) .and. info1 == info2)
+
+  C1 = B; C2 = B
+  call zlaset('L', n, m, alpha, beta, C1, n)
+  call la_zlaset('L', n, m, alpha, beta, C2, n)
+  call check('zlaset', all(C1 == C2))
+
+  ipiv1 = [(n + 1 - info1, info1 = 1, n)]; ipiv2 = ipiv1      ! a permutation
+  C1 = A; C2 = A
+  call zlapmr(.true., n, m, C1, n, ipiv1)
+  call la_zlapmr(.true., n, m, C2, n, ipiv2)
+  call check('zlapmr', all(C1 == C2) .and. all(ipiv1 == ipiv2))
+
+  C1 = A; C2 = A
+  call zlapmt(.false., m, n, C1, n, ipiv1)
+  call la_zlapmt(.false., m, n, C2, n, ipiv2)
+  call check('zlapmt', all(C1 == C2) .and. all(ipiv1 == ipiv2))
+
+  C1 = A; C2 = A
+  call zgesvd('A', 'A', n, n, C1, n, s1, U1, n, V1, n, work1, size(work1), rwork1, info1)
+  call la_zgesvd('A', 'A', n, n, C2, n, s2, U2, n, V2, n, work2, size(work2), rwork2, info2)
+  call check('zgesvd', all(s1 == s2) .and. all(U1 == U2) .and. all(V1 == V2) .and. info1 == info2)
+
+  C1 = H; C2 = H
+  call zheev('V', 'U', n, C1, n, s1, work1, size(work1), rwork1, info1)
+  call la_zheev('V', 'U', n, C2, n, s2, work2, size(work2), rwork2, info2)
+  call check('zheev', all(C1 == C2) .and. all(s1 == s2) .and. info1 == info2)
+
+  C1 = A; C2 = A
+  call zgeev('V', 'V', n, C1, n, w1, U1, n, V1, n, work1, size(work1), rwork1, info1)
+  call la_zgeev('V', 'V', n, C2, n, w2, U2, n, V2, n, work2, size(work2), rwork2, info2)
+  call check('zgeev', all(w1 == w2) .and. all(U1 == U2) .and. all(V1 == V2) .and. info1 == info2)
 
   if (n_fail > 0) then
      write(*,*) 'linalg_mod test: ', n_fail, ' failure(s)'

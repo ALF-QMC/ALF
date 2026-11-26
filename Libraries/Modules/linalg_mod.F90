@@ -44,7 +44,8 @@
 !> that a GPU backend (e.g. OpenMP `dispatch` to oneMKL) changes only this
 !> module. Expected placement in such a backend:
 !>  - device: the BLAS routines, zgetrf/zgetrs/zgetri;
-!>  - host only (no GPU version in oneMKL): zgeqp3, zungqr.
+!>  - host only (no GPU version in oneMKL): zgeqp3, zungqr, zgesvd, zheev, zgeev;
+!>  - auxiliary (zlaset, zlapmr, zlapmt): simple loops, to be offloaded as kernels.
 !> Unlike the implicit interface of an external routine, the interfaces
 !> here are checked by the compiler (types, ranks, intents).
 !--------------------------------------------------------------------
@@ -52,7 +53,8 @@ module linalg_mod
   implicit none
   private
   public :: la_zgemm, la_zhemm, la_ztrsm, la_ztrmm, la_zgemv, la_zgeru, la_zscal, la_zcopy, &
-       &    la_zlacpy, la_zgetrf, la_zgetrs, la_zgetri, la_zgeqrf, la_zgeqp3, la_zungqr, la_zunmqr
+       &    la_zlacpy, la_zgetrf, la_zgetrs, la_zgetri, la_zgeqrf, la_zgeqp3, la_zungqr, la_zunmqr, &
+       &    la_zlaset, la_zlapmr, la_zlapmt, la_zgesvd, la_zheev, la_zgeev
 contains
   !> C = alpha op(A) op(B) + beta C (BLAS 3)
   subroutine la_zgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
@@ -222,5 +224,68 @@ contains
     external :: zunmqr
     call zunmqr(side, trans, m, n, k, a, lda, tau, c, ldc, work, lwork, info)
   end subroutine la_zunmqr
+
+  !> A = beta on the diagonal and alpha off the diagonal (LAPACK auxiliary)
+  subroutine la_zlaset(uplo, m, n, alpha, beta, a, lda)
+    character(len=1), intent(in) :: uplo
+    integer, intent(in) :: m, n, lda
+    complex(kind=kind(0.d0)), intent(in) :: alpha, beta
+    complex(kind=kind(0.d0)), intent(inout) :: a(lda,*)
+    external :: zlaset
+    call zlaset(uplo, m, n, alpha, beta, a, lda)
+  end subroutine la_zlaset
+
+  !> Permute the rows of X by K (LAPACK auxiliary; K is restored on exit)
+  subroutine la_zlapmr(forwrd, m, n, x, ldx, k)
+    logical, intent(in) :: forwrd
+    integer, intent(in) :: m, n, ldx
+    complex(kind=kind(0.d0)), intent(inout) :: x(ldx,*)
+    integer, intent(inout) :: k(*)
+    external :: zlapmr
+    call zlapmr(forwrd, m, n, x, ldx, k)
+  end subroutine la_zlapmr
+
+  !> Permute the columns of X by K (LAPACK auxiliary; K is restored on exit)
+  subroutine la_zlapmt(forwrd, m, n, x, ldx, k)
+    logical, intent(in) :: forwrd
+    integer, intent(in) :: m, n, ldx
+    complex(kind=kind(0.d0)), intent(inout) :: x(ldx,*)
+    integer, intent(inout) :: k(*)
+    external :: zlapmt
+    call zlapmt(forwrd, m, n, x, ldx, k)
+  end subroutine la_zlapmt
+
+  !> Singular value decomposition A = U S V^H (host only in oneMKL)
+  subroutine la_zgesvd(jobu, jobvt, m, n, a, lda, s, u, ldu, vt, ldvt, work, lwork, rwork, info)
+    character(len=1), intent(in) :: jobu, jobvt
+    integer, intent(in) :: m, n, lda, ldu, ldvt, lwork
+    complex(kind=kind(0.d0)), intent(inout) :: a(lda,*), u(ldu,*), vt(ldvt,*), work(*)
+    real(kind=kind(0.d0)), intent(inout) :: s(*), rwork(*)
+    integer, intent(out) :: info
+    external :: zgesvd
+    call zgesvd(jobu, jobvt, m, n, a, lda, s, u, ldu, vt, ldvt, work, lwork, rwork, info)
+  end subroutine la_zgesvd
+
+  !> Eigenvalues and eigenvectors of a Hermitian matrix (host only in oneMKL)
+  subroutine la_zheev(jobz, uplo, n, a, lda, w, work, lwork, rwork, info)
+    character(len=1), intent(in) :: jobz, uplo
+    integer, intent(in) :: n, lda, lwork
+    complex(kind=kind(0.d0)), intent(inout) :: a(lda,*), work(*)
+    real(kind=kind(0.d0)), intent(inout) :: w(*), rwork(*)
+    integer, intent(out) :: info
+    external :: zheev
+    call zheev(jobz, uplo, n, a, lda, w, work, lwork, rwork, info)
+  end subroutine la_zheev
+
+  !> Eigenvalues and eigenvectors of a general matrix (host only in oneMKL)
+  subroutine la_zgeev(jobvl, jobvr, n, a, lda, w, vl, ldvl, vr, ldvr, work, lwork, rwork, info)
+    character(len=1), intent(in) :: jobvl, jobvr
+    integer, intent(in) :: n, lda, ldvl, ldvr, lwork
+    complex(kind=kind(0.d0)), intent(inout) :: a(lda,*), w(*), vl(ldvl,*), vr(ldvr,*), work(*)
+    real(kind=kind(0.d0)), intent(inout) :: rwork(*)
+    integer, intent(out) :: info
+    external :: zgeev
+    call zgeev(jobvl, jobvr, n, a, lda, w, vl, ldvl, vr, ldvr, work, lwork, rwork, info)
+  end subroutine la_zgeev
 
 end module linalg_mod
