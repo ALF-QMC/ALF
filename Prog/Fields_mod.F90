@@ -70,6 +70,7 @@
 
        Public Fields
        Public Fields_init
+       Public Phi_of_field
 
        Private
        Real (Kind=Kind(0.d0))  :: Phi_st(-2:2,2),  Gama_st(-2:2,2)
@@ -115,22 +116,43 @@
         Class (Fields) :: this
         Integer, INTENT(IN) ::  n_op, n_tau
 
+        Fields_Phi = Phi_of_field(this%f(n_op,n_tau), this%t(n_op))
+      end function Fields_Phi
 
-        select case (this%t(n_op))
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> Returns Phi of a single field value f of type t.
+!>
+!> @details
+!> Fields_Phi without the Fields object, for callers that hold one field value
+!> and would otherwise build a one-entry Fields object, and so allocate, just
+!> to read its Phi.
+!-------------------------------------------------------------------
+
+      Complex (Kind=Kind(0.d0)) function  Phi_of_field(f,t)
+
+        Implicit none
+        Complex (Kind=Kind(0.d0)), INTENT(IN) :: f
+        Integer,                   INTENT(IN) :: t
+
+        select case (t)
         case(1)
-           Fields_Phi = cmplx(Phi_st(Nint(real(this%f(n_op,n_tau))),1), 0.d0,kind(0.d0))
+           Phi_of_field = cmplx(Phi_st(Nint(real(f)),1), 0.d0,kind(0.d0))
         case(2)
-           Fields_Phi = cmplx(Phi_st(Nint(real(this%f(n_op,n_tau))),2), 0.d0,kind(0.d0))
+           Phi_of_field = cmplx(Phi_st(Nint(real(f)),2), 0.d0,kind(0.d0))
         case(3)
-           Fields_Phi = cmplx(real(this%f(n_op,n_tau),kind(0.d0))     , 0.d0,kind(0.d0))
+           Phi_of_field = cmplx(real(f,kind(0.d0))     , 0.d0,kind(0.d0))
         case(4)
-           Fields_Phi = cmplx(Phi_st(Nint(real(this%f(n_op,n_tau))),2),0.d0,kind(0.d0)) * &
-                &       sqrt(cmplx( 1.d0 +  aimag(this%f(n_op,n_tau)), 0.d0,kind(0.d0)) )
+           Phi_of_field = cmplx(Phi_st(Nint(real(f)),2),0.d0,kind(0.d0)) * &
+                &       sqrt(cmplx( 1.d0 +  aimag(f), 0.d0,kind(0.d0)) )
         case default
            Write(error_unit,*) 'Error in Fields_Phi'
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
         end select
-      end function Fields_Phi
+      end function Phi_of_field
 
 !-------------------------------------------------------------------
 !> @author
